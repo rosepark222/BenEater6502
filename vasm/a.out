@@ -1,0 +1,5 @@
+Sections:
+Symbols:
+__RPTCNT EXPR(-1=0xffffffff) INTERNAL 
+__VASM EXPR(0=0) INTERNAL 
+__UNIXFS EXPR(0=0) INTERNAL 
