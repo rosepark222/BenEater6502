@@ -1,3 +1,11 @@
+
+
+
+# 7/14/2025 -- code updated to work with SDL 2.0
+
+the below is original README
+
+
 # LCDSim
 
 LCDSim is a library written in C that allow you to emulate a HD44780 LCD 16x2 display on your computer. The display function is possible with the use of the SDL (with some extra lib that allow loading of image).
