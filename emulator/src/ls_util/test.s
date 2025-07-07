@@ -1,4 +1,7 @@
-; ---------------------------------------------
+ 
+
+
+ ; ---------------------------------------------
 ; 6502 RAM File System LS Utility
 ; Author: ChatGPT (based on your FS design)
 ; ---------------------------------------------
@@ -7,12 +10,23 @@
 ; - RAM scratch:
 ;     $0200-$020F: path token buffer
 ;     $0210: current inode number
-;     $0220-$022F: inode buffer (16 bytes)
-;     $0300-$03FF: data block buffer (256B)
 ;     $0010/$0011: zero-page pointer to path string (used by tokenizer)
+; - No block/inode copying: data is accessed directly in place
 ; ---------------------------------------------
+; assume inode base = 0xBC00
+; assume blocks start at base $C000 (block 0)
+; ---------------------------------------------
+ 
 
-;/.segment "CODE"
+; --- Prepare Path String ---
+prepare_path:
+    LDX #$00
+copyLoop:
+    LDA rom_bin,X        ; Load byte from ROM string
+    STA $0400,X          ; Store to RAM path buffer
+    BEQ start_ls         ; If null terminator, jump to ls
+    INX
+    JMP copyLoop
 
 ; --- Entry Point ---
 start_ls:
@@ -29,7 +43,7 @@ next_token:
     BEQ done_resolving   ; If empty, done traversing
 
     LDA $0210
-    JSR get_inode        ; Load inode into $0220
+    JSR get_inode_ptr    ; Set pointer to inode address in $00/$01
 
     JSR find_in_dir      ; Look for token in this directory
     BCS not_found
@@ -39,9 +53,10 @@ next_token:
 
 done_resolving:
     LDA $0210
-    JSR get_inode
-    
-    LDA $0220            ; i_mode
+    JSR get_inode_ptr
+
+    LDY #0
+    LDA ($00),Y
     AND #%11110000
     CMP #%00010000       ; Directory?
     BEQ do_ls_dir
@@ -68,87 +83,86 @@ unknown_type:
     RTS
 
 ; ---------------------------------------------
-; Get inode
+; Set pointer to inode
 ; Input: A = inode number
-; Output: $0220-$022F filled
-get_inode:
-    STA $00
-    LDA #$00
-    STA $01
-    LDA $00
+; Output: $00/$01 = address of inode
+get_inode_ptr:
+    CMP #64
+    BCS bad_inode        ; Bounds check
+    STA $02
+    LDA $02
     ASL A
     ASL A
     ASL A
     ASL A                 ; inode * 16
-    CLC
-    ADC #$00
-    STA $02
-    LDA #$BC              ; inode base = 0xBC00
-    ADC #$00              ; carry from low byte add
-    STA $03
-
-    LDY #0
-get_inode_loop:
-    LDA ($02),Y
-    STA $0220,Y
-    INY
-    CPY #16
-    BNE get_inode_loop
+    STA $00
+    LDA #$BC              ; base address $BC00
+    ADC #0                ; add carry if any
+    STA $01
     RTS
+bad_inode:
+    JMP not_found
 
 ; ---------------------------------------------
 ; Find directory entry
 ; Input:
-;   $0220 = inode
+;   $00/$01 = pointer to inode
 ;   $0200 = search name (null-terminated)
 ; Output:
 ;   A = inode number
 ;   Carry = 0 if found, 1 if not
 find_in_dir:
-    LDA $0226              ; i_block[0]
-    JSR load_block
-    LDY #0
-find_loop:
-    LDA $0301,Y           ; file type
-    CMP #$FF              ; unused?
-    BEQ find_next
+    LDY #6
+    LDA ($00),Y          ; i_block[0]
+    JSR scan_block
+    BCC found_entry
 
-    ; Compare name
-    LDA #14
-    STA $04
-    LDX #0
-cmp_loop:
-    LDA $0302,Y
-    CMP $0200,X
-    BNE find_next
-    INX
     INY
-    DEC $04
-    BNE cmp_loop
+    LDA ($00),Y          ; i_block[1]
+    JSR scan_block
+    BCC found_entry
 
-    ; Match!
-    SEC
-    LDA $0300,Y
-    CLC
-    RTS
+    INY
+    LDA ($00),Y          ; i_block[2] = indirect block
+    BEQ not_found
+    STA $02              ; Save indirect block number
+    CMP #64
+    BCS not_found
 
-find_next:
-    TYA
-    CLC
-    ADC #16
-    TAY
+    LDA $02
+    ASL A
+    ROL $03
+    ASL A
+    ROL $03
+    STA $04
+    LDA $03
+    ORA #$C0
+    STA $03
+
+    LDY #0
+next_indirect:
+    LDA ($03),Y
+    BEQ skip_indirect
+    JSR scan_block
+    BCC found_entry
+skip_indirect:
+    INY
     CPY #$00
-    BNE find_loop
-    SEC
+    BNE next_indirect
+
+    JMP not_found
+
+found_entry:
+    CLC
     RTS
 
 ; ---------------------------------------------
-; Load data block
+; Scan single directory data block for token
 ; Input: A = block number
-; Output: data in $0300-$03FF
-load_block:
-    STA $05
-    ; Assume blocks start at $C000 (block 0)
+; Output: A = inode number if match, Carry = 0 if found, 1 if not
+scan_block:
+    CMP #64
+    BCS not_found_scan        ; Bounds check
     ASL A
     ROL $06
     ASL A
@@ -156,32 +170,75 @@ load_block:
     STA $07
     LDA $06
     ORA #$C0
-    STA $06
+    STA $06              ; address in $06/$07
+
     LDY #0
-load_loop:
+scan_loop:
     LDA ($06),Y
-    STA $0300,Y
+    CMP #$FF
+    BEQ scan_next
+
+    LDA #14
+    STA $04
+    LDX #0
+cmp_loop:
+    LDA ($06),Y
+    CMP $0200,X
+    BNE scan_next
+    INX
     INY
-    BNE load_loop
+    DEC $04
+    BNE cmp_loop
+
+    LDA ($06),Y
+    SEC
+    CLC
+    RTS
+
+scan_next:
+    TYA
+    CLC
+    ADC #16
+    TAY
+    CPY #$00
+    BNE scan_loop
+
+not_found_scan:
+    SEC
     RTS
 
 ; ---------------------------------------------
 ; Print directory contents
 print_dir:
-    LDA $0226
-    JSR load_block
+    LDY #6
+    LDA ($00),Y
+    JSR print_block
+    INY
+    LDA ($00),Y
+    JSR print_block
+    RTS
+
+print_block:
+    CMP #64
+    BCS skip_block
+    ASL A
+    ROL $02
+    ASL A
+    ROL $02
+    STA $03
+    LDA $02
+    ORA #$C0
+    STA $02
+
     LDY #0
 print_loop:
-    LDA $0300,Y           ; inode number
+    LDA ($02),Y           ; inode number
     CMP #$FF
     BEQ print_next
-
-    ; Print name at $0302,Y
-    ; Assume you have a print_string subroutine
     LDX #0
 print_name:
-    LDA $0302,Y
-    JSR print_char        ; your print_char routine
+    LDA ($02),Y
+    JSR print_char
     INX
     INY
     CPX #14
@@ -195,13 +252,12 @@ print_next:
     TAY
     CPY #$00
     BNE print_loop
+skip_block:
     RTS
 
 ; ---------------------------------------------
 ; Print file info
 print_file_info:
-    ; file size = $0222:$0223
-    ; ctime     = $0224:$0225
     ; For now, just print "file"
     LDX #0
     LDY #$00
@@ -271,3 +327,7 @@ compare_names:
     ; compare null-terminated $0200 and Y offset in memory
     ; (not used in final version)
     RTS
+
+; --- ROM String ---
+rom_bin:
+    .byte "/rom/bin", 0

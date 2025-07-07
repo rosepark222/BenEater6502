@@ -34,7 +34,7 @@ void write6502(uint16_t address, uint8_t value) {
 // --- Helper to print CPU state to a specified stream ---
 void print_cpu_state_to_stream(FILE *stream) {
     // Note: status register bits are: N V - B D I Z C
-    fprintf(stream, "CPU State: PC:%04X A:%02X X:%02X Y:%02X SP:%02X Status:%02X (NVCZI D-C)\n",
+    fprintf(stream, "CPU State: PC:%04X A:%02X X:%02X Y:%02X SP:%02X Status:%02X (NV-B DIZC)\n",
            pc, a, x, y, sp, status);
     fprintf(stream, "RAM State: $00:%02X $01:%02X $02:%02X\n", RAM[0x00], RAM[0x01], RAM[0x02]);
 }

@@ -200,10 +200,15 @@ LoopB4:
     INX
     BNE LoopB4
 
-BRK
+;BRK
+;    .align 2 ; 2 byte alighment
+;token1:       .byte "wwwwwwwwwwwwwwww"
+
+    .include "../ls_util/test.s"
 
     .org $CF60
 ; === File/Dir Names (14B) ===
+token2:       .byte "wwwwwwwwwwwwwwww"
 README_name: .byte "README.txt", 0, 0, 0
 RAM_name:    .byte "ram", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 ROM_name:    .byte "rom", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
