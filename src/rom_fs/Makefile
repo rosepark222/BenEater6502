@@ -3,7 +3,7 @@
 all: sim a.out.hex
 	./sim ./a.out.hex
 
-sim: $(BEN_HOME)/tools/fake6502_simulator/simulator.c
+sim: $(BEN_HOME)/tools/benEater_simulator/simulator.c
 	cc -std=c99 -Os $(BEN_HOME)/tools/benEater_simulator/simulator.c -DMAX_IRQ_INTERVAL -I$(BEN_HOME)/tools/fake6502/MyLittle6502 -o sim
 
 a.out.hex: a.out
