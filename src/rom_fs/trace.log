@@ -1,0 +1,4587 @@
+--- 6502 Emulation Trace Log ---
+
+Initialized 64KB RAM to zeros.
+Loaded main program (20404 bytes) from './a.out.hex' to 0x8000.
+Loaded IRQ handler (5 bytes) to 0x0700.
+Set Reset Vector (0xFFFC/D) to 0x8000.
+Set IRQ/BRK Vector (0xFFFE/F) to 0x0700.
+
+CPU Reset. Program Counter (PC) is now at 0x8000 (from Reset Vector).
+
+--- Starting 6502 Emulation with Cycle-Based IRQs ---
+8000: A9 7F       LDA #$7F
+CPU State: PC:8002 A:7F X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2
+Emulated Cycles: 2
+
+8002: 8D 10 BB    STA $BB10
+CPU State: PC:8005 A:7F X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 6, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 6
+Emulated Cycles: 6
+
+8005: A9 3F       LDA #$3F
+CPU State: PC:8007 A:3F X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 8, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 8
+Emulated Cycles: 8
+
+8007: 8D 00 BB    STA $BB00
+CPU State: PC:800A A:3F X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 12, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 12
+Emulated Cycles: 12
+
+800A: A9 11       LDA #$11
+CPU State: PC:800C A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 14, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 14
+Emulated Cycles: 14
+
+800C: 8D 00 BC    STA $BC00
+CPU State: PC:800F A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 18, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 18
+Emulated Cycles: 18
+
+800F: A9 00       LDA #$00
+CPU State: PC:8011 A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 20, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 20
+Emulated Cycles: 20
+
+8011: 8D 01 BC    STA $BC01
+CPU State: PC:8014 A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 24, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 24
+Emulated Cycles: 24
+
+8014: A9 30       LDA #$30
+CPU State: PC:8016 A:30 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 26, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 26
+Emulated Cycles: 26
+
+8016: 8D 02 BC    STA $BC02
+CPU State: PC:8019 A:30 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 30, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 30
+Emulated Cycles: 30
+
+8019: A9 00       LDA #$00
+CPU State: PC:801B A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 32, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 32
+Emulated Cycles: 32
+
+801B: 8D 03 BC    STA $BC03
+CPU State: PC:801E A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 36, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 36
+Emulated Cycles: 36
+
+801E: 8D 04 BC    STA $BC04
+CPU State: PC:8021 A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 40, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 40
+Emulated Cycles: 40
+
+8021: 8D 05 BC    STA $BC05
+CPU State: PC:8024 A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 44, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 44
+Emulated Cycles: 44
+
+8024: A9 00       LDA #$00
+CPU State: PC:8026 A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 46, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 46
+Emulated Cycles: 46
+
+8026: 8D 06 BC    STA $BC06
+CPU State: PC:8029 A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 50, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 50
+Emulated Cycles: 50
+
+8029: 8D 07 BC    STA $BC07
+CPU State: PC:802C A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 54, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 54
+Emulated Cycles: 54
+
+802C: 8D 08 BC    STA $BC08
+CPU State: PC:802F A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 58, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 58
+Emulated Cycles: 58
+
+802F: A9 01       LDA #$01
+CPU State: PC:8031 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 60, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 60
+Emulated Cycles: 60
+
+8031: 8D 10 BC    STA $BC10
+CPU State: PC:8034 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 64, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 64
+Emulated Cycles: 64
+
+8034: 8D 11 BC    STA $BC11
+CPU State: PC:8037 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 68, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 68
+Emulated Cycles: 68
+
+8037: A9 00       LDA #$00
+CPU State: PC:8039 A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 70, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 70
+Emulated Cycles: 70
+
+8039: 8D 12 BC    STA $BC12
+CPU State: PC:803C A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 74, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 74
+Emulated Cycles: 74
+
+803C: A9 04       LDA #$04
+CPU State: PC:803E A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 76, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 76
+Emulated Cycles: 76
+
+803E: 8D 13 BC    STA $BC13
+CPU State: PC:8041 A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 80, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 80
+Emulated Cycles: 80
+
+8041: 8D 14 BC    STA $BC14
+CPU State: PC:8044 A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 84, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 84
+Emulated Cycles: 84
+
+8044: 8D 15 BC    STA $BC15
+CPU State: PC:8047 A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 88, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 88
+Emulated Cycles: 88
+
+8047: A9 01       LDA #$01
+CPU State: PC:8049 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 90, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 90
+Emulated Cycles: 90
+
+8049: 8D 16 BC    STA $BC16
+CPU State: PC:804C A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 94, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 94
+Emulated Cycles: 94
+
+804C: A9 02       LDA #$02
+CPU State: PC:804E A:02 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 96, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 96
+Emulated Cycles: 96
+
+804E: 8D 17 BC    STA $BC17
+CPU State: PC:8051 A:02 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 100, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 100
+Emulated Cycles: 100
+
+8051: A9 06       LDA #$06
+CPU State: PC:8053 A:06 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 102, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 102
+Emulated Cycles: 102
+
+8053: 8D 18 BC    STA $BC18
+CPU State: PC:8056 A:06 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 106, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 106
+Emulated Cycles: 106
+
+8056: A9 11       LDA #$11
+CPU State: PC:8058 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 108, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 108
+Emulated Cycles: 108
+
+8058: 8D 20 BC    STA $BC20
+CPU State: PC:805B A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 112, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 112
+Emulated Cycles: 112
+
+805B: 8D 21 BC    STA $BC21
+CPU State: PC:805E A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 116, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 116
+Emulated Cycles: 116
+
+805E: 8D 22 BC    STA $BC22
+CPU State: PC:8061 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 120, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 120
+Emulated Cycles: 120
+
+8061: 8D 23 BC    STA $BC23
+CPU State: PC:8064 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 124, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 124
+Emulated Cycles: 124
+
+8064: 8D 24 BC    STA $BC24
+CPU State: PC:8067 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 128, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 128
+Emulated Cycles: 128
+
+8067: 8D 25 BC    STA $BC25
+CPU State: PC:806A A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 132, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 132
+Emulated Cycles: 132
+
+806A: A9 05       LDA #$05
+CPU State: PC:806C A:05 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 134, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 134
+Emulated Cycles: 134
+
+806C: 8D 26 BC    STA $BC26
+CPU State: PC:806F A:05 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 138, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 138
+Emulated Cycles: 138
+
+806F: 8D 27 BC    STA $BC27
+CPU State: PC:8072 A:05 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 142, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 142
+Emulated Cycles: 142
+
+8072: 8D 28 BC    STA $BC28
+CPU State: PC:8075 A:05 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 146, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 146
+Emulated Cycles: 146
+
+8075: A9 11       LDA #$11
+CPU State: PC:8077 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 148, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 148
+Emulated Cycles: 148
+
+8077: 8D 30 BC    STA $BC30
+CPU State: PC:807A A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 152, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 152
+Emulated Cycles: 152
+
+807A: 8D 31 BC    STA $BC31
+CPU State: PC:807D A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 156, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 156
+Emulated Cycles: 156
+
+807D: A9 20       LDA #$20
+CPU State: PC:807F A:20 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 158, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 158
+Emulated Cycles: 158
+
+807F: 8D 32 BC    STA $BC32
+CPU State: PC:8082 A:20 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 162, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 162
+Emulated Cycles: 162
+
+8082: 8D 33 BC    STA $BC33
+CPU State: PC:8085 A:20 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 166, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 166
+Emulated Cycles: 166
+
+8085: 8D 34 BC    STA $BC34
+CPU State: PC:8088 A:20 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 170, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 170
+Emulated Cycles: 170
+
+8088: 8D 35 BC    STA $BC35
+CPU State: PC:808B A:20 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 174, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 174
+Emulated Cycles: 174
+
+808B: A9 03       LDA #$03
+CPU State: PC:808D A:03 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 176, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 176
+Emulated Cycles: 176
+
+808D: 8D 36 BC    STA $BC36
+CPU State: PC:8090 A:03 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 180, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 180
+Emulated Cycles: 180
+
+8090: 8D 37 BC    STA $BC37
+CPU State: PC:8093 A:03 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 184, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 184
+Emulated Cycles: 184
+
+8093: 8D 38 BC    STA $BC38
+CPU State: PC:8096 A:03 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 188, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 188
+Emulated Cycles: 188
+
+8096: A9 01       LDA #$01
+CPU State: PC:8098 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 190, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 190
+Emulated Cycles: 190
+
+8098: 8D 40 BC    STA $BC40
+CPU State: PC:809B A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 194, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 194
+Emulated Cycles: 194
+
+809B: 8D 41 BC    STA $BC41
+CPU State: PC:809E A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 198, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 198
+Emulated Cycles: 198
+
+809E: 8D 42 BC    STA $BC42
+CPU State: PC:80A1 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 202, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 202
+Emulated Cycles: 202
+
+80A1: 8D 43 BC    STA $BC43
+CPU State: PC:80A4 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 206, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 206
+Emulated Cycles: 206
+
+80A4: 8D 44 BC    STA $BC44
+CPU State: PC:80A7 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 210, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 210
+Emulated Cycles: 210
+
+80A7: 8D 45 BC    STA $BC45
+CPU State: PC:80AA A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 214, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 214
+Emulated Cycles: 214
+
+80AA: A9 04       LDA #$04
+CPU State: PC:80AC A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 216, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 216
+Emulated Cycles: 216
+
+80AC: 8D 46 BC    STA $BC46
+CPU State: PC:80AF A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 220, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 220
+Emulated Cycles: 220
+
+80AF: 8D 47 BC    STA $BC47
+CPU State: PC:80B2 A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 224, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 224
+Emulated Cycles: 224
+
+80B2: 8D 48 BC    STA $BC48
+CPU State: PC:80B5 A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 228, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 228
+Emulated Cycles: 228
+
+80B5: A9 11       LDA #$11
+CPU State: PC:80B7 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 230, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 230
+Emulated Cycles: 230
+
+80B7: 8D 50 BC    STA $BC50
+CPU State: PC:80BA A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 234, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 234
+Emulated Cycles: 234
+
+80BA: 8D 51 BC    STA $BC51
+CPU State: PC:80BD A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 238, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 238
+Emulated Cycles: 238
+
+80BD: 8D 52 BC    STA $BC52
+CPU State: PC:80C0 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 242, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 242
+Emulated Cycles: 242
+
+80C0: 8D 53 BC    STA $BC53
+CPU State: PC:80C3 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 246, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 246
+Emulated Cycles: 246
+
+80C3: 8D 54 BC    STA $BC54
+CPU State: PC:80C6 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 250, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 250
+Emulated Cycles: 250
+
+80C6: 8D 55 BC    STA $BC55
+CPU State: PC:80C9 A:11 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 254, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 254
+Emulated Cycles: 254
+
+80C9: A9 04       LDA #$04
+CPU State: PC:80CB A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 256, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 256
+Emulated Cycles: 256
+
+80CB: 8D 56 BC    STA $BC56
+CPU State: PC:80CE A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 260, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 260
+Emulated Cycles: 260
+
+80CE: 8D 57 BC    STA $BC57
+CPU State: PC:80D1 A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 264, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 264
+Emulated Cycles: 264
+
+80D1: 8D 58 BC    STA $BC58
+CPU State: PC:80D4 A:04 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 268, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 268
+Emulated Cycles: 268
+
+80D4: A9 01       LDA #$01
+CPU State: PC:80D6 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 270, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 270
+Emulated Cycles: 270
+
+80D6: 8D 00 C0    STA $C000
+CPU State: PC:80D9 A:01 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 274, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 274
+Emulated Cycles: 274
+
+80D9: A9 00       LDA #$00
+CPU State: PC:80DB A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 276, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 276
+Emulated Cycles: 276
+
+80DB: 8D 01 C0    STA $C001
+CPU State: PC:80DE A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 280, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 280
+Emulated Cycles: 280
+
+80DE: A2 00       LDX #$00
+CPU State: PC:80E0 A:00 X:00 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 282, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 282
+Emulated Cycles: 282
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:52 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 286, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 286
+Emulated Cycles: 286
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:52 X:00 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 291, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 291
+Emulated Cycles: 291
+
+80E6: E8          INX
+CPU State: PC:80E7 A:52 X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 293, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 293
+Emulated Cycles: 293
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:52 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 295, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 295
+Emulated Cycles: 295
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:52 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 298, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 298
+Emulated Cycles: 298
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:45 X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 302, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 302
+Emulated Cycles: 302
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:45 X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 307, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 307
+Emulated Cycles: 307
+
+80E6: E8          INX
+CPU State: PC:80E7 A:45 X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 309, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 309
+Emulated Cycles: 309
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:45 X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 311, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 311
+Emulated Cycles: 311
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:45 X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 314, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 314
+Emulated Cycles: 314
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:41 X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 318, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 318
+Emulated Cycles: 318
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:41 X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 323, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 323
+Emulated Cycles: 323
+
+80E6: E8          INX
+CPU State: PC:80E7 A:41 X:03 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 325, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 325
+Emulated Cycles: 325
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:41 X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 327, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 327
+Emulated Cycles: 327
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:41 X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 330, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 330
+Emulated Cycles: 330
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:44 X:03 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 334, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 334
+Emulated Cycles: 334
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:44 X:03 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 339, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 339
+Emulated Cycles: 339
+
+80E6: E8          INX
+CPU State: PC:80E7 A:44 X:04 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 341, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 341
+Emulated Cycles: 341
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:44 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 343, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 343
+Emulated Cycles: 343
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:44 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 346, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 346
+Emulated Cycles: 346
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:4D X:04 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 350, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 350
+Emulated Cycles: 350
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:4D X:04 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 355, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 355
+Emulated Cycles: 355
+
+80E6: E8          INX
+CPU State: PC:80E7 A:4D X:05 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 357, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 357
+Emulated Cycles: 357
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:4D X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 359, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 359
+Emulated Cycles: 359
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:4D X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 362, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 362
+Emulated Cycles: 362
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:45 X:05 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 366, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 366
+Emulated Cycles: 366
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:45 X:05 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 371, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 371
+Emulated Cycles: 371
+
+80E6: E8          INX
+CPU State: PC:80E7 A:45 X:06 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 373, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 373
+Emulated Cycles: 373
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:45 X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 375, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 375
+Emulated Cycles: 375
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:45 X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 378, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 378
+Emulated Cycles: 378
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:2E X:06 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 382, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 382
+Emulated Cycles: 382
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:2E X:06 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 387, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 387
+Emulated Cycles: 387
+
+80E6: E8          INX
+CPU State: PC:80E7 A:2E X:07 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 389, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 389
+Emulated Cycles: 389
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:2E X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 391, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 391
+Emulated Cycles: 391
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:2E X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 394, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 394
+Emulated Cycles: 394
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:74 X:07 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 398, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 398
+Emulated Cycles: 398
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:74 X:07 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 403, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 403
+Emulated Cycles: 403
+
+80E6: E8          INX
+CPU State: PC:80E7 A:74 X:08 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 405, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 405
+Emulated Cycles: 405
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:74 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 407, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 407
+Emulated Cycles: 407
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:74 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 410, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 410
+Emulated Cycles: 410
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:78 X:08 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 414, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 414
+Emulated Cycles: 414
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:78 X:08 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 419, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 419
+Emulated Cycles: 419
+
+80E6: E8          INX
+CPU State: PC:80E7 A:78 X:09 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 421, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 421
+Emulated Cycles: 421
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:78 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 423, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 423
+Emulated Cycles: 423
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:78 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 426, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 426
+Emulated Cycles: 426
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:74 X:09 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 430, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 430
+Emulated Cycles: 430
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:74 X:09 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 435, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 435
+Emulated Cycles: 435
+
+80E6: E8          INX
+CPU State: PC:80E7 A:74 X:0A Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 437, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 437
+Emulated Cycles: 437
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:74 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 439, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 439
+Emulated Cycles: 439
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:74 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 442, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 442
+Emulated Cycles: 442
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 446, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 446
+Emulated Cycles: 446
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 451, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 451
+Emulated Cycles: 451
+
+80E6: E8          INX
+CPU State: PC:80E7 A:00 X:0B Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 453, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 453
+Emulated Cycles: 453
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 455, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 455
+Emulated Cycles: 455
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 458, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 458
+Emulated Cycles: 458
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 462, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 462
+Emulated Cycles: 462
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 467, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 467
+Emulated Cycles: 467
+
+80E6: E8          INX
+CPU State: PC:80E7 A:00 X:0C Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 469, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 469
+Emulated Cycles: 469
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 471, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 471
+Emulated Cycles: 471
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 474, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 474
+Emulated Cycles: 474
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 478, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 478
+Emulated Cycles: 478
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 483, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 483
+Emulated Cycles: 483
+
+80E6: E8          INX
+CPU State: PC:80E7 A:00 X:0D Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 485, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 485
+Emulated Cycles: 485
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 487, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 487
+Emulated Cycles: 487
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80E0 A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 490, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 490
+Emulated Cycles: 490
+
+80E0: BD 70 CF    LDA $CF70,X
+CPU State: PC:80E3 A:72 X:0D Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 494, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 494
+Emulated Cycles: 494
+
+80E3: 9D 02 C0    STA $C002,X
+CPU State: PC:80E6 A:72 X:0D Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 499, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 499
+Emulated Cycles: 499
+
+80E6: E8          INX
+CPU State: PC:80E7 A:72 X:0E Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 501, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 501
+Emulated Cycles: 501
+
+80E7: E0 0E       CPX #$0E
+CPU State: PC:80E9 A:72 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 503, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 503
+Emulated Cycles: 503
+
+80E9: D0 F5       BNE $80E0
+CPU State: PC:80EB A:72 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 505, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 505
+Emulated Cycles: 505
+
+80EB: A9 02       LDA #$02
+CPU State: PC:80ED A:02 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 507, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 507
+Emulated Cycles: 507
+
+80ED: 8D 10 C0    STA $C010
+CPU State: PC:80F0 A:02 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 511, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 511
+Emulated Cycles: 511
+
+80F0: A9 01       LDA #$01
+CPU State: PC:80F2 A:01 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 513, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 513
+Emulated Cycles: 513
+
+80F2: 8D 11 C0    STA $C011
+CPU State: PC:80F5 A:01 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 517, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 517
+Emulated Cycles: 517
+
+80F5: A2 00       LDX #$00
+CPU State: PC:80F7 A:01 X:00 Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 519, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 519
+Emulated Cycles: 519
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:72 X:00 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 523, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 523
+Emulated Cycles: 523
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:72 X:00 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 528, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 528
+Emulated Cycles: 528
+
+80FD: E8          INX
+CPU State: PC:80FE A:72 X:01 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 530, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 530
+Emulated Cycles: 530
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:72 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 532, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 532
+Emulated Cycles: 532
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:72 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 536, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 536
+Emulated Cycles: 536
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:61 X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 540, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 540
+Emulated Cycles: 540
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:61 X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 545, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 545
+Emulated Cycles: 545
+
+80FD: E8          INX
+CPU State: PC:80FE A:61 X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 547, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 547
+Emulated Cycles: 547
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:61 X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 549, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 549
+Emulated Cycles: 549
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:61 X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 553, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 553
+Emulated Cycles: 553
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:6D X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 557, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 557
+Emulated Cycles: 557
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:6D X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 562, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 562
+Emulated Cycles: 562
+
+80FD: E8          INX
+CPU State: PC:80FE A:6D X:03 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 564, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 564
+Emulated Cycles: 564
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:6D X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 566, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 566
+Emulated Cycles: 566
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:6D X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 570, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 570
+Emulated Cycles: 570
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:03 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 574, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 574
+Emulated Cycles: 574
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:03 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 579, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 579
+Emulated Cycles: 579
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:04 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 581, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 581
+Emulated Cycles: 581
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 583, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 583
+Emulated Cycles: 583
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 587, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 587
+Emulated Cycles: 587
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:04 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 591, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 591
+Emulated Cycles: 591
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:04 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 596, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 596
+Emulated Cycles: 596
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:05 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 598, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 598
+Emulated Cycles: 598
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 600, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 600
+Emulated Cycles: 600
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 604, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 604
+Emulated Cycles: 604
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:05 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 608, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 608
+Emulated Cycles: 608
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:05 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 613, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 613
+Emulated Cycles: 613
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:06 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 615, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 615
+Emulated Cycles: 615
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 617, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 617
+Emulated Cycles: 617
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 621, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 621
+Emulated Cycles: 621
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:06 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 625, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 625
+Emulated Cycles: 625
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:06 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 630, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 630
+Emulated Cycles: 630
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:07 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 632, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 632
+Emulated Cycles: 632
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 634, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 634
+Emulated Cycles: 634
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 638, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 638
+Emulated Cycles: 638
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:07 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 642, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 642
+Emulated Cycles: 642
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:07 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 647, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 647
+Emulated Cycles: 647
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:08 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 649, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 649
+Emulated Cycles: 649
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 651, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 651
+Emulated Cycles: 651
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 655, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 655
+Emulated Cycles: 655
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:08 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 659, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 659
+Emulated Cycles: 659
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:08 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 664, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 664
+Emulated Cycles: 664
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:09 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 666, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 666
+Emulated Cycles: 666
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 668, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 668
+Emulated Cycles: 668
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 672, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 672
+Emulated Cycles: 672
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:09 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 676, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 676
+Emulated Cycles: 676
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:09 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 681, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 681
+Emulated Cycles: 681
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:0A Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 683, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 683
+Emulated Cycles: 683
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 685, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 685
+Emulated Cycles: 685
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 689, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 689
+Emulated Cycles: 689
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 693, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 693
+Emulated Cycles: 693
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 698, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 698
+Emulated Cycles: 698
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:0B Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 700, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 700
+Emulated Cycles: 700
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 702, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 702
+Emulated Cycles: 702
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 706, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 706
+Emulated Cycles: 706
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 710, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 710
+Emulated Cycles: 710
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 715, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 715
+Emulated Cycles: 715
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:0C Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 717, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 717
+Emulated Cycles: 717
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 719, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 719
+Emulated Cycles: 719
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 723, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 723
+Emulated Cycles: 723
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 727, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 727
+Emulated Cycles: 727
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 732, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 732
+Emulated Cycles: 732
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:0D Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 734, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 734
+Emulated Cycles: 734
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 736, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 736
+Emulated Cycles: 736
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:80F7 A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 740, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 740
+Emulated Cycles: 740
+
+80F7: BD 7D CF    LDA $CF7D,X
+CPU State: PC:80FA A:00 X:0D Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 744, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 744
+Emulated Cycles: 744
+
+80FA: 9D 12 C0    STA $C012,X
+CPU State: PC:80FD A:00 X:0D Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 749, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 749
+Emulated Cycles: 749
+
+80FD: E8          INX
+CPU State: PC:80FE A:00 X:0E Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 751, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 751
+Emulated Cycles: 751
+
+80FE: E0 0E       CPX #$0E
+CPU State: PC:8100 A:00 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 753, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 753
+Emulated Cycles: 753
+
+8100: D0 F5       BNE $80F7
+CPU State: PC:8102 A:00 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 755, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 755
+Emulated Cycles: 755
+
+8102: A9 03       LDA #$03
+CPU State: PC:8104 A:03 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 757, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 757
+Emulated Cycles: 757
+
+8104: 8D 20 C0    STA $C020
+CPU State: PC:8107 A:03 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 761, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 761
+Emulated Cycles: 761
+
+8107: A9 01       LDA #$01
+CPU State: PC:8109 A:01 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 763, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 763
+Emulated Cycles: 763
+
+8109: 8D 21 C0    STA $C021
+CPU State: PC:810C A:01 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 767, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 767
+Emulated Cycles: 767
+
+810C: A2 00       LDX #$00
+CPU State: PC:810E A:01 X:00 Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 769, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 769
+Emulated Cycles: 769
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:72 X:00 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 773, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 773
+Emulated Cycles: 773
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:72 X:00 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 778, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 778
+Emulated Cycles: 778
+
+8114: E8          INX
+CPU State: PC:8115 A:72 X:01 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 780, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 780
+Emulated Cycles: 780
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:72 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 782, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 782
+Emulated Cycles: 782
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:72 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 785, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 785
+Emulated Cycles: 785
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:6F X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 789, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 789
+Emulated Cycles: 789
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:6F X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 794, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 794
+Emulated Cycles: 794
+
+8114: E8          INX
+CPU State: PC:8115 A:6F X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 796, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 796
+Emulated Cycles: 796
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:6F X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 798, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 798
+Emulated Cycles: 798
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:6F X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 801, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 801
+Emulated Cycles: 801
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:6D X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 805, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 805
+Emulated Cycles: 805
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:6D X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 810, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 810
+Emulated Cycles: 810
+
+8114: E8          INX
+CPU State: PC:8115 A:6D X:03 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 812, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 812
+Emulated Cycles: 812
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:6D X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 814, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 814
+Emulated Cycles: 814
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:6D X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 817, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 817
+Emulated Cycles: 817
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:03 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 821, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 821
+Emulated Cycles: 821
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:03 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 826, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 826
+Emulated Cycles: 826
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:04 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 828, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 828
+Emulated Cycles: 828
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 830, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 830
+Emulated Cycles: 830
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 833, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 833
+Emulated Cycles: 833
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:04 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 837, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 837
+Emulated Cycles: 837
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:04 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 842, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 842
+Emulated Cycles: 842
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:05 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 844, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 844
+Emulated Cycles: 844
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 846, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 846
+Emulated Cycles: 846
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 849, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 849
+Emulated Cycles: 849
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:05 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 853, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 853
+Emulated Cycles: 853
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:05 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 858, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 858
+Emulated Cycles: 858
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:06 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 860, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 860
+Emulated Cycles: 860
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 862, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 862
+Emulated Cycles: 862
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 865, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 865
+Emulated Cycles: 865
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:06 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 869, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 869
+Emulated Cycles: 869
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:06 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 874, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 874
+Emulated Cycles: 874
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:07 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 876, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 876
+Emulated Cycles: 876
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 878, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 878
+Emulated Cycles: 878
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 881, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 881
+Emulated Cycles: 881
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:07 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 885, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 885
+Emulated Cycles: 885
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:07 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 890, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 890
+Emulated Cycles: 890
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:08 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 892, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 892
+Emulated Cycles: 892
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 894, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 894
+Emulated Cycles: 894
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 897, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 897
+Emulated Cycles: 897
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:08 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 901, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 901
+Emulated Cycles: 901
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:08 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 906, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 906
+Emulated Cycles: 906
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:09 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 908, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 908
+Emulated Cycles: 908
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 910, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 910
+Emulated Cycles: 910
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 913, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 913
+Emulated Cycles: 913
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:09 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 917, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 917
+Emulated Cycles: 917
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:09 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 922, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 922
+Emulated Cycles: 922
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:0A Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 924, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 924
+Emulated Cycles: 924
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 926, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 926
+Emulated Cycles: 926
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 929, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 929
+Emulated Cycles: 929
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 933, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 933
+Emulated Cycles: 933
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 938, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 938
+Emulated Cycles: 938
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:0B Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 940, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 940
+Emulated Cycles: 940
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 942, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 942
+Emulated Cycles: 942
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 945, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 945
+Emulated Cycles: 945
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 949, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 949
+Emulated Cycles: 949
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 954, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 954
+Emulated Cycles: 954
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:0C Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 956, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 956
+Emulated Cycles: 956
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 958, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 958
+Emulated Cycles: 958
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 961, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 961
+Emulated Cycles: 961
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 965, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 965
+Emulated Cycles: 965
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 970, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 970
+Emulated Cycles: 970
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:0D Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 972, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 972
+Emulated Cycles: 972
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 974, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 974
+Emulated Cycles: 974
+
+8117: D0 F5       BNE $810E
+CPU State: PC:810E A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 977, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 977
+Emulated Cycles: 977
+
+810E: BD 8B CF    LDA $CF8B,X
+CPU State: PC:8111 A:00 X:0D Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 981, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 981
+Emulated Cycles: 981
+
+8111: 9D 22 C0    STA $C022,X
+CPU State: PC:8114 A:00 X:0D Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 986, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 986
+Emulated Cycles: 986
+
+8114: E8          INX
+CPU State: PC:8115 A:00 X:0E Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 988, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 988
+Emulated Cycles: 988
+
+8115: E0 0E       CPX #$0E
+CPU State: PC:8117 A:00 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 990, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 990
+Emulated Cycles: 990
+
+8117: D0 F5       BNE $810E
+CPU State: PC:8119 A:00 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 992, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 992
+Emulated Cycles: 992
+
+8119: A9 04       LDA #$04
+CPU State: PC:811B A:04 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 994, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 994
+Emulated Cycles: 994
+
+811B: 8D 00 C3    STA $C300
+CPU State: PC:811E A:04 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 998, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 998
+Emulated Cycles: 998
+
+811E: A9 00       LDA #$00
+CPU State: PC:8120 A:00 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1000, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1000
+Emulated Cycles: 1000
+
+8120: 8D 01 C3    STA $C301
+CPU State: PC:8123 A:00 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1004, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1004
+Emulated Cycles: 1004
+
+8123: A2 00       LDX #$00
+CPU State: PC:8125 A:00 X:00 Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1006, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1006
+Emulated Cycles: 1006
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:72 X:00 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1010, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1010
+Emulated Cycles: 1010
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:72 X:00 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1015, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1015
+Emulated Cycles: 1015
+
+812B: E8          INX
+CPU State: PC:812C A:72 X:01 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1017, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1017
+Emulated Cycles: 1017
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:72 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1019, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1019
+Emulated Cycles: 1019
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:72 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1022, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1022
+Emulated Cycles: 1022
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:6F X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1026, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1026
+Emulated Cycles: 1026
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:6F X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1031, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1031
+Emulated Cycles: 1031
+
+812B: E8          INX
+CPU State: PC:812C A:6F X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1033, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1033
+Emulated Cycles: 1033
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:6F X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1035, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1035
+Emulated Cycles: 1035
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:6F X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1038, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1038
+Emulated Cycles: 1038
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:6D X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1042, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1042
+Emulated Cycles: 1042
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:6D X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1047, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1047
+Emulated Cycles: 1047
+
+812B: E8          INX
+CPU State: PC:812C A:6D X:03 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1049, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1049
+Emulated Cycles: 1049
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:6D X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1051, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1051
+Emulated Cycles: 1051
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:6D X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1054, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1054
+Emulated Cycles: 1054
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:46 X:03 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1058, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1058
+Emulated Cycles: 1058
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:46 X:03 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1063, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1063
+Emulated Cycles: 1063
+
+812B: E8          INX
+CPU State: PC:812C A:46 X:04 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1065, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1065
+Emulated Cycles: 1065
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:46 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1067, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1067
+Emulated Cycles: 1067
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:46 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1070, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1070
+Emulated Cycles: 1070
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:53 X:04 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1074, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1074
+Emulated Cycles: 1074
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:53 X:04 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1079, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1079
+Emulated Cycles: 1079
+
+812B: E8          INX
+CPU State: PC:812C A:53 X:05 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1081, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1081
+Emulated Cycles: 1081
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:53 X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1083, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1083
+Emulated Cycles: 1083
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:53 X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1086, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1086
+Emulated Cycles: 1086
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:2E X:05 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1090, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1090
+Emulated Cycles: 1090
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:2E X:05 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1095, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1095
+Emulated Cycles: 1095
+
+812B: E8          INX
+CPU State: PC:812C A:2E X:06 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1097, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1097
+Emulated Cycles: 1097
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:2E X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1099, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1099
+Emulated Cycles: 1099
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:2E X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1102, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1102
+Emulated Cycles: 1102
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:74 X:06 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1106, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1106
+Emulated Cycles: 1106
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:74 X:06 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1111, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1111
+Emulated Cycles: 1111
+
+812B: E8          INX
+CPU State: PC:812C A:74 X:07 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1113, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1113
+Emulated Cycles: 1113
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:74 X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1115, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1115
+Emulated Cycles: 1115
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:74 X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1118, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1118
+Emulated Cycles: 1118
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:78 X:07 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1122, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1122
+Emulated Cycles: 1122
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:78 X:07 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1127, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1127
+Emulated Cycles: 1127
+
+812B: E8          INX
+CPU State: PC:812C A:78 X:08 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1129, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1129
+Emulated Cycles: 1129
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:78 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1131, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1131
+Emulated Cycles: 1131
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:78 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1134, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1134
+Emulated Cycles: 1134
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:74 X:08 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1138, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1138
+Emulated Cycles: 1138
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:74 X:08 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1143, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1143
+Emulated Cycles: 1143
+
+812B: E8          INX
+CPU State: PC:812C A:74 X:09 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1145, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1145
+Emulated Cycles: 1145
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:74 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1147, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1147
+Emulated Cycles: 1147
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:74 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1150, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1150
+Emulated Cycles: 1150
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:00 X:09 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1154, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1154
+Emulated Cycles: 1154
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:00 X:09 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1159, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1159
+Emulated Cycles: 1159
+
+812B: E8          INX
+CPU State: PC:812C A:00 X:0A Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1161, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1161
+Emulated Cycles: 1161
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:00 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1163, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1163
+Emulated Cycles: 1163
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:00 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1166, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1166
+Emulated Cycles: 1166
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1170, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1170
+Emulated Cycles: 1170
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1175, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1175
+Emulated Cycles: 1175
+
+812B: E8          INX
+CPU State: PC:812C A:00 X:0B Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1177, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1177
+Emulated Cycles: 1177
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1179, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1179
+Emulated Cycles: 1179
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1182, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1182
+Emulated Cycles: 1182
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1186, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1186
+Emulated Cycles: 1186
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1191, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1191
+Emulated Cycles: 1191
+
+812B: E8          INX
+CPU State: PC:812C A:00 X:0C Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1193, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1193
+Emulated Cycles: 1193
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1195, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1195
+Emulated Cycles: 1195
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1198, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1198
+Emulated Cycles: 1198
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1202, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1202
+Emulated Cycles: 1202
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1207, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1207
+Emulated Cycles: 1207
+
+812B: E8          INX
+CPU State: PC:812C A:00 X:0D Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1209, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1209
+Emulated Cycles: 1209
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1211, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1211
+Emulated Cycles: 1211
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8125 A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1214, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1214
+Emulated Cycles: 1214
+
+8125: BD 99 CF    LDA $CF99,X
+CPU State: PC:8128 A:62 X:0D Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1218, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1218
+Emulated Cycles: 1218
+
+8128: 9D 02 C3    STA $C302,X
+CPU State: PC:812B A:62 X:0D Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1223, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1223
+Emulated Cycles: 1223
+
+812B: E8          INX
+CPU State: PC:812C A:62 X:0E Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1225, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1225
+Emulated Cycles: 1225
+
+812C: E0 0E       CPX #$0E
+CPU State: PC:812E A:62 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1227, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1227
+Emulated Cycles: 1227
+
+812E: D0 F5       BNE $8125
+CPU State: PC:8130 A:62 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1229, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1229
+Emulated Cycles: 1229
+
+8130: A9 05       LDA #$05
+CPU State: PC:8132 A:05 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1231, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1231
+Emulated Cycles: 1231
+
+8132: 8D 10 C3    STA $C310
+CPU State: PC:8135 A:05 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1235, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1235
+Emulated Cycles: 1235
+
+8135: A9 01       LDA #$01
+CPU State: PC:8137 A:01 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1237, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1237
+Emulated Cycles: 1237
+
+8137: 8D 11 C3    STA $C311
+CPU State: PC:813A A:01 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1241, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1241
+Emulated Cycles: 1241
+
+813A: A2 00       LDX #$00
+CPU State: PC:813C A:01 X:00 Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1243, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1243
+Emulated Cycles: 1243
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:62 X:00 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1247, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1247
+Emulated Cycles: 1247
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:62 X:00 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1252, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1252
+Emulated Cycles: 1252
+
+8142: E8          INX
+CPU State: PC:8143 A:62 X:01 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1254, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1254
+Emulated Cycles: 1254
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:62 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1256, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1256
+Emulated Cycles: 1256
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:62 X:01 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1259, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1259
+Emulated Cycles: 1259
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:69 X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1263, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1263
+Emulated Cycles: 1263
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:69 X:01 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1268, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1268
+Emulated Cycles: 1268
+
+8142: E8          INX
+CPU State: PC:8143 A:69 X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1270, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1270
+Emulated Cycles: 1270
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:69 X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1272, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1272
+Emulated Cycles: 1272
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:69 X:02 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1275, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1275
+Emulated Cycles: 1275
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:6E X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1279, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1279
+Emulated Cycles: 1279
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:6E X:02 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1284, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1284
+Emulated Cycles: 1284
+
+8142: E8          INX
+CPU State: PC:8143 A:6E X:03 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1286, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1286
+Emulated Cycles: 1286
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:6E X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1288, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1288
+Emulated Cycles: 1288
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:6E X:03 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1291, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1291
+Emulated Cycles: 1291
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:03 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1295, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1295
+Emulated Cycles: 1295
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:03 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1300, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1300
+Emulated Cycles: 1300
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:04 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1302, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1302
+Emulated Cycles: 1302
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1304, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1304
+Emulated Cycles: 1304
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:04 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1307, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1307
+Emulated Cycles: 1307
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:04 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1311, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1311
+Emulated Cycles: 1311
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:04 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1316, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1316
+Emulated Cycles: 1316
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:05 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1318, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1318
+Emulated Cycles: 1318
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1320, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1320
+Emulated Cycles: 1320
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:05 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1323, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1323
+Emulated Cycles: 1323
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:05 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1327, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1327
+Emulated Cycles: 1327
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:05 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1332, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1332
+Emulated Cycles: 1332
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:06 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1334, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1334
+Emulated Cycles: 1334
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1336, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1336
+Emulated Cycles: 1336
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:06 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1339, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1339
+Emulated Cycles: 1339
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:06 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1343, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1343
+Emulated Cycles: 1343
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:06 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1348, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1348
+Emulated Cycles: 1348
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:07 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1350, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1350
+Emulated Cycles: 1350
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1352, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1352
+Emulated Cycles: 1352
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:07 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1355, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1355
+Emulated Cycles: 1355
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:07 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1359, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1359
+Emulated Cycles: 1359
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:07 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1364, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1364
+Emulated Cycles: 1364
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:08 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1366, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1366
+Emulated Cycles: 1366
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1368, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1368
+Emulated Cycles: 1368
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:08 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1371, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1371
+Emulated Cycles: 1371
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:08 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1375, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1375
+Emulated Cycles: 1375
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:08 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1380, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1380
+Emulated Cycles: 1380
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:09 Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1382, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1382
+Emulated Cycles: 1382
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1384, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1384
+Emulated Cycles: 1384
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:09 Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1387, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1387
+Emulated Cycles: 1387
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:09 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1391, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1391
+Emulated Cycles: 1391
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:09 Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1396, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1396
+Emulated Cycles: 1396
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:0A Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1398, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1398
+Emulated Cycles: 1398
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1400, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1400
+Emulated Cycles: 1400
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:0A Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1403, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1403
+Emulated Cycles: 1403
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1407, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1407
+Emulated Cycles: 1407
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:0A Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1412, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1412
+Emulated Cycles: 1412
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:0B Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1414, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1414
+Emulated Cycles: 1414
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1416, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1416
+Emulated Cycles: 1416
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:0B Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1419, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1419
+Emulated Cycles: 1419
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1423, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1423
+Emulated Cycles: 1423
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:0B Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1428, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1428
+Emulated Cycles: 1428
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:0C Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1430, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1430
+Emulated Cycles: 1430
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1432, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1432
+Emulated Cycles: 1432
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:0C Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1435, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1435
+Emulated Cycles: 1435
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1439, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1439
+Emulated Cycles: 1439
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:0C Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1444, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1444
+Emulated Cycles: 1444
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:0D Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1446, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1446
+Emulated Cycles: 1446
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1448, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1448
+Emulated Cycles: 1448
+
+8145: D0 F5       BNE $813C
+CPU State: PC:813C A:00 X:0D Y:00 SP:FD Status:A4 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1451, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1451
+Emulated Cycles: 1451
+
+813C: BD A6 CF    LDA $CFA6,X
+CPU State: PC:813F A:00 X:0D Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1455, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1455
+Emulated Cycles: 1455
+
+813F: 9D 12 C3    STA $C312,X
+CPU State: PC:8142 A:00 X:0D Y:00 SP:FD Status:26 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1460, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1460
+Emulated Cycles: 1460
+
+8142: E8          INX
+CPU State: PC:8143 A:00 X:0E Y:00 SP:FD Status:24 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1462, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1462
+Emulated Cycles: 1462
+
+8143: E0 0E       CPX #$0E
+CPU State: PC:8145 A:00 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1464, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1464
+Emulated Cycles: 1464
+
+8145: D0 F5       BNE $813C
+CPU State: PC:8147 A:00 X:0E Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1466, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1466
+Emulated Cycles: 1466
+
+8147: A9 03       LDA #$03
+CPU State: PC:8149 A:03 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1468, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1468
+Emulated Cycles: 1468
+
+8149: 8D 00 C7    STA $C700
+CPU State: PC:814C A:03 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1472, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1472
+Emulated Cycles: 1472
+
+814C: A9 04       LDA #$04
+CPU State: PC:814E A:04 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1474, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1474
+Emulated Cycles: 1474
+
+814E: 8D 01 C7    STA $C701
+CPU State: PC:8151 A:04 X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1478, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1478
+Emulated Cycles: 1478
+
+8151: A2 00       LDX #$00
+CPU State: PC:8153 A:04 X:00 Y:00 SP:FD Status:27 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1480, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1480
+Emulated Cycles: 1480
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:00 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1482, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1482
+Emulated Cycles: 1482
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:00 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1487, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1487
+Emulated Cycles: 1487
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:01 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1489, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1489
+Emulated Cycles: 1489
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:01 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1492, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1492
+Emulated Cycles: 1492
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:01 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1494, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1494
+Emulated Cycles: 1494
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:01 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1499, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1499
+Emulated Cycles: 1499
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:02 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1501, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1501
+Emulated Cycles: 1501
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:02 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1504, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1504
+Emulated Cycles: 1504
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:02 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1506, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1506
+Emulated Cycles: 1506
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:02 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1511, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1511
+Emulated Cycles: 1511
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:03 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1513, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1513
+Emulated Cycles: 1513
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:03 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1516, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1516
+Emulated Cycles: 1516
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:03 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1518, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1518
+Emulated Cycles: 1518
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:03 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1523, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1523
+Emulated Cycles: 1523
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:04 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1525, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1525
+Emulated Cycles: 1525
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:04 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1528, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1528
+Emulated Cycles: 1528
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:04 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1530, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1530
+Emulated Cycles: 1530
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:04 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1535, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1535
+Emulated Cycles: 1535
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:05 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1537, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1537
+Emulated Cycles: 1537
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:05 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1540, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1540
+Emulated Cycles: 1540
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:05 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1542, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1542
+Emulated Cycles: 1542
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:05 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1547, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1547
+Emulated Cycles: 1547
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:06 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1549, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1549
+Emulated Cycles: 1549
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:06 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1552, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1552
+Emulated Cycles: 1552
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:06 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1554, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1554
+Emulated Cycles: 1554
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:06 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1559, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1559
+Emulated Cycles: 1559
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:07 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1561, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1561
+Emulated Cycles: 1561
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:07 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1564, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1564
+Emulated Cycles: 1564
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:07 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1566, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1566
+Emulated Cycles: 1566
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:07 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1571, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1571
+Emulated Cycles: 1571
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:08 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1573, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1573
+Emulated Cycles: 1573
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:08 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1576, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1576
+Emulated Cycles: 1576
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:08 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1578, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1578
+Emulated Cycles: 1578
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:08 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1583, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1583
+Emulated Cycles: 1583
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:09 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1585, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1585
+Emulated Cycles: 1585
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:09 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1588, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1588
+Emulated Cycles: 1588
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:09 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1590, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1590
+Emulated Cycles: 1590
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:09 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1595, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1595
+Emulated Cycles: 1595
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:0A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1597, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1597
+Emulated Cycles: 1597
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:0A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1600, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1600
+Emulated Cycles: 1600
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:0A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1602, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1602
+Emulated Cycles: 1602
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:0A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1607, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1607
+Emulated Cycles: 1607
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:0B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1609, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1609
+Emulated Cycles: 1609
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:0B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1612, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1612
+Emulated Cycles: 1612
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:0B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1614, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1614
+Emulated Cycles: 1614
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:0B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1619, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1619
+Emulated Cycles: 1619
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:0C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1621, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1621
+Emulated Cycles: 1621
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:0C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1624, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1624
+Emulated Cycles: 1624
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:0C Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1626, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1626
+Emulated Cycles: 1626
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:0C Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1631, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1631
+Emulated Cycles: 1631
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:0D Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1633, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1633
+Emulated Cycles: 1633
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:0D Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1636, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1636
+Emulated Cycles: 1636
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:0D Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1638, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1638
+Emulated Cycles: 1638
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:0D Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1643, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1643
+Emulated Cycles: 1643
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1645, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1645
+Emulated Cycles: 1645
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:0E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1648, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1648
+Emulated Cycles: 1648
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:0E Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1650, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1650
+Emulated Cycles: 1650
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:0E Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1655, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1655
+Emulated Cycles: 1655
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:0F Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1657, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1657
+Emulated Cycles: 1657
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:0F Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1660, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1660
+Emulated Cycles: 1660
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:0F Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1662, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1662
+Emulated Cycles: 1662
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:0F Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1667, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1667
+Emulated Cycles: 1667
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:10 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1669, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1669
+Emulated Cycles: 1669
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:10 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1672, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1672
+Emulated Cycles: 1672
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:10 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1674, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1674
+Emulated Cycles: 1674
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:10 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1679, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1679
+Emulated Cycles: 1679
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:11 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1681, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1681
+Emulated Cycles: 1681
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:11 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1684, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1684
+Emulated Cycles: 1684
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:11 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1686, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1686
+Emulated Cycles: 1686
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:11 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1691, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1691
+Emulated Cycles: 1691
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:12 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1693, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1693
+Emulated Cycles: 1693
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:12 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1696, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1696
+Emulated Cycles: 1696
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:12 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1698, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1698
+Emulated Cycles: 1698
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:12 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1703, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1703
+Emulated Cycles: 1703
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:13 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1705, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1705
+Emulated Cycles: 1705
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:13 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1708, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1708
+Emulated Cycles: 1708
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:13 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1710, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1710
+Emulated Cycles: 1710
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:13 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1715, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1715
+Emulated Cycles: 1715
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:14 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1717, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1717
+Emulated Cycles: 1717
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:14 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1720, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1720
+Emulated Cycles: 1720
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:14 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1722, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1722
+Emulated Cycles: 1722
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:14 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1727, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1727
+Emulated Cycles: 1727
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:15 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1729, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1729
+Emulated Cycles: 1729
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:15 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1732, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1732
+Emulated Cycles: 1732
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:15 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1734, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1734
+Emulated Cycles: 1734
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:15 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1739, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1739
+Emulated Cycles: 1739
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:16 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1741, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1741
+Emulated Cycles: 1741
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:16 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1744, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1744
+Emulated Cycles: 1744
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:16 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1746, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1746
+Emulated Cycles: 1746
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:16 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1751, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1751
+Emulated Cycles: 1751
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:17 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1753, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1753
+Emulated Cycles: 1753
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:17 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1756, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1756
+Emulated Cycles: 1756
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:17 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1758, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1758
+Emulated Cycles: 1758
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:17 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1763, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1763
+Emulated Cycles: 1763
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:18 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1765, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1765
+Emulated Cycles: 1765
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:18 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1768, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1768
+Emulated Cycles: 1768
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:18 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1770, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1770
+Emulated Cycles: 1770
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:18 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1775, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1775
+Emulated Cycles: 1775
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:19 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1777, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1777
+Emulated Cycles: 1777
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:19 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1780, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1780
+Emulated Cycles: 1780
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:19 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1782, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1782
+Emulated Cycles: 1782
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:19 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1787, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1787
+Emulated Cycles: 1787
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:1A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1789, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1789
+Emulated Cycles: 1789
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:1A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1792, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1792
+Emulated Cycles: 1792
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:1A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1794, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1794
+Emulated Cycles: 1794
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:1A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1799, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1799
+Emulated Cycles: 1799
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:1B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1801, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1801
+Emulated Cycles: 1801
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:1B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1804, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1804
+Emulated Cycles: 1804
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:1B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1806, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1806
+Emulated Cycles: 1806
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:1B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1811, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1811
+Emulated Cycles: 1811
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:1C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1813, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1813
+Emulated Cycles: 1813
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:1C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1816, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1816
+Emulated Cycles: 1816
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:1C Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1818, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1818
+Emulated Cycles: 1818
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:1C Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1823, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1823
+Emulated Cycles: 1823
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:1D Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1825, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1825
+Emulated Cycles: 1825
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:1D Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1828, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1828
+Emulated Cycles: 1828
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:1D Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1830, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1830
+Emulated Cycles: 1830
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:1D Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1835, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1835
+Emulated Cycles: 1835
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:1E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1837, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1837
+Emulated Cycles: 1837
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:1E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1840, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1840
+Emulated Cycles: 1840
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:1E Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1842, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1842
+Emulated Cycles: 1842
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:1E Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1847, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1847
+Emulated Cycles: 1847
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:1F Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1849, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1849
+Emulated Cycles: 1849
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:1F Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1852, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1852
+Emulated Cycles: 1852
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:1F Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1854, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1854
+Emulated Cycles: 1854
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:1F Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1859, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1859
+Emulated Cycles: 1859
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:20 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1861, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1861
+Emulated Cycles: 1861
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:20 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1864, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1864
+Emulated Cycles: 1864
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:20 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1866, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1866
+Emulated Cycles: 1866
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:20 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1871, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1871
+Emulated Cycles: 1871
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:21 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1873, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1873
+Emulated Cycles: 1873
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:21 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1876, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1876
+Emulated Cycles: 1876
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:21 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1878, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1878
+Emulated Cycles: 1878
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:21 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1883, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1883
+Emulated Cycles: 1883
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:22 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1885, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1885
+Emulated Cycles: 1885
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:22 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1888, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1888
+Emulated Cycles: 1888
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:22 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1890, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1890
+Emulated Cycles: 1890
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:22 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1895, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1895
+Emulated Cycles: 1895
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:23 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1897, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1897
+Emulated Cycles: 1897
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:23 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1900, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1900
+Emulated Cycles: 1900
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:23 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1902, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1902
+Emulated Cycles: 1902
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:23 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1907, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1907
+Emulated Cycles: 1907
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:24 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1909, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1909
+Emulated Cycles: 1909
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:24 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1912, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1912
+Emulated Cycles: 1912
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:24 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1914, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1914
+Emulated Cycles: 1914
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:24 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1919, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1919
+Emulated Cycles: 1919
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:25 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1921, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1921
+Emulated Cycles: 1921
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:25 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1924, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1924
+Emulated Cycles: 1924
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:25 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1926, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1926
+Emulated Cycles: 1926
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:25 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1931, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1931
+Emulated Cycles: 1931
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:26 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1933, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1933
+Emulated Cycles: 1933
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:26 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1936, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1936
+Emulated Cycles: 1936
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:26 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1938, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1938
+Emulated Cycles: 1938
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:26 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1943, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1943
+Emulated Cycles: 1943
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:27 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1945, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1945
+Emulated Cycles: 1945
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:27 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1948, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1948
+Emulated Cycles: 1948
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:27 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1950, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1950
+Emulated Cycles: 1950
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:27 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1955, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1955
+Emulated Cycles: 1955
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:28 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1957, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1957
+Emulated Cycles: 1957
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:28 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1960, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1960
+Emulated Cycles: 1960
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:28 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1962, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1962
+Emulated Cycles: 1962
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:28 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1967, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1967
+Emulated Cycles: 1967
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:29 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1969, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1969
+Emulated Cycles: 1969
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:29 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1972, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1972
+Emulated Cycles: 1972
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:29 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1974, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1974
+Emulated Cycles: 1974
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:29 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1979, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1979
+Emulated Cycles: 1979
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:2A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1981, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1981
+Emulated Cycles: 1981
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:2A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1984, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1984
+Emulated Cycles: 1984
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:2A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1986, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1986
+Emulated Cycles: 1986
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:2A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1991, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1991
+Emulated Cycles: 1991
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:2B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1993, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1993
+Emulated Cycles: 1993
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:2B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1996, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1996
+Emulated Cycles: 1996
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:2B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 1998, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 1998
+Emulated Cycles: 1998
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:2B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2003, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2003
+Emulated Cycles: 2003
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:2C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2005, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2005
+Emulated Cycles: 2005
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:2C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2008, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2008
+Emulated Cycles: 2008
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:2C Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2010, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2010
+Emulated Cycles: 2010
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:2C Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2015, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2015
+Emulated Cycles: 2015
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:2D Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2017, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2017
+Emulated Cycles: 2017
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:2D Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2020, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2020
+Emulated Cycles: 2020
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:2D Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2022, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2022
+Emulated Cycles: 2022
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:2D Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2027, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2027
+Emulated Cycles: 2027
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:2E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2029, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2029
+Emulated Cycles: 2029
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:2E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2032, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2032
+Emulated Cycles: 2032
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:2E Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2034, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2034
+Emulated Cycles: 2034
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:2E Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2039, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2039
+Emulated Cycles: 2039
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:2F Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2041, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2041
+Emulated Cycles: 2041
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:2F Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2044, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2044
+Emulated Cycles: 2044
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:2F Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2046, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2046
+Emulated Cycles: 2046
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:2F Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2051, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2051
+Emulated Cycles: 2051
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:30 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2053, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2053
+Emulated Cycles: 2053
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:30 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2056, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2056
+Emulated Cycles: 2056
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:30 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2058, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2058
+Emulated Cycles: 2058
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:30 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2063, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2063
+Emulated Cycles: 2063
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:31 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2065, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2065
+Emulated Cycles: 2065
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:31 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2068, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2068
+Emulated Cycles: 2068
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:31 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2070, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2070
+Emulated Cycles: 2070
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:31 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2075, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2075
+Emulated Cycles: 2075
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:32 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2077, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2077
+Emulated Cycles: 2077
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:32 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2080, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2080
+Emulated Cycles: 2080
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:32 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2082, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2082
+Emulated Cycles: 2082
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:32 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2087, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2087
+Emulated Cycles: 2087
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:33 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2089, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2089
+Emulated Cycles: 2089
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:33 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2092, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2092
+Emulated Cycles: 2092
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:33 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2094, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2094
+Emulated Cycles: 2094
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:33 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2099, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2099
+Emulated Cycles: 2099
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:34 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2101, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2101
+Emulated Cycles: 2101
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:34 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2104, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2104
+Emulated Cycles: 2104
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:34 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2106, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2106
+Emulated Cycles: 2106
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:34 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2111, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2111
+Emulated Cycles: 2111
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:35 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2113, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2113
+Emulated Cycles: 2113
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:35 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2116, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2116
+Emulated Cycles: 2116
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:35 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2118, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2118
+Emulated Cycles: 2118
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:35 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2123, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2123
+Emulated Cycles: 2123
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:36 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2125, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2125
+Emulated Cycles: 2125
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:36 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2128, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2128
+Emulated Cycles: 2128
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:36 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2130, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2130
+Emulated Cycles: 2130
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:36 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2135, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2135
+Emulated Cycles: 2135
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:37 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2137, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2137
+Emulated Cycles: 2137
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:37 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2140, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2140
+Emulated Cycles: 2140
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:37 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2142, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2142
+Emulated Cycles: 2142
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:37 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2147, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2147
+Emulated Cycles: 2147
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:38 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2149, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2149
+Emulated Cycles: 2149
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:38 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2152, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2152
+Emulated Cycles: 2152
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:38 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2154, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2154
+Emulated Cycles: 2154
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:38 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2159, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2159
+Emulated Cycles: 2159
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:39 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2161, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2161
+Emulated Cycles: 2161
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:39 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2164, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2164
+Emulated Cycles: 2164
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:39 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2166, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2166
+Emulated Cycles: 2166
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:39 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2171, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2171
+Emulated Cycles: 2171
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:3A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2173, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2173
+Emulated Cycles: 2173
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:3A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2176, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2176
+Emulated Cycles: 2176
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:3A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2178, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2178
+Emulated Cycles: 2178
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:3A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2183, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2183
+Emulated Cycles: 2183
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:3B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2185, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2185
+Emulated Cycles: 2185
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:3B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2188, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2188
+Emulated Cycles: 2188
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:3B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2190, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2190
+Emulated Cycles: 2190
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:3B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2195, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2195
+Emulated Cycles: 2195
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:3C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2197, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2197
+Emulated Cycles: 2197
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:3C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2200, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2200
+Emulated Cycles: 2200
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:3C Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2202, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2202
+Emulated Cycles: 2202
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:3C Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2207, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2207
+Emulated Cycles: 2207
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:3D Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2209, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2209
+Emulated Cycles: 2209
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:3D Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2212, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2212
+Emulated Cycles: 2212
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:3D Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2214, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2214
+Emulated Cycles: 2214
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:3D Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2219, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2219
+Emulated Cycles: 2219
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:3E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2221, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2221
+Emulated Cycles: 2221
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:3E Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2224, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2224
+Emulated Cycles: 2224
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:3E Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2226, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2226
+Emulated Cycles: 2226
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:3E Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2231, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2231
+Emulated Cycles: 2231
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:3F Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2233, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2233
+Emulated Cycles: 2233
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:3F Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2236, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2236
+Emulated Cycles: 2236
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:3F Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2238, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2238
+Emulated Cycles: 2238
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:3F Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2243, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2243
+Emulated Cycles: 2243
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:40 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2245, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2245
+Emulated Cycles: 2245
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:40 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2248, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2248
+Emulated Cycles: 2248
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:40 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2250, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2250
+Emulated Cycles: 2250
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:40 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2255, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2255
+Emulated Cycles: 2255
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:41 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2257, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2257
+Emulated Cycles: 2257
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:41 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2260, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2260
+Emulated Cycles: 2260
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:41 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2262, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2262
+Emulated Cycles: 2262
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:41 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2267, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2267
+Emulated Cycles: 2267
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:42 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2269, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2269
+Emulated Cycles: 2269
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:42 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2272, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2272
+Emulated Cycles: 2272
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:42 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2274, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2274
+Emulated Cycles: 2274
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:42 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2279, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2279
+Emulated Cycles: 2279
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:43 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2281, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2281
+Emulated Cycles: 2281
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:43 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2284, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2284
+Emulated Cycles: 2284
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:43 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2286, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2286
+Emulated Cycles: 2286
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:43 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2291, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2291
+Emulated Cycles: 2291
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:44 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2293, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2293
+Emulated Cycles: 2293
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:44 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2296, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2296
+Emulated Cycles: 2296
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:44 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2298, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2298
+Emulated Cycles: 2298
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:44 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2303, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2303
+Emulated Cycles: 2303
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:45 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2305, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2305
+Emulated Cycles: 2305
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:45 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2308, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2308
+Emulated Cycles: 2308
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:45 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2310, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2310
+Emulated Cycles: 2310
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:45 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2315, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2315
+Emulated Cycles: 2315
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:46 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2317, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2317
+Emulated Cycles: 2317
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:46 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2320, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2320
+Emulated Cycles: 2320
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:46 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2322, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2322
+Emulated Cycles: 2322
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:46 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2327, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2327
+Emulated Cycles: 2327
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:47 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2329, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2329
+Emulated Cycles: 2329
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:47 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2332, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2332
+Emulated Cycles: 2332
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:47 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2334, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2334
+Emulated Cycles: 2334
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:47 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2339, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2339
+Emulated Cycles: 2339
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:48 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2341, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2341
+Emulated Cycles: 2341
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:48 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2344, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2344
+Emulated Cycles: 2344
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:48 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2346, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2346
+Emulated Cycles: 2346
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:48 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2351, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2351
+Emulated Cycles: 2351
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:49 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2353, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2353
+Emulated Cycles: 2353
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:49 Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2356, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2356
+Emulated Cycles: 2356
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:49 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2358, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2358
+Emulated Cycles: 2358
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:49 Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2363, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2363
+Emulated Cycles: 2363
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:4A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2365, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2365
+Emulated Cycles: 2365
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:4A Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2368, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2368
+Emulated Cycles: 2368
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:4A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2370, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2370
+Emulated Cycles: 2370
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:4A Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2375, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2375
+Emulated Cycles: 2375
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:4B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2377, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2377
+Emulated Cycles: 2377
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:4B Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2380, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2380
+Emulated Cycles: 2380
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:4B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2382, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2382
+Emulated Cycles: 2382
+
+8155: 9D 00 C1    STA $C100,X
+CPU State: PC:8158 A:EA X:4B Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2387, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2387
+Emulated Cycles: 2387
+
+8158: E8          INX
+CPU State: PC:8159 A:EA X:4C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2389, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2389
+Emulated Cycles: 2389
+
+8159: D0 F8       BNE $8153
+CPU State: PC:8153 A:EA X:4C Y:00 SP:FD Status:25 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current Emulated Cycle: 2392, Last IRQ Trigger Cycle: 0, Cycles Since Last IRQ: 2392
+Emulated Cycles: 2392
+
+8153: A9 EA       LDA #$EA
+CPU State: PC:8155 A:EA X:4C Y:00 SP:FD Status:A5 (NV-B DIZC)
+RAM State: $00:00 $01:00 $02:00
+Timing: Current 
