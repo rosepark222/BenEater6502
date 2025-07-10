@@ -1,5 +1,13 @@
+## 6502 Project
 
-![file system components](https://github.com/rosepark222/BenEater6502/blob/master/Screenshot%202025-07-10%20102654.png)
+
+### file system architecture
+![file system design](images/fs_design.png) 
+
+### file system memory map
+![file system memory map](images/fs_memmap.png) 
+ 
+ 
 
 
 # there are less than 200 instructions in 6502. Can you classify them into groups so that easier for students to learn?
