@@ -1,4 +1,7 @@
 
+![file system components](https://github.com/rosepark222/BenEater6502/blob/master/Screenshot%202025-07-10%20102654.png)
+
+
 # there are less than 200 instructions in 6502. Can you classify them into groups so that easier for students to learn?
 
 Absolutely! The **6502** microprocessor has a famously compact and regular instruction set, with **56 official instructions** (not 200!), each of which can be used with different addressing modes, resulting in 151 valid opcodes. For teaching, it’s very helpful to classify these instructions into functional groups. Here’s a clear breakdown:
