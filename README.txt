@@ -2,7 +2,7 @@
 
 
 ### file system architecture
-![file system design](images/fs_design.png) 
+![file system design](https://github.com/rosepark222/BenEater6502/blob/ad46600d739df5e51b161201ffb597ad88424a0c/images/fs_design.png) 
 
 ### file system memory map
 ![file system memory map](images/fs_memmap.png) 
