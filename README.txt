@@ -3,7 +3,10 @@
 
 ### file system architecture
 ![file system design](https://github.com/rosepark222/BenEater6502/blob/ad46600d739df5e51b161201ffb597ad88424a0c/images/fs_design.png?raw=true) 
+### file system architecture
+![file system design](https://raw.githubusercontent.com/rosepark222/BenEater6502/master/images/fs_design.png?raw=true) 
 
+https://raw.githubusercontent.com/<your_Github_username>/<your_repository_name>/<branch_name>/<file_name>.<extension_name>
 ### file system memory map
 ![file system memory map](images/fs_memmap.png?raw=true) 
  
