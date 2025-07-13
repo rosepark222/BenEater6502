@@ -6,10 +6,12 @@
 #include <unistd.h>  // For usleep() on Linux/WSL for real-time pacing
 #include <ctype.h>   // For isxdigit(), isspace()
 #include <limits.h>  // Make sure to include this header for UINT_MAX
+#include <stdbool.h>
 
 // Include the fake6502 emulator core
 #include "fake6502.h"
 
+#define magic_opcde 0xFF
 // --- Emulated 6502 Memory (64KB) ---
 // This array represents the 6502's 64KB address space.
 uint8_t RAM[65536];
@@ -154,7 +156,7 @@ FILE *log_file = NULL;
  * @param current_pc The current Program Counter of the 6502.
  * @param ram Pointer to the emulated RAM.
  */
-void disassemble_current_instruction(FILE *stream, uint16_t current_pc, const uint8_t *ram) {
+void disassemble_current_instruction(FILE *stream, uint16_t current_pc, const uint8_t *ram, bool kill_on_FF) {
     uint8_t opcode = ram[current_pc];
     uint8_t op1 = ram[(current_pc + 1) % 65536]; // % 65536 to handle wrap-around for peek
     uint8_t op2 = ram[(current_pc + 2) % 65536]; // % 65536 to handle wrap-around for peek
@@ -329,6 +331,13 @@ void disassemble_current_instruction(FILE *stream, uint16_t current_pc, const ui
             break;
     }
     fprintf(stream, "\n");
+
+    if(opcode == magic_opcde && kill_on_FF) {
+        fprintf(stream, "INFO: magic opcode 0xFF detected, terminate the simulation\n");
+        fprintf(stream, "INFO: this means the code jumps to pc where opcode is 0x00 BRK and executes \n");
+
+        exit(0);
+    }
 }
 
 void dump_memory_range(FILE *stream, uint16_t start_addr, uint16_t end_addr) {
@@ -392,6 +401,7 @@ int main(int argc, char *argv[]) { // Modified main function signature
         0x48,             // PHA
         0xE6, 0x02,       // INC $02
         0x68,             // PLA
+        magic_opcde,             // Unknown magic opcode
         0x40              // RTI
     };
 
@@ -458,8 +468,8 @@ int main(int argc, char *argv[]) { // Modified main function signature
 
     while (time(NULL) - start_real_time < simulation_duration_seconds) {
         // Print disassembly before execution
-        disassemble_current_instruction(stdout, pc, RAM);
-        disassemble_current_instruction(log_file, pc, RAM);
+        disassemble_current_instruction(stdout, pc, RAM, false);
+        disassemble_current_instruction(log_file, pc, RAM, true);
 
         // Execute one 6502 instruction
         exec6502(cycles_per_loop_iteration); // This is now 1 cycle per call

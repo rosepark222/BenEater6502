@@ -9,12 +9,12 @@ sim: $(BEN_HOME)/tools/benEater_simulator/simulator.c
 a.out.hex: a.out
 	hexdump -v -e '"%07.7_ax: " 8/1 "%02x " "\n"' a.out > a.out.hex.raw
 	$(BEN_HOME)/bin/addr_shifter.sh a.out.hex.raw > a.out.hex
-	# $(BEN_HOME)/tools/dcc6502/dcc6502 -o 0x8000 -d -c -n a.out > a.out.dis
+	$(BEN_HOME)/tools/dcc6502/dcc6502 -o 0x8000 -d -c -n a.out > a.out.dis
 
 a.out: test.s
-	$(BEN_HOME)/tools/vasm/vasm6502_oldstyle -L ./listFile -Fbin -dotdir ./test.s
+	$(BEN_HOME)/tools/vasm/vasm6502_oldstyle -Fbin -dotdir ./test.s
 	ls -al a.out
 	hexdump -C a.out
 
 clean:
-	rm -f a.out* sim trace.log listFile
+	rm -f a.out* sim trace.log

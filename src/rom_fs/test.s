@@ -1,4 +1,4 @@
-    .org $8000         ; Start of program
+   .org $8000         ; Start of program
 
 ; === Set inode and block bitmaps ===
 SetBitmaps:
