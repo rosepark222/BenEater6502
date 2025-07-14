@@ -16,7 +16,18 @@
 ; assume inode base = 0xBC00
 ; assume blocks start at base $C000 (block 0)
 ; ---------------------------------------------
- 
+simulate_ls:
+    ;LDA #<input_cmd
+    ;PHA
+    ;LDA #>input_cmd
+    ;PHA
+    JSR prepare_path
+    LDA #$FF
+    PHA
+    PHA
+    PHA
+    BRK                  ; if prepare_path is done, code exit the simulation 
+    RTS
 
 ; --- Prepare Path String ---
 prepare_path:

@@ -38,7 +38,7 @@ void print_cpu_state_to_stream(FILE *stream) {
     // Note: status register bits are: N V - B D I Z C
     fprintf(stream, "CPU State: PC:%04X A:%02X X:%02X Y:%02X SP:%02X Status:%02X (NV-B DIZC)\n",
            pc, a, x, y, sp, status);
-    fprintf(stream, "RAM State: $00:%02X $01:%02X $02:%02X\n", RAM[0x00], RAM[0x01], RAM[0x02]);
+    fprintf(stream, "RAM State: $C000:%02X $C001:%02X $C002:%02X\n", RAM[0xC000], RAM[0xC001], RAM[0xC002]);
 }
 
 /**
@@ -156,7 +156,7 @@ FILE *log_file = NULL;
  * @param current_pc The current Program Counter of the 6502.
  * @param ram Pointer to the emulated RAM.
  */
-void disassemble_current_instruction(FILE *stream, uint16_t current_pc, const uint8_t *ram, bool kill_on_FF) {
+int disassemble_current_instruction(FILE *stream, uint16_t current_pc, const uint8_t *ram, bool kill_on_FF) {
     uint8_t opcode = ram[current_pc];
     uint8_t op1 = ram[(current_pc + 1) % 65536]; // % 65536 to handle wrap-around for peek
     uint8_t op2 = ram[(current_pc + 2) % 65536]; // % 65536 to handle wrap-around for peek
@@ -336,8 +336,9 @@ void disassemble_current_instruction(FILE *stream, uint16_t current_pc, const ui
         fprintf(stream, "INFO: magic opcode 0xFF detected, terminate the simulation\n");
         fprintf(stream, "INFO: this means the code jumps to pc where opcode is 0x00 BRK and executes \n");
 
-        exit(0);
+        return 1;
     }
+    return 0;
 }
 
 void dump_memory_range(FILE *stream, uint16_t start_addr, uint16_t end_addr) {
@@ -364,6 +365,7 @@ int main(int argc, char *argv[]) { // Modified main function signature
     uint16_t program_start_address = 0x8000;
     // Name of the hex file to load - now taken from command line
     const char *hex_filename; // Declare it, but don't hardcode
+    int break_loop = 0;
 
     // Check if enough arguments are provided
     if (argc < 2) { // argc[0] is the program name, argc[1] would be the first argument
@@ -469,7 +471,7 @@ int main(int argc, char *argv[]) { // Modified main function signature
     while (time(NULL) - start_real_time < simulation_duration_seconds) {
         // Print disassembly before execution
         disassemble_current_instruction(stdout, pc, RAM, false);
-        disassemble_current_instruction(log_file, pc, RAM, true);
+        break_loop = disassemble_current_instruction(log_file, pc, RAM, true);
 
         // Execute one 6502 instruction
         exec6502(cycles_per_loop_iteration); // This is now 1 cycle per call
@@ -501,6 +503,11 @@ int main(int argc, char *argv[]) { // Modified main function signature
         // Add a small sleep to prevent the loop from consuming 100% CPU on your host.
         // This makes the step-by-step output more readable.
         usleep(1000); // Sleep for 1 millisecond (1,000 microseconds)
+
+        if (break_loop == 1) {
+            printf("brek loop is: %u\n\n", break_loop);
+            break;
+        }
     }
 
     printf("\n--- Simulation Finished ---\n");
