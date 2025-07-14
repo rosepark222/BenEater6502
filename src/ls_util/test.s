@@ -181,7 +181,7 @@ scan_block:
     STA $07
     LDA $06
     ORA #$C0
-    STA $06              ; address in $06/$07
+    STA $06              ; address in $06/$07  -- suspecting nibbles are swapped ( 0xC000 means 0x06 has 00 and 0x07 has 0xC0, but swapped)
 
     LDY #0
 scan_loop:
