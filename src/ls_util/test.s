@@ -167,55 +167,81 @@ found_entry:
     CLC
     RTS
 
-; ---------------------------------------------
-; Scan single directory data block for token
-; Input: A = block number
-; Output: A = inode number if match, Carry = 0 if found, 1 if not
+; ------------------------------------------------
+; scan_block
+; Scan a single directory data block for name match
+;
+; Input:
+;   A    = block number (0..63)
+;   $0200 = null-terminated string to match
+;
+; Output:
+;   A    = inode number of matching entry (if found)
+;   Carry = Clear if found, Set if not found
+;
+; Scratch:
+;   $06/$07 = address of current directory block
+;   $05 = inode number of candidate
+;
 scan_block:
     CMP #64
-    BCS not_found_scan        ; Bounds check
-    ASL A
-    ROL $06
-    ASL A
-    ROL $06
-    STA $07
-    LDA $06
-    ORA #$C0
-    STA $06              ; address in $06/$07  -- suspecting nibbles are swapped ( 0xC000 means 0x06 has 00 and 0x07 has 0xC0, but swapped)
+    BCS not_found_scan        ; Block number out of range
 
-    LDY #0
-scan_loop:
-    LDA ($06),Y
-    CMP #$FF
-    BEQ scan_next
-
-    LDA #14
-    STA $04
-    LDX #0
-cmp_loop:
-    LDA ($06),Y
-    CMP $0200,X
-    BNE scan_next
-    INX
-    INY
-    DEC $04
-    BNE cmp_loop
-
-    LDA ($06),Y
-    SEC
+    TAX                       ; Save block number in X
+    LDA #$00
+    STA $06                   ; Low byte = 0
+    TXA
     CLC
-    RTS
+    ADC #$C0                  ; High byte = $C0 + block number
+    STA $07                   ; $07:$06 = address of block
 
-scan_next:
+    LDY #0                    ; Offset into block
+
+scan_loop:
+    LDA ($06),Y              ; Load first byte of entry (inode)
+    CMP #$00
+    BEQ skip_entry           ; If 0, skip invalid entry
+
+    STA $05                  ; Save inode number to $05
+
+    ; Move Y to name field (offset 2)
     TYA
     CLC
-    ADC #16
+    ADC #2
     TAY
-    CPY #$00
-    BNE scan_loop
+    ; init X to 0
+    LDX #0
+    ; Compare entry name (null-terminated string)
+cmp_loop:
+    LDA ($06),Y
+    CMP $0200,X              ; Compare with input string
+    BNE skip_entry
+
+    BEQ check_null
+check_null:
+    CMP #$00
+    BEQ found_match          ; Null terminator and matched
+
+    INX
+    INY
+    JMP cmp_loop
+
+skip_entry:
+    ; Round Y down to start of current entry
+    TYA
+    AND #$F0                ; Mask out low bits to get base of 16-byte entry
+    CLC
+    ADC #$10               ; Move to next entry
+    TAY
+    BNE scan_loop          ; Repeat until wrap (end of block)
 
 not_found_scan:
     SEC
+    RTS
+
+found_match:
+    LDA $05                 ; Load inode number
+    CLC
     RTS
 
 ; ---------------------------------------------

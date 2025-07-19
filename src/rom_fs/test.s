@@ -37,7 +37,7 @@ SetBitmaps:
     STA $BC16           ; i_block[0] = block 1
     LDA #$02
     STA $BC17           ; i_block[1] = block 2
-    LDA #$06
+    LDA #$07
     STA $BC18           ; i_block[2] = block 6 (indirect)
 
 ; === Inode 2: /ram ===
@@ -50,6 +50,7 @@ SetBitmaps:
     STA $BC25
     LDA #$05
     STA $BC26           ; block 5
+    LDA #$00
     STA $BC27
     STA $BC28
 
@@ -62,8 +63,9 @@ SetBitmaps:
     STA $BC33
     STA $BC34
     STA $BC35
-    LDA #$03
+    LDA #$06
     STA $BC36           ; block 3
+    LDA #$00
     STA $BC37
     STA $BC38
 
@@ -75,8 +77,9 @@ SetBitmaps:
     STA $BC43
     STA $BC44
     STA $BC45
-    LDA #$04
+    LDA #$08
     STA $BC46
+    LDA #$00
     STA $BC47
     STA $BC48
 
@@ -88,8 +91,9 @@ SetBitmaps:
     STA $BC53
     STA $BC54
     STA $BC55
-    LDA #$04
+    LDA #$09
     STA $BC56           ; reused block 4 (for testing, update if needed)
+    LDA #$00
     STA $BC57
     STA $BC58
 
@@ -133,34 +137,34 @@ Loop_ROM:
     CPX #14
     BNE Loop_ROM
 
-; === /rom dir @ block 3 = $C300 ===
+; === /rom dir @ block 6 = $C600 ===
     ; Entry 1: romFS.txt
     LDA #$04
-    STA $C300
+    STA $C600
     LDA #$00
-    STA $C301
+    STA $C601
     LDX #$00
 Loop_romFS:
     LDA ROMFS_name,X
-    STA $C302,X
+    STA $C602,X
     INX
     CPX #14
     BNE Loop_romFS
 
     ; Entry 2: bin
     LDA #$05
-    STA $C310
+    STA $C610
     LDA #$01
-    STA $C311
+    STA $C611
     LDX #$00
 Loop_bin:
     LDA BIN_name,X
-    STA $C312,X
+    STA $C612,X
     INX
     CPX #14
     BNE Loop_bin
 
-; === README.txt indirect block (block 6 = $C700) ===
+; === README.txt indirect block (block 7 = $C700) ===
     LDA #$03
     STA $C700
     LDA #$04

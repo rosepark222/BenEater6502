@@ -38,6 +38,7 @@ void print_cpu_state_to_stream(FILE *stream) {
     // Note: status register bits are: N V - B D I Z C
     fprintf(stream, "CPU State: PC:%04X A:%02X X:%02X Y:%02X SP:%02X Status:%02X (NV-B DIZC)\n",
            pc, a, x, y, sp, status);
+    fprintf(stream, "RAM State: $0000:%02X $0001:%02X $0002:%02X\n", RAM[0x0000], RAM[0x0001], RAM[0x0002]);
     fprintf(stream, "RAM State: $0006:%02X $0007:%02X $0008:%02X\n", RAM[0x0006], RAM[0x0007], RAM[0x0008]);
     fprintf(stream, "RAM State: $0200:%02X $0201:%02X $0202:%02X\n", RAM[0x0200], RAM[0x0201], RAM[0x0202]);
     fprintf(stream, "RAM State: $C000:%02X $C001:%02X $C002:%02X\n", RAM[0xC000], RAM[0xC001], RAM[0xC002]);
