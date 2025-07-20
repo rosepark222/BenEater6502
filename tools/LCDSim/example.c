@@ -45,13 +45,14 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    lcd = LCDSim_Create(screen, 0, 0);
+    lcd = LCDSim_Create(screen, 0, 0, "../../tools/LCDSim/");
     LCD_State(lcd, 1, 1, 1);
     LCD_SetCursor(lcd, 0, 3);
     LCD_PutS(lcd, "Hello,");
     LCD_SetCursor(lcd, 1, 1);
     LCD_PutS(lcd, "Andy and Luois!");
 
+    // 1, LCD instruciton executed
 
     LCD_SetCursor(lcd, 1, 1);
 LCD_PutChar(lcd, 'H');
@@ -59,11 +60,19 @@ LCDSim_Draw(lcd);
 SDL_UpdateWindowSurface(window);
 SDL_Delay(500); // Wait 500 milliseconds (0.5 seconds)
 
+    // 2, non-LCD instruciton executed
+    // do nothing 
+
+    // 3, LCD instruciton executed
+
+
 LCD_SetCursor(lcd, 1, 2);
 LCD_PutChar(lcd, 'O');
 LCDSim_Draw(lcd);
 SDL_UpdateWindowSurface(window);
 SDL_Delay(500);
+
+    // 4, LCD instruciton executed
 
 LCD_SetCursor(lcd, 1, 4);
 LCD_PutChar(lcd, 'M');
@@ -71,6 +80,7 @@ LCDSim_Draw(lcd);
 SDL_UpdateWindowSurface(window);
 SDL_Delay(500);
 
+    // 5, all instructions were  executed, wait for Ctrl-C to exit
 
 
     while (hold) {

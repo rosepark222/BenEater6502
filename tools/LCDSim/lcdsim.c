@@ -5,12 +5,12 @@
 #include <SDL2/SDL.h>
 #include "lcdsim.h"
 
-LCDSim* LCDSim_Create(SDL_Surface *screen, int x, int y) {
+LCDSim* LCDSim_Create(SDL_Surface *screen, int x, int y, const char* base_path) {
 
     LCDSim* self = malloc(sizeof(LCDSim));
     if (self != NULL) {
-        HD44780_Init(&self->mcu);
-        GraphicUnit_Init(&self->gu);
+        HD44780_Init(&self->mcu, base_path);
+        GraphicUnit_Init(&self->gu, base_path);
         self->gu.screen = screen;
         self->gu.on_screen.x = x;
         self->gu.on_screen.y = y;
@@ -165,7 +165,8 @@ LCDSim* LCDSim_Destroy(LCDSim *self) {
 
 }
 
-void HD44780_Init(HD44780 *self) {
+void HD44780_Init(HD44780 *self, const char* base_path) {
+    char full_path[MAX_PATH_LENGTH];
 
     // Init counter
     self->CGRAM_counter = 0;
@@ -178,10 +179,12 @@ void HD44780_Init(HD44780 *self) {
     self->LCD_DisplayEnable = 1;
     self->RAM_current = DDR;
 
+    int chars_written = snprintf(full_path, MAX_PATH_LENGTH, "%s%s", base_path, "cgrom.bin");
+
     // Init CGROM
     Uint16 i;
     Uint8 j, cgrom_array[1152];
-    FILE *cgrom = fopen("cgrom.bin", "rb");
+    FILE *cgrom = fopen(full_path, "rb");
     if (cgrom == NULL) {
         perror("Error opening cgrom.bin");
         exit(EXIT_FAILURE);
@@ -204,11 +207,13 @@ void HD44780_Init(HD44780 *self) {
 
 }
 
-void GraphicUnit_Init_old(GraphicUnit *self) {
+void GraphicUnit_Init_old(GraphicUnit *self, const char* base_path) {
 
     Uint8 i;
     self->position.x = 0;
     self->position.y = 0;
+    char full_path[MAX_PATH_LENGTH];
+    int chars_written = snprintf(full_path, MAX_PATH_LENGTH, "%s%s", base_path, "lcd_layout.bmp");
 
     for (i = 0; i < 2; i++)
         //self->color[i] = SDL_CreateRGBSurface(SDL_HWSURFACE,PIXEL_DIM,PIXEL_DIM, 32, 0, 0, 0, 0);
@@ -221,15 +226,18 @@ void GraphicUnit_Init_old(GraphicUnit *self) {
     self->temp_screen = SDL_CreateRGBSurface(0, 331, 149, 32,
                                          0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 
-    self->image = SDL_LoadBMP("lcd_layout.bmp");
+
+    self->image = SDL_LoadBMP(full_path);
     Pixel_Init(self->pixel);
 
 }
 
-void GraphicUnit_Init(GraphicUnit *self) {
+void GraphicUnit_Init(GraphicUnit *self, const char* base_path) {
     Uint8 i;
     self->position.x = 0;
     self->position.y = 0;
+    char full_path[MAX_PATH_LENGTH];
+    int chars_written = snprintf(full_path, MAX_PATH_LENGTH, "%s%s", base_path, "lcd_layout.bmp");
 
     for (i = 0; i < 2; i++) {
         self->color[i] = SDL_CreateRGBSurface(0, PIXEL_DIM, PIXEL_DIM, 32,
@@ -245,7 +253,7 @@ void GraphicUnit_Init(GraphicUnit *self) {
     self->temp_screen = SDL_CreateRGBSurface(0, 331, 149, 32,
                                              0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 
-    self->image = SDL_LoadBMP("lcd_layout.bmp");
+    self->image = SDL_LoadBMP(full_path);
     Pixel_Init(self->pixel);
 }
 

@@ -24,6 +24,8 @@
 #define PIXEL_DIM 3
 
 
+#define MAX_PATH_LENGTH 512
+
 typedef enum Color Color;
 enum Color { BLACK, GREEN };
 
@@ -75,7 +77,7 @@ typedef struct {
 //{ Functions
 
 // To create the emulator and exploit it
-LCDSim* LCDSim_Create(SDL_Surface *screen, int x, int y);
+LCDSim* LCDSim_Create(SDL_Surface *screen, int x, int y, const char* base_path);
 void    LCDSim_Draw(LCDSim *self);
 void    LCDSim_Instruction(LCDSim *self, Uint16 instruction);
 LCDSim* LCDSim_Destroy(LCDSim *self);
@@ -95,8 +97,8 @@ void    LCD_SetCursor(LCDSim *self, Uint8 line, Uint8 column);
 void    LCD_CustomChar(LCDSim *self, Uint8 char_number, Uint8* custom);
 
 // For deeper usage
-void    HD44780_Init(HD44780 *self);
-void    GraphicUnit_Init(GraphicUnit *self);
+void    HD44780_Init(HD44780 *self, const char* base_path);
+void    GraphicUnit_Init(GraphicUnit *self, const char* base_path);
 void    Pixel_Init(Pixel pixel[][CASE_WIDTH][CASE_HEIGHT]);
 void    Pixel_Refresh(HD44780 mcu, Pixel pixel[][CASE_WIDTH][CASE_HEIGHT]);
 void    Pixel_Draw(GraphicUnit *self);
