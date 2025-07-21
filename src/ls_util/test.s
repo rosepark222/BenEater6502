@@ -1,78 +1,112 @@
- 
-
-
- ; ---------------------------------------------
+; ---------------------------------------------
 ; 6502 RAM File System LS Utility
 ; Author: ChatGPT (based on your FS design)
 ; ---------------------------------------------
-; Memory Layout Assumptions:
-; - Path string starts at fixed address $0400
-; - RAM scratch:
-;     $0200-$020F: path token buffer
-;     $0210: current inode number
-;     $0010/$0011: zero-page pointer to path string (used by tokenizer)
-; - No block/inode copying: data is accessed directly in place
-; ---------------------------------------------
-; assume inode base = 0xBC00
-; assume blocks start at base $C000 (block 0)
+
+; === Memory Layout Symbols ===
+; Zero Page Usage
+PATH_PTR_LO     = $10           ; Low byte of path string pointer
+PATH_PTR_HI     = $11           ; High byte of path string pointer
+; Note: INODE_BASE_HI = $12 and BLOCK_BASE_HI = $13 defined in rom_fs.s
+
+; Scratch Memory
+TOKEN_BUFFER    = $0200         ; $0200-$020F: path token buffer (16 bytes)
+CURRENT_INODE   = $0210         ; Current inode number during traversal
+TEMP_BLOCK_NUM  = $0211         ; Temporary block number storage
+TEMP_INODE_NUM  = $0212         ; Temporary inode number storage
+
+; Working Pointers (used by various routines)
+WORK_PTR_LO     = $00           ; General purpose pointer low byte
+WORK_PTR_HI     = $01           ; General purpose pointer high byte
+BLOCK_PTR_LO    = $02           ; Block pointer low byte
+BLOCK_PTR_HI    = $03           ; Block pointer high byte
+DIR_PTR_LO      = $04           ; Directory scanning pointer low
+DIR_PTR_HI      = $05           ; Directory scanning pointer high
+SCAN_PTR_LO     = $06           ; Scan block pointer low byte
+SCAN_PTR_HI     = $07           ; Scan block pointer high byte
+
+; Input/Output
+PATH_INPUT      = $0400         ; Input path string buffer
+PRINT_CHAR_ADDR = $6000         ; Character output address
+
+; File System Constants
+MAX_INODES      = 64            ; Maximum number of inodes
+INODE_SIZE      = 16            ; Size of each inode in bytes
+DIR_ENTRY_SIZE  = 16            ; Size of directory entry
+BLOCK_SIZE      = 256           ; Size of data block
+
+; Inode Structure Offsets
+I_MODE          = 0             ; File type and permissions
+I_UID           = 1             ; User ID
+I_SIZE_LO       = 2             ; File size low byte
+I_SIZE_HI       = 3             ; File size high byte
+I_BLOCK0        = 6             ; Direct block 0
+I_BLOCK1        = 7             ; Direct block 1  
+I_BLOCK2        = 8             ; Indirect block
+
+; Directory Entry Structure Offsets
+DE_INODE        = 0             ; Inode number
+DE_TYPE         = 1             ; Type
+DE_NAME         = 2             ; Start of filename
+
+; File Type Masks
+FT_FILE         = %00000000     ; Regular file
+FT_DIR          = %00010000     ; Directory
+
 ; ---------------------------------------------
 simulate_ls:
-    ;LDA #<input_cmd
-    ;PHA
-    ;LDA #>input_cmd
-    ;PHA
     JSR prepare_path
     LDA #$FF
     PHA
     PHA
     PHA
-    BRK                  ; if prepare_path is done, code exit the simulation 
+    BRK                         ; Exit simulation
     RTS
 
 ; --- Prepare Path String ---
 prepare_path:
     LDX #$00
 copyLoop:
-    LDA rom_bin,X        ; Load byte from ROM string
-    STA $0400,X          ; Store to RAM path buffer
-    BEQ start_ls         ; If null terminator, jump to ls
+    LDA rom_bin,X               ; Load byte from ROM string
+    STA PATH_INPUT,X            ; Store to RAM path buffer
+    BEQ start_ls                ; If null terminator, jump to ls
     INX
     JMP copyLoop
 
 ; --- Entry Point ---
 start_ls:
-    LDA #<$0400
-    STA $10              ; zero-page low byte of path pointer
-    LDA #>$0400
-    STA $11              ; zero-page high byte of path pointer
+    LDA #<PATH_INPUT
+    STA PATH_PTR_LO             ; zero-page low byte of path pointer
+    LDA #>PATH_INPUT
+    STA PATH_PTR_HI             ; zero-page high byte of path pointer
 
     LDA #0
-    STA $0210            ; Start from root inode 0
+    STA CURRENT_INODE           ; Start from root inode 0
 
 next_token:
-    JSR next_path_token  ; Extract next path component into $0200
-    BEQ done_resolving   ; If empty, done traversing
+    JSR next_path_token         ; Extract next path component into TOKEN_BUFFER
+    BEQ done_resolving          ; If empty, done traversing
 
-    LDA $0210
-    JSR get_inode_ptr    ; Set pointer to inode address in $00/$01
+    LDA CURRENT_INODE
+    JSR get_inode_ptr           ; Set pointer to inode address in WORK_PTR
 
-    JSR find_in_dir      ; Look for token in this directory
+    JSR find_in_dir             ; Look for token in this directory
     BCS not_found
 
-    STA $0210            ; Found! Update inode number
+    STA CURRENT_INODE           ; Found! Update inode number
     JMP next_token
 
 done_resolving:
-    LDA $0210
+    LDA CURRENT_INODE
     JSR get_inode_ptr
 
-    LDY #0
-    LDA ($00),Y
+    LDY #I_MODE
+    LDA (WORK_PTR_LO),Y
     AND #%11110000
-    CMP #%00010000       ; Directory?
+    CMP #FT_DIR                 ; Directory?
     BEQ do_ls_dir
 
-    CMP #%00000000       ; Regular file?
+    CMP #FT_FILE                ; Regular file?
     BEQ do_ls_file
 
     JMP unknown_type
@@ -96,20 +130,20 @@ unknown_type:
 ; ---------------------------------------------
 ; Set pointer to inode
 ; Input: A = inode number
-; Output: $00/$01 = address of inode
+; Output: WORK_PTR_LO/HI = address of inode
 get_inode_ptr:
-    CMP #64
-    BCS bad_inode        ; Bounds check
-    STA $02
-    LDA $02
+    CMP #MAX_INODES
+    BCS bad_inode               ; Bounds check
+    STA TEMP_INODE_NUM
+    LDA TEMP_INODE_NUM
     ASL A
     ASL A
     ASL A
-    ASL A                 ; inode * 16
-    STA $00
-    LDA #$BC              ; base address $BC00
-    ADC #0                ; add carry if any
-    STA $01
+    ASL A                       ; inode * 16
+    STA WORK_PTR_LO
+    LDA INODE_BASE_HI           ; Read base from zero page
+    ADC #0                      ; add carry if any
+    STA WORK_PTR_HI
     RTS
 bad_inode:
     JMP not_found
@@ -117,42 +151,42 @@ bad_inode:
 ; ---------------------------------------------
 ; Find directory entry
 ; Input:
-;   $00/$01 = pointer to inode
-;   $0200 = search name (null-terminated)
+;   WORK_PTR_LO/HI = pointer to inode
+;   TOKEN_BUFFER = search name (null-terminated)
 ; Output:
 ;   A = inode number
 ;   Carry = 0 if found, 1 if not
 find_in_dir:
-    LDY #6
-    LDA ($00),Y          ; i_block[0]
+    LDY #I_BLOCK0
+    LDA (WORK_PTR_LO),Y         ; i_block[0]
     JSR scan_block
     BCC found_entry
 
     INY
-    LDA ($00),Y          ; i_block[1]
+    LDA (WORK_PTR_LO),Y         ; i_block[1]
     JSR scan_block
     BCC found_entry
 
     INY
-    LDA ($00),Y          ; i_block[2] = indirect block
+    LDA (WORK_PTR_LO),Y         ; i_block[2] = indirect block
     BEQ not_found
-    STA $02              ; Save indirect block number
-    CMP #64
+    STA TEMP_BLOCK_NUM          ; Save indirect block number
+    CMP #MAX_INODES
     BCS not_found
 
-    LDA $02
+    LDA TEMP_BLOCK_NUM
     ASL A
-    ROL $03
+    ROL BLOCK_PTR_HI
     ASL A
-    ROL $03
-    STA $04
-    LDA $03
-    ORA #$C0
-    STA $03
+    ROL BLOCK_PTR_HI
+    STA BLOCK_PTR_LO
+    LDA BLOCK_PTR_HI
+    ORA BLOCK_BASE_HI           ; Read base from zero page
+    STA BLOCK_PTR_HI
 
     LDY #0
 next_indirect:
-    LDA ($03),Y
+    LDA (BLOCK_PTR_LO),Y
     BEQ skip_indirect
     JSR scan_block
     BCC found_entry
@@ -173,54 +207,54 @@ found_entry:
 ;
 ; Input:
 ;   A    = block number (0..63)
-;   $0200 = null-terminated string to match
+;   TOKEN_BUFFER = null-terminated string to match
 ;
 ; Output:
 ;   A    = inode number of matching entry (if found)
 ;   Carry = Clear if found, Set if not found
 ;
 ; Scratch:
-;   $06/$07 = address of current directory block
-;   $05 = inode number of candidate
+;   SCAN_PTR_LO/HI = address of current directory block
+;   TEMP_INODE_NUM = inode number of candidate
 ;
 scan_block:
-    CMP #64
-    BCS not_found_scan        ; Block number out of range
+    CMP #MAX_INODES
+    BCS not_found_scan          ; Block number out of range
 
-    TAX                       ; Save block number in X
+    TAX                         ; Save block number in X
     LDA #$00
-    STA $06                   ; Low byte = 0
+    STA SCAN_PTR_LO             ; Low byte = 0
     TXA
     CLC
-    ADC #$C0                  ; High byte = $C0 + block number
-    STA $07                   ; $07:$06 = address of block
+    ADC BLOCK_BASE_HI           ; Read base from zero page
+    STA SCAN_PTR_HI             ; SCAN_PTR = address of block
 
-    LDY #0                    ; Offset into block
+    LDY #0                      ; Offset into block
 
 scan_loop:
-    LDA ($06),Y              ; Load first byte of entry (inode)
+    LDA (SCAN_PTR_LO),Y         ; Load first byte of entry (inode)
     CMP #$00
-    BEQ skip_entry           ; If 0, skip invalid entry
+    BEQ skip_entry              ; If 0, skip invalid entry
 
-    STA $05                  ; Save inode number to $05
+    STA TEMP_INODE_NUM          ; Save inode number
 
     ; Move Y to name field (offset 2)
     TYA
     CLC
-    ADC #2
+    ADC #DE_NAME
     TAY
     ; init X to 0
     LDX #0
     ; Compare entry name (null-terminated string)
 cmp_loop:
-    LDA ($06),Y
-    CMP $0200,X              ; Compare with input string
+    LDA (SCAN_PTR_LO),Y
+    CMP TOKEN_BUFFER,X          ; Compare with input string
     BNE skip_entry
 
     BEQ check_null
 check_null:
     CMP #$00
-    BEQ found_match          ; Null terminator and matched
+    BEQ found_match             ; Null terminator and matched
 
     INX
     INY
@@ -229,58 +263,57 @@ check_null:
 skip_entry:
     ; Round Y down to start of current entry
     TYA
-    AND #$F0                ; Mask out low bits to get base of 16-byte entry
+    AND #$F0                    ; Mask out low bits to get base of 16-byte entry
     CLC
-    ADC #$10               ; Move to next entry
+    ADC #DIR_ENTRY_SIZE         ; Move to next entry
     TAY
-    BNE scan_loop          ; Repeat until wrap (end of block)
+    BNE scan_loop               ; Repeat until wrap (end of block)
 
 not_found_scan:
     SEC
     RTS
 
 found_match:
-    LDA $05                 ; Load inode number
+    LDA TEMP_INODE_NUM          ; Load inode number
     CLC
     RTS
 
 ; ---------------------------------------------
 ; Print directory contents
 print_dir:
-    LDY #6
-    LDA ($00),Y
-    JSR print_block         ; direct block 1
+    LDY #I_BLOCK0
+    LDA (WORK_PTR_LO),Y
+    JSR print_block             ; direct block 1
     INY
-    LDA ($00),Y
-    JSR print_block         ; direct block 2
+    LDA (WORK_PTR_LO),Y
+    JSR print_block             ; direct block 2
     RTS
 
 print_block:
-    CMP #64
+    CMP #MAX_INODES
     BCS skip_block
-    TAX                       ; Save block number in X
+    TAX                         ; Save block number in X
     LDA #$00
-    STA $02 
+    STA DIR_PTR_LO 
     TXA
     CLC
-    ADC #$C0                  ; High byte = $C0 + block number
-    STA $03                   ; $02:$03 = address of block
+    ADC BLOCK_BASE_HI           ; Read base from zero page
+    STA DIR_PTR_HI              ; DIR_PTR = address of block
 
     LDY #0
 print_loop:
-    LDA ($02),Y           ; inode number
+    LDA (DIR_PTR_LO),Y          ; inode number
     CMP #$0
     BEQ print_next
 
     ; Move Y to name field (offset 2)
     TYA
     CLC
-    ADC #2
+    ADC #DE_NAME
     TAY
-;    LDX #0
 print_name:
-    LDA ($02),Y
-    BEQ print_next     ; null -> next entry
+    LDA (DIR_PTR_LO),Y
+    BEQ print_next              ; null -> next entry
     JSR print_char
     INY
     BNE print_name
@@ -289,11 +322,11 @@ print_next:
     JSR newline
     ; Round Y down to start of current entry
     TYA
-    AND #$F0                ; Mask out low bits to get base of 16-byte entry
+    AND #$F0                    ; Mask out low bits to get base of 16-byte entry
     CLC
-    ADC #$10               ; Move to next entry
+    ADC #DIR_ENTRY_SIZE         ; Move to next entry
     TAY
-    CPY #$00               ; check all 16 entries are printed
+    CPY #$00                    ; check all 16 entries are printed
     BNE print_loop
 skip_block:
     RTS
@@ -301,7 +334,7 @@ skip_block:
 ; ---------------------------------------------
 ; Print file info
 print_file_info:
-    ; For now, just print "file"
+    ; For now, just print "FILE"
     LDX #0
     LDY #$00
     LDA #'F'
@@ -317,13 +350,13 @@ print_file_info:
 
 ; ---------------------------------------------
 ; Tokenize next path component
-; Input: ($10) = pointer to current path position
-; Output: $0200 = next token (null-terminated)
+; Input: PATH_PTR_LO/HI = pointer to current path position
+; Output: TOKEN_BUFFER = next token (null-terminated)
 ;         returns with Z = 1 if no more tokens
 next_path_token:
     LDY #0
 skip_slash:
-    LDA ($10),Y
+    LDA (PATH_PTR_LO),Y
     CMP #'/'
     BNE parse_token
     INY
@@ -332,43 +365,44 @@ skip_slash:
 parse_token:
     LDX #0
 next_char:
-    LDA ($10),Y
+    LDA (PATH_PTR_LO),Y
     CMP #'/'
     BEQ end_token
     CMP #$00
     BEQ end_token
-    STA $0200,X
+    STA TOKEN_BUFFER,X
     INY
     INX
     JMP next_char
 
 end_token:
     LDA #0
-    STA $0200,X
+    STA TOKEN_BUFFER,X
     TYA
     CLC
-    ADC $10
-    STA $10              ; update pointer low byte
-    LDA $11
-    ADC #0               ; propagate carry
-    STA $11              ; update pointer high byte
+    ADC PATH_PTR_LO
+    STA PATH_PTR_LO             ; update pointer low byte
+    LDA PATH_PTR_HI
+    ADC #0                      ; propagate carry
+    STA PATH_PTR_HI             ; update pointer high byte
 
-    LDA $0200            ; check if token is empty
+    LDA TOKEN_BUFFER            ; check if token is empty
     CMP #0
     RTS
 
 ; --- Stub routines ---
 print_char:
     ; your character output
-    STA $6000
+    STA PRINT_CHAR_ADDR
     RTS
+
 newline:
     LDA #$0A
     JSR print_char
     RTS
 
 compare_names:
-    ; compare null-terminated $0200 and Y offset in memory
+    ; compare null-terminated TOKEN_BUFFER and Y offset in memory
     ; (not used in final version)
     RTS
 
@@ -377,5 +411,4 @@ rom_bin:
     .byte "/rom", 0
 ;    .byte "/rom/bin", 0
 ;    .byte "/", 0 ; 
-;    ls / works -- because next_path_token returns null, and jumps to done_resolving and  $0210 still holds 0, which is root inode
-
+;    ls / works -- because next_path_token returns null, and jumps to done_resolving and CURRENT_INODE still holds 0, which is root inode
