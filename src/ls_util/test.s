@@ -249,45 +249,51 @@ found_match:
 print_dir:
     LDY #6
     LDA ($00),Y
-    JSR print_block
+    JSR print_block         ; direct block 1
     INY
     LDA ($00),Y
-    JSR print_block
+    JSR print_block         ; direct block 2
     RTS
 
 print_block:
     CMP #64
     BCS skip_block
-    ASL A
-    ROL $02
-    ASL A
-    ROL $02
-    STA $03
-    LDA $02
-    ORA #$C0
-    STA $02
+    TAX                       ; Save block number in X
+    LDA #$00
+    STA $02 
+    TXA
+    CLC
+    ADC #$C0                  ; High byte = $C0 + block number
+    STA $03                   ; $02:$03 = address of block
 
     LDY #0
 print_loop:
     LDA ($02),Y           ; inode number
-    CMP #$FF
+    CMP #$0
     BEQ print_next
-    LDX #0
-print_name:
-    LDA ($02),Y
-    JSR print_char
-    INX
-    INY
-    CPX #14
-    BNE print_name
-    JSR newline
 
-print_next:
+    ; Move Y to name field (offset 2)
     TYA
     CLC
-    ADC #16
+    ADC #2
     TAY
-    CPY #$00
+;    LDX #0
+print_name:
+    LDA ($02),Y
+    BEQ print_next     ; null -> next entry
+    JSR print_char
+    INY
+    BNE print_name
+
+print_next:
+    JSR newline
+    ; Round Y down to start of current entry
+    TYA
+    AND #$F0                ; Mask out low bits to get base of 16-byte entry
+    CLC
+    ADC #$10               ; Move to next entry
+    TAY
+    CPY #$00               ; check all 16 entries are printed
     BNE print_loop
 skip_block:
     RTS
@@ -354,6 +360,7 @@ end_token:
 ; --- Stub routines ---
 print_char:
     ; your character output
+    STA $6000
     RTS
 newline:
     LDA #$0A
@@ -367,4 +374,8 @@ compare_names:
 
 ; --- ROM String ---
 rom_bin:
-    .byte "/rom/bin", 0
+    .byte "/rom", 0
+;    .byte "/rom/bin", 0
+;    .byte "/", 0 ; 
+;    ls / works -- because next_path_token returns null, and jumps to done_resolving and  $0210 still holds 0, which is root inode
+

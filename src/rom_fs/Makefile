@@ -4,8 +4,8 @@ all: sim a.out.hex
 	./sim ./a.out.hex
 
 sim: $(BEN_HOME)/tools/benEater_simulator/simulator.c
-	cc -std=c99 -Os $(BEN_HOME)/tools/benEater_simulator/simulator.c -DMAX_IRQ_INTERVAL -I$(BEN_HOME)/tools/fake6502/MyLittle6502 -o sim
-
+	cc -std=c99 -Os $(BEN_HOME)/tools/benEater_simulator/simulator.c $(BEN_HOME)/tools/LCDSim/lcdsim.c -I$(BEN_HOME)/tools/LCDSim  -DMAX_IRQ_INTERVAL -I$(BEN_HOME)/tools/fake6502/MyLittle6502 -o sim `sdl2-config --cflags --libs`
+	# cc -std=c99 -Os example.c $(BEN_HOME)/tools/LCDSim/lcdsim.c -I$(BEN_HOME)/tools/LCDSim -o example `sdl2-config --cflags --libs`
 a.out.hex: a.out
 	hexdump -v -e '"%07.7_ax: " 8/1 "%02x " "\n"' a.out > a.out.hex.raw
 	$(BEN_HOME)/bin/addr_shifter.sh a.out.hex.raw > a.out.hex

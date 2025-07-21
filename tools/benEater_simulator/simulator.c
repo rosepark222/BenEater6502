@@ -7,6 +7,8 @@
 #include <ctype.h>   // For isxdigit(), isspace()
 #include <limits.h>  // Make sure to include this header for UINT_MAX
 #include <stdbool.h>
+#include <SDL2/SDL.h>
+#include "lcdsim.h"
 
 // Include the fake6502 emulator core
 #include "fake6502.h"
@@ -38,10 +40,10 @@ void print_cpu_state_to_stream(FILE *stream) {
     // Note: status register bits are: N V - B D I Z C
     fprintf(stream, "CPU State: PC:%04X A:%02X X:%02X Y:%02X SP:%02X Status:%02X (NV-B DIZC)\n",
            pc, a, x, y, sp, status);
-    fprintf(stream, "RAM State: $0000:%02X $0001:%02X $0002:%02X\n", RAM[0x0000], RAM[0x0001], RAM[0x0002]);
-    fprintf(stream, "RAM State: $0006:%02X $0007:%02X $0008:%02X\n", RAM[0x0006], RAM[0x0007], RAM[0x0008]);
-    fprintf(stream, "RAM State: $0200:%02X $0201:%02X $0202:%02X\n", RAM[0x0200], RAM[0x0201], RAM[0x0202]);
-    fprintf(stream, "RAM State: $C000:%02X $C001:%02X $C002:%02X\n", RAM[0xC000], RAM[0xC001], RAM[0xC002]);
+    fprintf(stream, "RAM State: $0000:%02X $0001:%02X $0002:%02X $0003:%02X\n", RAM[0x0000], RAM[0x0001], RAM[0x0002], RAM[0x0003]);
+    fprintf(stream, "RAM State: $0006:%02X $0007:%02X $0008:%02X $0009:%02X\n", RAM[0x0006], RAM[0x0007], RAM[0x0008], RAM[0x0009]);
+    fprintf(stream, "RAM State: $0200:%02X $0201:%02X $0202:%02X $0203:%02X\n", RAM[0x0200], RAM[0x0201], RAM[0x0202], RAM[0x0203]);
+    fprintf(stream, "RAM State: $C000:%02X $C001:%02X $C002:%02X $C003:%02X\n", RAM[0xC000], RAM[0xC001], RAM[0xC002], RAM[0xC003]);
 }
 
 /**
@@ -153,6 +155,7 @@ end_loading:; // Label for goto
 // Global file pointer for logging
 FILE *log_file = NULL;
 
+ 
 /**
  * @brief Disassembles and prints the 6502 instruction at the given PC to a stream.
  * @param stream The file stream to print to (e.g., stdout or log_file).
@@ -376,6 +379,51 @@ int main(int argc, char *argv[]) { // Modified main function signature
         return 1; // Indicate an error
     }
 
+    ////////////////////////////////////////////////////////////////////
+    // LCD
+    ////////////////////////////////////////////////////////////////////
+    SDL_Event event;
+    SDL_Window* window = NULL;
+    SDL_Surface* screen = NULL;
+    LCDSim* lcd = NULL;
+    int hold = 1;
+    int row = 1;
+    int col = 0;
+
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        SDL_Log("SDL_Init failed: %s", SDL_GetError());
+        return EXIT_FAILURE;
+    }
+
+    window = SDL_CreateWindow("LCD 16x2",
+                              SDL_WINDOWPOS_CENTERED,
+                              SDL_WINDOWPOS_CENTERED,
+                              331, 149,
+                              SDL_WINDOW_SHOWN);
+    if (!window) {
+        SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
+        SDL_Quit();
+        return EXIT_FAILURE;
+    }
+
+    // Get the window's surface
+    screen = SDL_GetWindowSurface(window);
+    if (!screen) {
+        SDL_Log("SDL_GetWindowSurface failed: %s", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return EXIT_FAILURE;
+    }
+
+    lcd = LCDSim_Create(screen, 0, 0, "../../tools/LCDSim/");
+    LCD_State(lcd, 1, 1, 1);
+    LCD_SetCursor(lcd, 0, 3);
+    LCD_PutS(lcd, "ls /rom");
+    LCDSim_Draw(lcd);
+    SDL_UpdateWindowSurface(window);
+ 
+
+    ///////////////////////////////////////////////////////////////////
     // Assign the first command-line argument to hex_filename
     hex_filename = argv[1];
 
@@ -388,6 +436,7 @@ int main(int argc, char *argv[]) { // Modified main function signature
     int cycles_per_loop_iteration = 1; 
     // Total real-time duration to run the simulation (e.g., 10 seconds)
     int simulation_duration_seconds = 10; 
+
 
  
 #ifdef MAX_IRQ_INTERVAL
@@ -476,6 +525,17 @@ int main(int argc, char *argv[]) { // Modified main function signature
         disassemble_current_instruction(stdout, pc, RAM, false);
         break_loop = disassemble_current_instruction(log_file, pc, RAM, true);
 
+    uint8_t opcode = RAM[pc];
+    uint8_t op1 = RAM[(pc + 1) % 65536]; // % 65536 to handle wrap-around for peek
+    uint8_t op2 = RAM[(pc + 2) % 65536]; // % 65536 to handle wrap-around for peek
+    if( opcode == 0x8D && op1 == 0 && op2 == 0x60) {
+        col += 1;
+        LCD_SetCursor(lcd, row, col);
+        LCD_PutChar(lcd, a);
+        LCDSim_Draw(lcd);
+        SDL_UpdateWindowSurface(window);
+    }
+
         // Execute one 6502 instruction
         exec6502(cycles_per_loop_iteration); // This is now 1 cycle per call
         current_total_cycles += clockticks6502; // Update explicit accumulator
@@ -528,5 +588,13 @@ int main(int argc, char *argv[]) { // Modified main function signature
     // Close the log file
     fclose(log_file);
 
+ 
+    while (hold) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                hold = 0;
+            }
+        }
+    } 
     return EXIT_SUCCESS;
 }
