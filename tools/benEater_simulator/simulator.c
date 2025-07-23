@@ -21,6 +21,10 @@ volatile sig_atomic_t quit_flag = 0;
 // This array represents the 6502's 64KB address space.
 uint8_t RAM[65536];
 
+LCDSim *lcd = NULL;
+SDL_Window *window = NULL;
+SDL_Surface *screen = NULL;
+
 // --- External CPU state variables (from fake6502.h) ---
 // These are declared in fake6502.h and updated by the emulator core.
 extern unsigned char   a, x, y, sp, status;
@@ -35,6 +39,71 @@ uint8_t read6502(uint16_t address) {
 }
 
 void write6502(uint16_t address, uint8_t value) {
+
+    // In a true hardware system, memory-mapped devices (LCD, sound, etc.) “see” all writes to specific addresses, regardless of what instruction triggers those writes (STA, STX, etc). They don’t care about “what’s in RAM[pc] right now.”
+    // By only checking for STA $6000 (opcode==0x8D, op1==0x00, op2==0x60), you miss all other ways the code could write to 0x6000, such as STX, STY, indirect addressing, and even self-modifying code or DMA.
+
+    /*   opcode = RAM[pc];
+        op1 = RAM[(pc + 1) % 65536];
+        op2 = RAM[(pc + 2) % 65536];
+        if (opcode == 0x8D && op1 == 0x00 && op2 == 0x60) {
+            col++;
+            LCD_SetCursor(lcd, row, col);
+            LCD_PutChar(lcd, a);
+            LCDSim_Draw(lcd);
+            SDL_UpdateWindowSurface(window);
+        }
+
+==============================================================================================================
+In linux, let's say a terminal is busy printing out command result. If I type something, why it does not show up in the terminal mixed with the output of the command ?
+==============================================================================================================
+
+Terminal Line Discipline and Input Buffering
+Canonical (Cooked) Mode: By default, terminals operate in canonical mode. In this mode, the terminal driver (part of the kernel's TTY subsystem) buffers your input line by line. It waits until you press Enter before making the entire line available to the application (like the shell or a running command).
+
+Echoing: While you type, the terminal driver does echo your characters back to the screen so you can see what you're typing. However, it often echoes them on a new line or after the current output, depending on the terminal emulator's specific behavior and the application's output method.
+
+Buffering: The key is that your typed characters aren't sent to the application until you press Enter. This allows you to use backspace, delete, and other line-editing keys to correct your input before it's processed.
+
+Output Stream: When a command is printing results, it's writing to its standard output. This output stream is distinct from your keyboard input stream. The terminal driver typically prioritizes printing the application's output.
+
+Mixing Prevention: If you type while output is being printed, the terminal driver will usually buffer your input and echo it in a way that tries to avoid directly overwriting or interspersing it with the ongoing output. Once the command finishes its printing, or you press Enter, your buffered input line will then be presented, often on a new line, for the shell to interpret.
+
+==============================================================================================================
+when shell give control over 'ls' command, the terminal buffers the input and wait till the ls output is finished, then prints the buffered input ?
+==============================================================================================================
+
+Yes, generally, when you type into a Linux terminal while a command like ls is producing output, the terminal (specifically the TTY subsystem in the kernel) buffers your input. It won't directly mix your typed characters with the ongoing output of the ls command.
+
+Here's a breakdown of why this happens:
+
+Canonical (Cooked) Mode: By default, terminals operate in what's called canonical mode. In this mode, the TTY driver acts as a middleman between your keyboard and the running program. It buffers characters you type until you press the Enter key. This buffering allows for basic line editing functionalities like backspace and delete before the input is sent to the application.
+
+Echoing: As you type, the TTY driver echoes the characters back to the screen so you can see what you're entering. However, when another program (like ls) is actively writing to the terminal's output, the TTY driver will try to display your echoed input in a way that minimizes interference. This often means your input appears on a new line or is temporarily obscured by the command's output, but it's still being buffered internally.
+
+Separation of Concerns: The terminal effectively manages two separate streams:
+
+Input Stream (from keyboard): Your typed characters go into a buffer controlled by the TTY driver.
+
+Output Stream (from ls): The ls command writes its output to its standard output, which the TTY driver then prints to the screen.
+
+When Input is Sent: Only when you press Enter (or a specific control character) does the TTY driver process the entire buffered line of your input and make it available to the program that's currently "listening" for input. If ls is still running and not expecting input, your typed line will eventually be passed to the shell once ls completes or if ls itself then attempts to read from standard input.
+
+So, you won't see your input characters interleaved within the ls output line by line. Instead, your input is collected, and then presented as a complete line (usually on its own line) once the output flow subsides and the shell (or another program) is ready to receive input.
+
+This design ensures that:
+
+Your input remains coherent and editable.
+
+The command's output is displayed as intended, without being corrupted by your typing.
+    */  
+
+    if (address == 0x6000) {
+        // Handle LCD or whatever is mapped there
+        LCD_PutChar(lcd, value);
+        LCDSim_Draw(lcd);
+        SDL_UpdateWindowSurface(window);
+    }
     RAM[address] = value;
 }
 
@@ -403,6 +472,7 @@ bool initialize_sdl_and_lcd(SDL_Window **window, SDL_Surface **screen, LCDSim **
     LCD_PutS(*lcd, "ls /rom");
     LCDSim_Draw(*lcd);
     SDL_UpdateWindowSurface(*window);
+    LCD_SetCursor(*lcd, 1, 0);
     return true;
 }
 
@@ -456,22 +526,10 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
         }
 
         disassemble_current_instruction(stdout, pc, RAM, false);
-        break_loop = disassemble_current_instruction(log_file, pc, RAM, true);
+        break_loop = disassemble_current_instruction(log_file, pc, RAM, false);
 
-        
-        // In a true hardware system, memory-mapped devices (LCD, sound, etc.) “see” all writes to specific addresses, regardless of what instruction triggers those writes (STA, STX, etc). They don’t care about “what’s in RAM[pc] right now.”
-        // By only checking for STA $6000 (opcode==0x8D, op1==0x00, op2==0x60), you miss all other ways the code could write to 0x6000, such as STX, STY, indirect addressing, and even self-modifying code or DMA.
 
-        opcode = RAM[pc];
-        op1 = RAM[(pc + 1) % 65536];
-        op2 = RAM[(pc + 2) % 65536];
-        if (opcode == 0x8D && op1 == 0x00 && op2 == 0x60) {
-            col++;
-            LCD_SetCursor(lcd, row, col);
-            LCD_PutChar(lcd, a);
-            LCDSim_Draw(lcd);
-            SDL_UpdateWindowSurface(window);
-        }
+
 
         exec6502(1);
         total_cycles += clockticks6502;
@@ -540,6 +598,8 @@ void handle_sigint(int sig) {
     quit_flag = 1;
 }
 
+
+
 // === Main Function ===
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -557,9 +617,7 @@ int main(int argc, char *argv[]) {
     unsigned int irq_cycle_interval = 1000;
 #endif
 
-    SDL_Window *window = NULL;
-    SDL_Surface *screen = NULL;
-    LCDSim *lcd = NULL;
+
 
     if (!initialize_sdl_and_lcd(&window, &screen, &lcd)) return EXIT_FAILURE;
 
