@@ -12,6 +12,9 @@
 
 // Include the fake6502 emulator core
 #include "fake6502.h"
+#include <signal.h>
+
+volatile sig_atomic_t quit_flag = 0;
 
 #define magic_opcde 0xFF
 // --- Emulated 6502 Memory (64KB) ---
@@ -369,301 +372,206 @@ static int lcd_current_row = 0; // LCD has 2 rows (0 and 1)
 static int lcd_current_col = 0; // LCD has 16 columns (0-15)
 #define MAX_LCD_COLUMNS 16
 #define MAX_LCD_ROWS 2
-int main(int argc, char *argv[]) { // Modified main function signature
-    // --- Program Parameters ---
-    // Start address for our main 6502 program
-    uint16_t program_start_address = 0x8000;
-    // Name of the hex file to load - now taken from command line
-    const char *hex_filename; // Declare it, but don't hardcode
-    int break_loop = 0;
 
-    // Check if enough arguments are provided
-    if (argc < 2) { // argc[0] is the program name, argc[1] would be the first argument
-        fprintf(stderr, "Usage: %s <hex_file_path>\n", argv[0]);
-        return 1; // Indicate an error
-    }
+ 
 
-    ////////////////////////////////////////////////////////////////////
-    // LCD
-    ////////////////////////////////////////////////////////////////////
-    SDL_Event event;
-    SDL_Window* window = NULL;
-    SDL_Surface* screen = NULL;
-    LCDSim* lcd = NULL;
-    int hold = 1;
-    int row = 1;
-    int col = 0;
 
+
+// === Helper Functions ===
+
+bool initialize_sdl_and_lcd(SDL_Window **window, SDL_Surface **screen, LCDSim **lcd) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
-        return EXIT_FAILURE;
+        return false;
     }
 
-    window = SDL_CreateWindow("LCD 16x2",
-                              SDL_WINDOWPOS_CENTERED,
-                              SDL_WINDOWPOS_CENTERED,
-                              331, 149,
-                              SDL_WINDOW_SHOWN);
-    if (!window) {
+    *window = SDL_CreateWindow("LCD 16x2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 331, 149, SDL_WINDOW_SHOWN);
+    if (!*window) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
-        SDL_Quit();
-        return EXIT_FAILURE;
+        SDL_Quit(); return false;
     }
 
-    // Get the window's surface
-    screen = SDL_GetWindowSurface(window);
-    if (!screen) {
+    *screen = SDL_GetWindowSurface(*window);
+    if (!*screen) {
         SDL_Log("SDL_GetWindowSurface failed: %s", SDL_GetError());
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return EXIT_FAILURE;
+        SDL_DestroyWindow(*window); SDL_Quit(); return false;
     }
 
-    lcd = LCDSim_Create(screen, 0, 0, "../../tools/LCDSim/");
-    LCD_State(lcd, 1, 1, 1);
-    LCD_SetCursor(lcd, 0, 3);
-    LCD_PutS(lcd, "ls /rom");
-    LCDSim_Draw(lcd);
-    SDL_UpdateWindowSurface(window);
- 
+    *lcd = LCDSim_Create(*screen, 0, 0, "../../tools/LCDSim/");
+    LCD_State(*lcd, 1, 1, 1);
+    LCD_SetCursor(*lcd, 0, 3);
+    LCD_PutS(*lcd, "ls /rom");
+    LCDSim_Draw(*lcd);
+    SDL_UpdateWindowSurface(*window);
+    return true;
+}
 
-    ///////////////////////////////////////////////////////////////////
-    // Assign the first command-line argument to hex_filename
-    hex_filename = argv[1];
+bool load_program_and_irq(const char *filename, uint16_t start_addr, uint16_t irq_addr) {
+    memset(RAM, 0, sizeof(RAM));
 
-    printf("Loading %s into 6502 memory at 0x%04X...\n", hex_filename, program_start_address);
-
-    // Start address for our 6502 IRQ handler
-    uint16_t irq_handler_address = 0x0700;
-    // Number of emulated cycles to run per C loop iteration
-    // Remains at 1 to print CPU state for every instruction step.
-    int cycles_per_loop_iteration = 1; 
-    // Total real-time duration to run the simulation (e.g., 10 seconds)
-    int simulation_duration_seconds = 10; 
-
-
- 
-#ifdef MAX_IRQ_INTERVAL
-    unsigned int IRQ_6502_CYCLE_INTERVAL = UINT_MAX;
-#else
-    unsigned int IRQ_6502_CYCLE_INTERVAL = 1000; // 3 second run gives 6 IRQs 
-#endif
-    // --- 6502 IRQ Handler Bytes ---
-    // This is the machine code for our IRQ handler.
-    // IRQ_Handler:
-    //   PHA        ; 0x48 - Push A to stack
-    //   INC $02    ; 0xE6 02 - Increment Zero Page address $02 (our IRQ counter)
-    //   PLA        ; 0x68 - Pull A from stack
-    //   RTI        ; 0x40 - Return from Interrupt
-    uint8_t irq_handler_bytes[] = {
-        0x48,             // PHA
-        0xE6, 0x02,       // INC $02
-        0x68,             // PLA
-        magic_opcde,             // Unknown magic opcode
-        0x40              // RTI
-    };
-
-    // --- Open Log File ---
     log_file = fopen("trace.log", "w");
     if (!log_file) {
         perror("Error opening trace.log");
-        return EXIT_FAILURE;
+        return false;
     }
-    printf("Logging output to trace.log and console.\n");
-    fprintf(log_file, "--- 6502 Emulation Trace Log ---\n\n");
 
-
-    // --- 1. Initialize Emulated RAM ---
-    memset(RAM, 0, sizeof(RAM));
-    printf("Initialized 64KB RAM to zeros.\n");
-    fprintf(log_file, "Initialized 64KB RAM to zeros.\n");
-
-    // --- 2. Load Programs into RAM ---
-    // Load main program from hex file
-    long loaded_bytes = load_hex_file(hex_filename, program_start_address, sizeof(RAM) - program_start_address);
-    if (loaded_bytes == -1) {
-        fprintf(stderr, "Failed to load hex file. Exiting.\n");
-        fprintf(log_file, "Failed to load hex file. Exiting.\n");
+    long loaded = load_hex_file(filename, start_addr, sizeof(RAM) - start_addr);
+    if (loaded == -1) {
+        fprintf(stderr, "Failed to load hex file.\n");
         fclose(log_file);
-        return EXIT_FAILURE;
+        return false;
     }
-    printf("Loaded main program (%ld bytes) from '%s' to 0x%04X.\n", loaded_bytes, hex_filename, program_start_address);
-    fprintf(log_file, "Loaded main program (%ld bytes) from '%s' to 0x%04X.\n", loaded_bytes, hex_filename, program_start_address);
 
+    uint8_t irq_handler_bytes[] = {0x48, 0xE6, 0x02, 0x68, magic_opcde, 0x40};
+    memcpy(&RAM[irq_addr], irq_handler_bytes, sizeof(irq_handler_bytes));
 
-    // Load IRQ handler
-    memcpy(&RAM[irq_handler_address], irq_handler_bytes, sizeof(irq_handler_bytes));
-    printf("Loaded IRQ handler (%zu bytes) to 0x%04X.\n", sizeof(irq_handler_bytes), irq_handler_address);
-    fprintf(log_file, "Loaded IRQ handler (%zu bytes) to 0x%04X.\n", sizeof(irq_handler_bytes), irq_handler_address);
+    fprintf(log_file, "Loaded main program (%ld bytes) and IRQ handler at 0x%04X\n", loaded, irq_addr);
+    return true;
+}
 
-    // --- 3. Set 6502 Vectors ---
-    // Set the Reset Vector (0xFFFC/0xFFFD) to point to our main program start
-    RAM[0xFFFC] = (uint8_t)(program_start_address & 0xFF);         // Low byte
-    RAM[0xFFFD] = (uint8_t)((program_start_address >> 8) & 0xFF); // High byte
-    printf("Set Reset Vector (0xFFFC/D) to 0x%04X.\n", program_start_address);
-    fprintf(log_file, "Set Reset Vector (0xFFFC/D) to 0x%04X.\n", program_start_address);
+void set_vectors(uint16_t reset, uint16_t irq) {
+    RAM[0xFFFC] = reset & 0xFF;
+    RAM[0xFFFD] = (reset >> 8) & 0xFF;
+    RAM[0xFFFE] = irq & 0xFF;
+    RAM[0xFFFF] = (irq >> 8) & 0xFF;
+    fprintf(log_file, "Vectors set: RESET = 0x%04X, IRQ = 0x%04X\n", reset, irq);
+}
 
-    // Set the IRQ/BRK Vector (0xFFFE/0xFFFF) to point to our IRQ handler
-    RAM[0xFFFE] = (uint8_t)(irq_handler_address & 0xFF);           // Low byte
-    RAM[0xFFFF] = (uint8_t)((irq_handler_address >> 8) & 0xFF);   // High byte
-    printf("Set IRQ/BRK Vector (0xFFFE/F) to 0x%04X.\n", irq_handler_address);
-    fprintf(log_file, "Set IRQ/BRK Vector (0xFFFE/F) to 0x%04X.\n", irq_handler_address);
+void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds) {
+    uint8_t opcode, op1, op2;
+    unsigned int last_irq = 0, total_cycles = 0;
+    int irq_count = 0;
+    int row = 1, col = 0;
+    int break_loop = 0;
+    SDL_Event event;
 
-    // --- 4. Reset the 6502 CPU ---
-    reset6502();
-    printf("\nCPU Reset. Program Counter (PC) is now at 0x%04X (from Reset Vector).\n", pc);
-    fprintf(log_file, "\nCPU Reset. Program Counter (PC) is now at 0x%04X (from Reset Vector).\n", pc);
+    time_t start_time = time(NULL);
 
-    // --- 5. Main Simulation Loop ---
-    unsigned int last_irq_trigger_cycle = 0; // Track IRQ trigger by emulated cycles
-    unsigned int current_total_cycles = 0;   // Explicitly accumulated cycles
-    int current_irq_count = 0; // Track IRQ count from our C program perspective
-
-    printf("\n--- Starting 6502 Emulation with Cycle-Based IRQs ---\n");
-    fprintf(log_file, "\n--- Starting 6502 Emulation with Cycle-Based IRQs ---\n");
-
-    time_t start_real_time = time(NULL); // Still use real time to limit total simulation duration
-
-    while (time(NULL) - start_real_time < simulation_duration_seconds) {
-
-
-
-        // --- SDL Event Handling for Keyboard Input and LCD Display ---
+    while (time(NULL) - start_time < duration_seconds && !break_loop && !quit_flag) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                printf("[EMU] SDL_QUIT event detected. Exiting simulation loop.\n");
-                break_loop = 1; // Set flag to exit emulation loop
-            } else if (event.type == SDL_KEYDOWN) {
-                char typed_char = 0;
-                // Get the ASCII value of the pressed key
-                if (event.key.keysym.sym >= SDLK_SPACE && event.key.keysym.sym <= SDLK_z) {
-                    typed_char = (char)event.key.keysym.sym;
-                } else if (event.key.keysym.sym == SDLK_RETURN) {
-                    typed_char = '\r'; // ASCII Carriage Return for Enter
-                } else if (event.key.keysym.sym == SDLK_BACKSPACE) {
-                    typed_char = '\b'; // ASCII Backspace
-                }
-
-                if (typed_char != 0) {
-                    printf("[EMU] Keyboard input detected: '%c' (0x%02X)\n", typed_char, typed_char);
-                    
-                    // --- Display character on LCD 1st row (Row 0) ---
-                    // Handle Backspace
-                    if (typed_char == '\b') {
-                        if (lcd_current_col > 0) {
-                            lcd_current_col--; // Move cursor back
-                            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-                            LCD_PutChar(lcd, ' '); // Erase character
-                            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col); // Move cursor back again
-                        }
-                    } 
-                    // Handle Enter key
-                    else if (typed_char == '\r') {
-                        // For a console, Enter usually moves to the next line
-                        lcd_current_col = 0; // Reset column
-                        lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS; // Move to next row, wrap around
-                        // Optional: Clear the new line after moving to it for fresh input
-                        LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-                        LCD_ClearLine(lcd, lcd_current_row); // Assuming you have a function to clear a specific line
-                                                            // If not, you'd need to loop and write spaces.
-                    }
-                    // Handle regular printable characters
-                    else {
-                        LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-                        LCD_PutChar(lcd, typed_char);
-                        lcd_current_col++; // Move cursor forward
-                        // Wrap around to next line if end of current line is reached
-                        if (lcd_current_col >= MAX_LCD_COLUMNS) {
-                            lcd_current_col = 0;
-                            lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS; // Move to next row, wrap around
-                            // Optional: Clear the new line after moving to it
-                            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-                            LCD_ClearLine(lcd, lcd_current_row); // Clear the new line
-                        }
-                    }
-                    // Update LCD display
-                    LCD_SetCursor(lcd, lcd_current_row, lcd_current_col); // Ensure cursor is at new position
-                    LCDSim_Draw(lcd);
-                    SDL_UpdateWindowSurface(window);
-                }
+            if (event.type == SDL_QUIT) { break_loop = 1; break; }
+            else if (event.type == SDL_KEYDOWN) {
+                handle_keyboard_event(&event, lcd, window);
             }
         }
-        if (break_loop) break; // Exit main loop if SDL_QUIT was triggered
 
-        // Print disassembly before execution
         disassemble_current_instruction(stdout, pc, RAM, false);
         break_loop = disassemble_current_instruction(log_file, pc, RAM, true);
 
-    uint8_t opcode = RAM[pc];
-    uint8_t op1 = RAM[(pc + 1) % 65536]; // % 65536 to handle wrap-around for peek
-    uint8_t op2 = RAM[(pc + 2) % 65536]; // % 65536 to handle wrap-around for peek
-    if( opcode == 0x8D && op1 == 0 && op2 == 0x60) {
-        col += 1;
-        LCD_SetCursor(lcd, row, col);
-        LCD_PutChar(lcd, a);
-        LCDSim_Draw(lcd);
-        SDL_UpdateWindowSurface(window);
-    }
+        
+        // In a true hardware system, memory-mapped devices (LCD, sound, etc.) “see” all writes to specific addresses, regardless of what instruction triggers those writes (STA, STX, etc). They don’t care about “what’s in RAM[pc] right now.”
+        // By only checking for STA $6000 (opcode==0x8D, op1==0x00, op2==0x60), you miss all other ways the code could write to 0x6000, such as STX, STY, indirect addressing, and even self-modifying code or DMA.
 
-        // Execute one 6502 instruction
-        exec6502(cycles_per_loop_iteration); // This is now 1 cycle per call
-        current_total_cycles += clockticks6502; // Update explicit accumulator
+        opcode = RAM[pc];
+        op1 = RAM[(pc + 1) % 65536];
+        op2 = RAM[(pc + 2) % 65536];
+        if (opcode == 0x8D && op1 == 0x00 && op2 == 0x60) {
+            col++;
+            LCD_SetCursor(lcd, row, col);
+            LCD_PutChar(lcd, a);
+            LCDSim_Draw(lcd);
+            SDL_UpdateWindowSurface(window);
+        }
 
-        // Print CPU state after every step
+        exec6502(1);
+        total_cycles += clockticks6502;
+
         print_cpu_state_to_stream(stdout);
         print_cpu_state_to_stream(log_file);
-        
-        // Timing variables for debugging IRQ firing (now cycle-based)
-        fprintf(stdout, "Timing: Current Emulated Cycle: %u, Last IRQ Trigger Cycle: %u, Cycles Since Last IRQ: %u\n",
-                current_total_cycles, last_irq_trigger_cycle, current_total_cycles - last_irq_trigger_cycle);
-        fprintf(log_file, "Timing: Current Emulated Cycle: %u, Last IRQ Trigger Cycle: %u, Cycles Since Last IRQ: %u\n",
-                current_total_cycles, last_irq_trigger_cycle, current_total_cycles - last_irq_trigger_cycle);
 
-        printf("Emulated Cycles: %u\n\n", current_total_cycles);
-        fprintf(log_file, "Emulated Cycles: %u\n\n", current_total_cycles);
-
-
-        // Check emulated time for IRQ trigger
-        if (current_total_cycles - last_irq_trigger_cycle >= IRQ_6502_CYCLE_INTERVAL) {
-            printf("\n--- %u Emulated Cycles elapsed: Triggering IRQ! ---\n", IRQ_6502_CYCLE_INTERVAL);
-            fprintf(log_file, "\n--- %u Emulated Cycles elapsed: Triggering IRQ! ---\n", IRQ_6502_CYCLE_INTERVAL);
-            irq6502(); // Trigger the 6502 IRQ
-            last_irq_trigger_cycle = current_total_cycles;
-            current_irq_count++;
+        if (total_cycles - last_irq >= irq_interval) {
+            fprintf(stdout, "Triggering IRQ at %u cycles\n", total_cycles);
+            irq6502();
+            last_irq = total_cycles;
+            irq_count++;
         }
 
-        // Add a small sleep to prevent the loop from consuming 100% CPU on your host.
-        // This makes the step-by-step output more readable.
-        usleep(1000); // Sleep for 1 millisecond (1,000 microseconds)
+        usleep(1000);
+    }
 
-        if (break_loop == 1) {
-            printf("brek loop is: %u\n\n", break_loop);
-            break;
+    fprintf(log_file, "--- Simulation Finished ---\n");
+    dump_memory_range(log_file, 0xBB00, 0xCFFF);
+    print_cpu_state_to_stream(stdout);
+    fprintf(log_file, "Total Cycles: %u | IRQs: %d | $02 = %02X\n", total_cycles, irq_count, RAM[0x02]);
+    fclose(log_file);
+
+
+}
+
+void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window) {
+    char input = 0;
+    SDL_Keycode key = event->key.keysym.sym;
+
+    if (key >= SDLK_SPACE && key <= SDLK_z) input = key;
+    else if (key == SDLK_RETURN) input = '\r';
+    else if (key == SDLK_BACKSPACE) input = '\b';
+
+    if (!input) return;
+
+    if (input == '\b') {
+        if (lcd_current_col > 0) {
+            lcd_current_col--;
+            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+            LCD_PutChar(lcd, ' ');
+        }
+    } else if (input == '\r') {
+        lcd_current_col = 0;
+        lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS;
+        LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+        LCD_ClearLine(lcd, lcd_current_row);
+    } else {
+        LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+        LCD_PutChar(lcd, input);
+        lcd_current_col++;
+        if (lcd_current_col >= MAX_LCD_COLUMNS) {
+            lcd_current_col = 0;
+            lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS;
+            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+            LCD_ClearLine(lcd, lcd_current_row);
         }
     }
 
-    printf("\n--- Simulation Finished ---\n");
-    dump_memory_range(log_file, 0xBB00, 0xCFFF);
-    fprintf(log_file, "\n--- Simulation Finished ---\n");
-    print_cpu_state_to_stream(stdout);
-    print_cpu_state_to_stream(log_file);
-    printf("Total Emulated Cycles: %u\n", current_total_cycles);
-    fprintf(log_file, "Total Emulated Cycles: %u\n", current_total_cycles);
-    printf("Total IRQs triggered (simulated cycles): %d\n", current_irq_count);
-    fprintf(log_file, "Total IRQs triggered (simulated cycles): %d\n", current_irq_count);
-    printf("Final Zero Page IRQ Counter ($02): %02X\n", RAM[0x02]);
-    fprintf(log_file, "Final Zero Page IRQ Counter ($02): %02X\n", RAM[0x02]);
+    LCDSim_Draw(lcd);
+    SDL_UpdateWindowSurface(window);
+}
 
-    // Close the log file
-    fclose(log_file);
+void handle_sigint(int sig) {
+    (void)sig; // unused
+    quit_flag = 1;
+}
 
- 
-    while (hold) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                hold = 0;
-            }
-        }
-    } 
+// === Main Function ===
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <hex_file_path>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    const char *hex_filename = argv[1];
+    uint16_t program_start_address = 0x8000;
+    uint16_t irq_handler_address = 0x0700;
+
+#ifdef MAX_IRQ_INTERVAL
+    unsigned int irq_cycle_interval = UINT_MAX;
+#else
+    unsigned int irq_cycle_interval = 1000;
+#endif
+
+    SDL_Window *window = NULL;
+    SDL_Surface *screen = NULL;
+    LCDSim *lcd = NULL;
+
+    if (!initialize_sdl_and_lcd(&window, &screen, &lcd)) return EXIT_FAILURE;
+
+    if (!load_program_and_irq(hex_filename, program_start_address, irq_handler_address)) return EXIT_FAILURE;
+
+    set_vectors(program_start_address, irq_handler_address);
+    reset6502();
+    signal(SIGINT, handle_sigint); // capture ctrl-c
+
+    run_emulator_loop(lcd, window, irq_cycle_interval, 20);
+
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return EXIT_SUCCESS;
 }
