@@ -149,7 +149,7 @@ bad_inode:
     JMP not_found
 
 ; ---------------------------------------------
-; Find directory entry
+; Find directory entry in inode and dir data block
 ; Input:
 ;   WORK_PTR_LO/HI = pointer to inode
 ;   TOKEN_BUFFER = search name (null-terminated)

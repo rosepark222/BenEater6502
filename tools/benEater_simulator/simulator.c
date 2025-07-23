@@ -364,7 +364,11 @@ void dump_memory_range(FILE *stream, uint16_t start_addr, uint16_t end_addr) {
     }
     fprintf(stream, "\n"); // Newline at the end
 }
-
+// --- LCD Cursor Tracking (New Global/Static Variables) ---
+static int lcd_current_row = 0; // LCD has 2 rows (0 and 1)
+static int lcd_current_col = 0; // LCD has 16 columns (0-15)
+#define MAX_LCD_COLUMNS 16
+#define MAX_LCD_ROWS 2
 int main(int argc, char *argv[]) { // Modified main function signature
     // --- Program Parameters ---
     // Start address for our main 6502 program
@@ -521,6 +525,71 @@ int main(int argc, char *argv[]) { // Modified main function signature
     time_t start_real_time = time(NULL); // Still use real time to limit total simulation duration
 
     while (time(NULL) - start_real_time < simulation_duration_seconds) {
+
+
+
+        // --- SDL Event Handling for Keyboard Input and LCD Display ---
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                printf("[EMU] SDL_QUIT event detected. Exiting simulation loop.\n");
+                break_loop = 1; // Set flag to exit emulation loop
+            } else if (event.type == SDL_KEYDOWN) {
+                char typed_char = 0;
+                // Get the ASCII value of the pressed key
+                if (event.key.keysym.sym >= SDLK_SPACE && event.key.keysym.sym <= SDLK_z) {
+                    typed_char = (char)event.key.keysym.sym;
+                } else if (event.key.keysym.sym == SDLK_RETURN) {
+                    typed_char = '\r'; // ASCII Carriage Return for Enter
+                } else if (event.key.keysym.sym == SDLK_BACKSPACE) {
+                    typed_char = '\b'; // ASCII Backspace
+                }
+
+                if (typed_char != 0) {
+                    printf("[EMU] Keyboard input detected: '%c' (0x%02X)\n", typed_char, typed_char);
+                    
+                    // --- Display character on LCD 1st row (Row 0) ---
+                    // Handle Backspace
+                    if (typed_char == '\b') {
+                        if (lcd_current_col > 0) {
+                            lcd_current_col--; // Move cursor back
+                            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+                            LCD_PutChar(lcd, ' '); // Erase character
+                            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col); // Move cursor back again
+                        }
+                    } 
+                    // Handle Enter key
+                    else if (typed_char == '\r') {
+                        // For a console, Enter usually moves to the next line
+                        lcd_current_col = 0; // Reset column
+                        lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS; // Move to next row, wrap around
+                        // Optional: Clear the new line after moving to it for fresh input
+                        LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+                        LCD_ClearLine(lcd, lcd_current_row); // Assuming you have a function to clear a specific line
+                                                            // If not, you'd need to loop and write spaces.
+                    }
+                    // Handle regular printable characters
+                    else {
+                        LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+                        LCD_PutChar(lcd, typed_char);
+                        lcd_current_col++; // Move cursor forward
+                        // Wrap around to next line if end of current line is reached
+                        if (lcd_current_col >= MAX_LCD_COLUMNS) {
+                            lcd_current_col = 0;
+                            lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS; // Move to next row, wrap around
+                            // Optional: Clear the new line after moving to it
+                            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+                            LCD_ClearLine(lcd, lcd_current_row); // Clear the new line
+                        }
+                    }
+                    // Update LCD display
+                    LCD_SetCursor(lcd, lcd_current_row, lcd_current_col); // Ensure cursor is at new position
+                    LCDSim_Draw(lcd);
+                    SDL_UpdateWindowSurface(window);
+                }
+            }
+        }
+        if (break_loop) break; // Exit main loop if SDL_QUIT was triggered
+
         // Print disassembly before execution
         disassemble_current_instruction(stdout, pc, RAM, false);
         break_loop = disassemble_current_instruction(log_file, pc, RAM, true);
