@@ -83,7 +83,7 @@ void    LCDSim_Instruction(LCDSim *self, Uint16 instruction);
 LCDSim* LCDSim_Destroy(LCDSim *self);
 
 // For the easy usage of the LCD
-void    LCD_PutChar(LCDSim *self, char car);
+static void    LCD_PutChar(LCDSim *self, char car);
 void    LCD_PutS(LCDSim *self, char *s);
 void    LCD_Clear(LCDSim *self);
 void    LCD_Home(LCDSim *self);
@@ -93,7 +93,11 @@ void    LCD_Sh_Cursor_L(LCDSim *self);
 void    LCD_Sh_Display_R(LCDSim *self);
 void    LCD_Sh_Display_L(LCDSim *self);
 void    LCD_ClearLine(LCDSim *self, Uint8 line);
-void    LCD_SetCursor(LCDSim *self, Uint8 line, Uint8 column);
+
+//To completely prevent the function LCD_SetCursor from being visible to other files, you need to use the static keyword in its definition in lcdsim.c.
+//The static keyword in C, when applied to a global function or variable, changes its linkage from external to internal. This means the function's name is not exported and is only visible within the file where it is defined.
+
+static void    LCD_SetCursor(LCDSim *self, Uint8 line, Uint8 column);
 void    LCD_CustomChar(LCDSim *self, Uint8 char_number, Uint8* custom);
 
 // For deeper usage

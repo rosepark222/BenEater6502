@@ -17,6 +17,8 @@
 volatile sig_atomic_t quit_flag = 0;
 
 #define magic_opcde 0xFF
+#define KEY_INPUT 0x0300
+#define PRINT_CHAR_ADDR 0x6000
 // --- Emulated 6502 Memory (64KB) ---
 // This array represents the 6502's 64KB address space.
 uint8_t RAM[65536];
@@ -100,7 +102,8 @@ The command's output is displayed as intended, without being corrupted by your t
 
     if (address == 0x6000) {
         // Handle LCD or whatever is mapped there
-        LCD_PutChar(lcd, value);
+        // LCD_PutChar(lcd, value);
+        LCDSim_Instruction(lcd, 0x0100 | value);
         LCDSim_Draw(lcd);
         SDL_UpdateWindowSurface(window);
     }
@@ -115,6 +118,7 @@ void print_cpu_state_to_stream(FILE *stream) {
     fprintf(stream, "RAM State: $0000:%02X $0001:%02X $0002:%02X $0003:%02X\n", RAM[0x0000], RAM[0x0001], RAM[0x0002], RAM[0x0003]);
     fprintf(stream, "RAM State: $0006:%02X $0007:%02X $0008:%02X $0009:%02X\n", RAM[0x0006], RAM[0x0007], RAM[0x0008], RAM[0x0009]);
     fprintf(stream, "RAM State: $0200:%02X $0201:%02X $0202:%02X $0203:%02X\n", RAM[0x0200], RAM[0x0201], RAM[0x0202], RAM[0x0203]);
+    fprintf(stream, "RAM State: $0300:%02X $0301:%02X $0302:%02X $0303:%02X\n", RAM[0x0300], RAM[0x0301], RAM[0x0302], RAM[0x0303]);
     fprintf(stream, "RAM State: $C000:%02X $C001:%02X $C002:%02X $C003:%02X\n", RAM[0xC000], RAM[0xC001], RAM[0xC002], RAM[0xC003]);
 }
 
@@ -468,11 +472,11 @@ bool initialize_sdl_and_lcd(SDL_Window **window, SDL_Surface **screen, LCDSim **
 
     *lcd = LCDSim_Create(*screen, 0, 0, "../../tools/LCDSim/");
     LCD_State(*lcd, 1, 1, 1);
-    LCD_SetCursor(*lcd, 0, 3);
-    LCD_PutS(*lcd, "ls /rom");
-    LCDSim_Draw(*lcd);
+    // LCD_SetCursor(*lcd, 0, 3);
+    // LCD_PutS(*lcd, "ls /rom");
+    // LCDSim_Draw(*lcd);
     SDL_UpdateWindowSurface(*window);
-    LCD_SetCursor(*lcd, 1, 0);
+    // LCD_SetCursor(*lcd, 0, 0);
     return true;
 }
 
@@ -566,28 +570,31 @@ void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window) {
 
     if (!input) return;
 
-    if (input == '\b') {
-        if (lcd_current_col > 0) {
-            lcd_current_col--;
-            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-            LCD_PutChar(lcd, ' ');
-        }
-    } else if (input == '\r') {
-        lcd_current_col = 0;
-        lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS;
-        LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-        LCD_ClearLine(lcd, lcd_current_row);
-    } else {
-        LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-        LCD_PutChar(lcd, input);
-        lcd_current_col++;
-        if (lcd_current_col >= MAX_LCD_COLUMNS) {
-            lcd_current_col = 0;
-            lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS;
-            LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-            LCD_ClearLine(lcd, lcd_current_row);
-        }
-    }
+    write6502(KEY_INPUT, input); // put it to keyboard buffer
+
+    // if (input == '\b') {
+    //     if (lcd_current_col > 0) {
+    //         lcd_current_col--;
+    //         LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+    //         LCD_PutChar(lcd, ' ');
+
+    //     }
+    // } else if (input == '\r') {
+    //     lcd_current_col = 0;
+    //     lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS;
+    //     LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+    //     LCD_ClearLine(lcd, lcd_current_row);
+    // } else {
+    //     LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+    //     LCD_PutChar(lcd, input);
+    //     lcd_current_col++;
+    //     if (lcd_current_col >= MAX_LCD_COLUMNS) {
+    //         lcd_current_col = 0;
+    //         lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS;
+    //         LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
+    //         LCD_ClearLine(lcd, lcd_current_row);
+    //     }
+    // }
 
     LCDSim_Draw(lcd);
     SDL_UpdateWindowSurface(window);

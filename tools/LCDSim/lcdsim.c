@@ -320,7 +320,7 @@ void Pixel_Draw(GraphicUnit *self) {
 
 }
 
-void LCD_PutChar(LCDSim *self, char car) {
+static void LCD_PutChar(LCDSim *self, char car) {
     LCDSim_Instruction(self, 0x0100 | car);
 }
 
@@ -369,7 +369,7 @@ void LCD_ClearLine(LCDSim *self, Uint8 line) {
 
 }
 
-void LCD_SetCursor(LCDSim *self, Uint8 line, Uint8 column) {
+static void LCD_SetCursor(LCDSim *self, Uint8 line, Uint8 column) {
 
     Uint8 pos;
     if ((column > 15) || (line > 1))

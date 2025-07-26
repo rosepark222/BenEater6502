@@ -397,7 +397,7 @@ print_char:
     RTS
 
 newline:
-    LDA #$0A
+    LDA #$20 ; #$20 is space , #$0A = Line Feed
     JSR print_char
     RTS
 

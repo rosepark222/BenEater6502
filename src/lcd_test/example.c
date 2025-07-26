@@ -2,6 +2,62 @@
 #include <SDL2/SDL.h>
 #include <stdlib.h>
 #include "lcdsim.h"
+#include <math.h>
+
+#define SAMPLE_RATE 44100
+#define FREQUENCY 1840.0
+#define AMPLITUDE 10000
+#define M_PI 3.14159265358979323846
+
+// Callback function to generate audio samples
+void audio_callback(void* userdata, Uint8* stream, int len) {
+    static double phase = 0.0;
+    Sint16* buffer = (Sint16*)stream;
+    int samples_to_generate = len / sizeof(Sint16);
+
+    for (int i = 0; i < samples_to_generate; ++i) {
+        // Generate a sine wave sample
+        double sample = AMPLITUDE * sin(phase);
+        buffer[i] = (Sint16)sample;
+
+        // Update the phase for the next sample
+        phase += 2.0 * M_PI * FREQUENCY / SAMPLE_RATE;
+        if (phase >= 2.0 * M_PI) {
+            phase -= 2.0 * M_PI;
+        }
+    }
+}
+
+int main(int argc, char* argv[]) {
+    SDL_Init(SDL_INIT_AUDIO);
+
+    SDL_AudioSpec desired;
+    desired.freq = SAMPLE_RATE;
+    desired.format = AUDIO_S16SYS;
+    desired.channels = 1;
+    desired.samples = 4096;
+    desired.callback = audio_callback;
+    desired.userdata = NULL;
+
+    SDL_AudioDeviceID device = SDL_OpenAudioDevice(NULL, 0, &desired, NULL, 0);
+    if (device == 0) {
+        fprintf(stderr, "Failed to open audio device: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    // Unpause the audio device to start playback
+    SDL_PauseAudioDevice(device, 0);
+
+    printf("Playing 440 Hz sine wave for 5 seconds...\n");
+    SDL_Delay(5000); // Wait for 5 seconds
+
+    // Clean up
+    SDL_CloseAudioDevice(device);
+    SDL_Quit();
+
+    printf("Done.\n");
+    return 0;
+}
 
 /*typedef struct LCDSim LCDSim;
 
@@ -20,7 +76,8 @@ screen (SDL_Surface)*: This refers to the drawing surface associated directly wi
 
 lcd (LCDSim)*: This is a custom data structure (likely defined in lcdsim.h and implemented in lcdsim.c) that simulates the internal state and behavior of a physical LCD module. It encapsulates the LCD's characters, cursor position, display settings (like on/off, cursor on/off, blink on/off), and its logic for processing commands (like LCD_PutS for displaying text). It doesn't directly handle pixels but interprets commands and translates them into what should be displayed.
 */
-int main(int argc, char** argv) {
+
+int __main(int argc, char** argv) {
     SDL_Event event;
     SDL_Window* window = NULL;
     SDL_Surface* screen = NULL;

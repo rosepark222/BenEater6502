@@ -197,49 +197,54 @@ Loop_bin:
 
 ; === Fill README.txt file data blocks (1, 2, 3, 4) with 0xEA ===
 
-FillBlock1:
-    LDX #$00
-LoopB1:
-    LDA #$EA
-    STA BLOCK_BASE+$100,X
-    INX
-    BNE LoopB1
+; FillBlock1:
+;     LDX #$00
+; LoopB1:
+;     LDA #$EA
+;     STA BLOCK_BASE+$100,X
+;     INX
+;     BNE LoopB1
 
-FillBlock2:
-    LDX #$00
-LoopB2:
-    LDA #$EA
-    STA BLOCK_BASE+$200,X
-    INX
-    BNE LoopB2
+; FillBlock2:
+;     LDX #$00
+; LoopB2:
+;     LDA #$EA
+;     STA BLOCK_BASE+$200,X
+;     INX
+;     BNE LoopB2
 
-FillBlock3:
-    LDX #$00
-LoopB3:
-    LDA #$EA
-    STA BLOCK_BASE+$300,X
-    INX
-    BNE LoopB3
+; FillBlock3:
+;     LDX #$00
+; LoopB3:
+;     LDA #$EA
+;     STA BLOCK_BASE+$300,X
+;     INX
+;     BNE LoopB3
 
-FillBlock4:
-    LDX #$00
-LoopB4:
-    LDA #$EA
-    STA BLOCK_BASE+$400,X
-    INX
-    BNE LoopB4
+; FillBlock4:
+;     LDX #$00
+; LoopB4:
+;     LDA #$EA
+;     STA BLOCK_BASE+$400,X
+;     INX
+;     BNE LoopB4
 
 ;BRK
 ;    .align 2 ; 2 byte alignment
 ;token1:       .byte "wwwwwwwwwwwwwwww"
-
+    .include "../shell/test.s"
     .include "../ls_util/test.s"
 
     .org $CF60
 ; === File/Dir Names (14B) ===
 token2:       .byte "wwwwwwwwwwwwwwww"
-README_name: .byte "README.txt", 0, 0, 0
-RAM_name:    .byte "ram", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-ROM_name:    .byte "rom", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-ROMFS_name:  .byte "romFS.txt", 0, 0, 0, 0
-BIN_name:    .byte "bin", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+README_name: .byte "f1", 0, 0, 0
+RAM_name:    .byte "d1", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+ROM_name:    .byte "d2", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+ROMFS_name:  .byte "f2", 0, 0, 0, 0
+BIN_name:    .byte "d3", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; README_name: .byte "README.txt", 0, 0, 0
+; RAM_name:    .byte "ram", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; ROM_name:    .byte "rom", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; ROMFS_name:  .byte "romFS.txt", 0, 0, 0, 0
+; BIN_name:    .byte "bin", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
