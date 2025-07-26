@@ -284,7 +284,7 @@ print_dir:
     LDY #I_BLOCK0
     LDA (WORK_PTR_LO),Y
     JSR print_block             ; direct block 1
-    INY
+    LDY #I_BLOCK1
     LDA (WORK_PTR_LO),Y
     JSR print_block             ; direct block 2
     RTS
@@ -319,7 +319,7 @@ print_name:
     BNE print_name
 
 print_next:
-    JSR newline
+    ; JSR newline
     ; Round Y down to start of current entry
     TYA
     AND #$F0                    ; Mask out low bits to get base of 16-byte entry
@@ -391,10 +391,11 @@ end_token:
     RTS
 
 ; --- Stub routines ---
-print_char:
-    ; your character output
-    STA PRINT_CHAR_ADDR
-    RTS
+; remove this because it is defined in shell
+; print_char:
+;    ; your character output
+;    STA PRINT_CHAR_ADDR
+;    RTS
 
 newline:
     LDA #$20 ; #$20 is space , #$0A = Line Feed

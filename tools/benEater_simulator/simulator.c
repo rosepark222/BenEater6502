@@ -15,6 +15,7 @@
 #include <signal.h>
 
 volatile sig_atomic_t quit_flag = 0;
+#define SIM_TIME_SECONDS 40
 
 #define magic_opcde 0xFF
 #define KEY_INPUT 0x0300
@@ -101,9 +102,14 @@ The command's output is displayed as intended, without being corrupted by your t
     */  
 
     if (address == 0x6000) {
-        // Handle LCD or whatever is mapped there
-        // LCD_PutChar(lcd, value);
-        LCDSim_Instruction(lcd, 0x0100 | value);
+        // Data register: write a character or data
+        LCDSim_Instruction(lcd, 0x0100 | value);       // simulate RS=1, RW=0
+        LCDSim_Draw(lcd);
+        SDL_UpdateWindowSurface(window);
+    }
+    else if (address == 0x6001) {
+        // Instruction register: send a command
+        LCDSim_Instruction(lcd, value);       // simulate RS=0, RW=0
         LCDSim_Draw(lcd);
         SDL_UpdateWindowSurface(window);
     }
@@ -474,7 +480,7 @@ bool initialize_sdl_and_lcd(SDL_Window **window, SDL_Surface **screen, LCDSim **
     LCD_State(*lcd, 1, 1, 1);
     // LCD_SetCursor(*lcd, 0, 3);
     // LCD_PutS(*lcd, "ls /rom");
-    // LCDSim_Draw(*lcd);
+    LCDSim_Draw(*lcd);
     SDL_UpdateWindowSurface(*window);
     // LCD_SetCursor(*lcd, 0, 0);
     return true;
@@ -529,7 +535,7 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
             }
         }
 
-        disassemble_current_instruction(stdout, pc, RAM, false);
+        //disassemble_current_instruction(stdout, pc, RAM, false);
         break_loop = disassemble_current_instruction(log_file, pc, RAM, false);
 
 
@@ -538,7 +544,7 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
         exec6502(1);
         total_cycles += clockticks6502;
 
-        print_cpu_state_to_stream(stdout);
+        // print_cpu_state_to_stream(stdout);
         print_cpu_state_to_stream(log_file);
 
         if (total_cycles - last_irq >= irq_interval) {
@@ -548,7 +554,7 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
             irq_count++;
         }
 
-        usleep(1000);
+        usleep(100);
     }
 
     fprintf(log_file, "--- Simulation Finished ---\n");
@@ -634,7 +640,7 @@ int main(int argc, char *argv[]) {
     reset6502();
     signal(SIGINT, handle_sigint); // capture ctrl-c
 
-    run_emulator_loop(lcd, window, irq_cycle_interval, 20);
+    run_emulator_loop(lcd, window, irq_cycle_interval, SIM_TIME_SECONDS);
 
     SDL_DestroyWindow(window);
     SDL_Quit();
