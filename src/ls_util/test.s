@@ -31,6 +31,7 @@ PRINT_CHAR_ADDR = $6000         ; Character output address
 
 ; File System Constants
 MAX_INODES      = 64            ; Maximum number of inodes
+MAX_DATABLOCK   = 64            ; Maximum number of inodes
 INODE_SIZE      = 16            ; Size of each inode in bytes
 DIR_ENTRY_SIZE  = 16            ; Size of directory entry
 BLOCK_SIZE      = 256           ; Size of data block
@@ -290,7 +291,7 @@ print_dir:
     RTS
 
 print_block:
-    CMP #MAX_INODES
+    CMP #MAX_DATABLOCK
     BCS skip_block
     TAX                         ; Save block number in X
     LDA #$00

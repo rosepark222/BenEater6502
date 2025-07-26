@@ -554,7 +554,7 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
             irq_count++;
         }
 
-        usleep(100);
+        usleep(10);
     }
 
     fprintf(log_file, "--- Simulation Finished ---\n");

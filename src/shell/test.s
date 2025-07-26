@@ -35,6 +35,9 @@ LCD_ROWS     = 2            ; Number of rows
 
 
 start_shell:
+    ; *** CLEAR KEY BUFFER HERE! ***
+    LDA #0
+    STA KEY_INPUT
     JSR lcd_init
     JSR lcd_home_cursor
     JSR print_prompt
@@ -68,6 +71,9 @@ handle_backspace:
 
     ; Handle LCD backspace
     JSR lcd_backspace
+    ; *** CLEAR KEY BUFFER HERE! ***
+    LDA #0
+    STA KEY_INPUT
     JMP shell_loop
 
 process_command:
@@ -118,16 +124,20 @@ copy_path:
 
 call_ls:
     JSR start_ls     ; jump to ls util
+    ; *** CLEAR KEY BUFFER HERE! ***
+    LDA #0
+    STA KEY_INPUT
     JMP start_shell
 
 unknown_cmd:
     JSR print_unknown
-    JMP reset_shell
+    JMP start_shell
 
 reset_shell:
     LDX #0
     STX CMD_INDEX
     JSR print_prompt
+
     JMP shell_loop
 
 ; === LCD Line Discipline Routines ===

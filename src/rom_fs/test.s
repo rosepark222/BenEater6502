@@ -18,6 +18,9 @@ INODE_BITMAP  = BITMAP_BASE + $00   ; Inode bitmap at $BB00
 INODE_BASE_HI = $12        ; High byte of inode base
 BLOCK_BASE_HI = $13        ; High byte of block base
 
+INVALID_DATABLOCK = $FF
+INVALID_INODE = $00
+
 ; === Initialize base addresses for ls_util ===
 InitBaseAddresses:
     LDA #>INODE_BASE       ; High byte of inode base ($BC)
@@ -45,6 +48,7 @@ SetBitmaps:
     STA INODE_BASE+$05
     LDA #$00
     STA INODE_BASE+$06     ; block 0
+    LDA #INVALID_DATABLOCK
     STA INODE_BASE+$07
     STA INODE_BASE+$08
 
@@ -75,7 +79,7 @@ SetBitmaps:
     STA INODE_BASE+$25
     LDA #$05
     STA INODE_BASE+$26     ; block 5
-    LDA #$00
+    LDA #INVALID_DATABLOCK
     STA INODE_BASE+$27
     STA INODE_BASE+$28
 
@@ -90,7 +94,7 @@ SetBitmaps:
     STA INODE_BASE+$35
     LDA #$06
     STA INODE_BASE+$36     ; block 6
-    LDA #$00
+    LDA #INVALID_DATABLOCK
     STA INODE_BASE+$37
     STA INODE_BASE+$38
 
@@ -104,7 +108,7 @@ SetBitmaps:
     STA INODE_BASE+$45
     LDA #$08
     STA INODE_BASE+$46
-    LDA #$00
+    LDA #INVALID_DATABLOCK
     STA INODE_BASE+$47
     STA INODE_BASE+$48
 
@@ -118,7 +122,7 @@ SetBitmaps:
     STA INODE_BASE+$55
     LDA #$09
     STA INODE_BASE+$56     ; reused block 4 (for testing, update if needed)
-    LDA #$00
+    LDA #INVALID_DATABLOCK
     STA INODE_BASE+$57
     STA INODE_BASE+$58
 
