@@ -91,7 +91,14 @@ next_token:
     LDA CURRENT_INODE
     JSR get_inode_ptr           ; Set pointer to inode address in WORK_PTR
 
-    JSR find_in_dir             ; Look for token in this directory
+    ; --- if current inode is file, do not search in its data block
+    LDY #I_MODE
+    LDA (WORK_PTR_LO),Y
+    AND #%11110000
+    CMP #FT_DIR
+    BNE not_found
+
+    JSR find_in_dir_block             ; Look for token in this directory
     BCS not_found
 
     STA CURRENT_INODE           ; Found! Update inode number
@@ -113,10 +120,12 @@ done_resolving:
     JMP unknown_type
 
 do_ls_dir:
+    JSR lcd_newline
     JSR print_dir
     RTS
 
 do_ls_file:
+    JSR lcd_newline
     JSR print_file_info
     RTS
 
@@ -157,7 +166,7 @@ bad_inode:
 ; Output:
 ;   A = inode number
 ;   Carry = 0 if found, 1 if not
-find_in_dir:
+find_in_dir_block:
     LDY #I_BLOCK0
     LDA (WORK_PTR_LO),Y         ; i_block[0]
     JSR scan_block
@@ -304,16 +313,17 @@ print_block:
     LDY #0
 print_loop:
     LDA (DIR_PTR_LO),Y          ; inode number
-    CMP #$0
-    BEQ print_next
+    CMP #INVALID_INODE
+    BEQ print_next              ; invalid or empty inode, skip to next entry
 
+    JSR newline                 ; space between names
     ; Move Y to name field (offset 2)
     TYA
     CLC
     ADC #DE_NAME
     TAY
 print_name:
-    LDA (DIR_PTR_LO),Y
+    LDA (DIR_PTR_LO),Y          ; name string , null ending
     BEQ print_next              ; null -> next entry
     JSR print_char
     INY
@@ -399,7 +409,7 @@ end_token:
 ;    RTS
 
 newline:
-    LDA #$20 ; #$20 is space , #$0A = Line Feed
+    LDA #$5F ; #$25F underscore #$20 is space , #$0A = Line Feed
     JSR print_char
     RTS
 

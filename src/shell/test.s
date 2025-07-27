@@ -125,6 +125,8 @@ copy_path:
 call_ls:
     JSR start_ls     ; jump to ls util
     ; *** CLEAR KEY BUFFER HERE! ***
+
+    JSR newline
     LDA #0
     STA KEY_INPUT
     JMP start_shell
