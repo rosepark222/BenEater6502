@@ -18,7 +18,7 @@ LCD_CMD      = $6001        ; LCD command register (if available)
 CMD_BUFFER   = $0400        ; Command string buffer
 CMD_MAX      = 64           ; Max command length
 
-; LCD Commands
+; HD44780 LCD Commands 
 LCD_CLEAR    = $01          ; Clear display
 LCD_HOME     = $02          ; Return home
 LCD_ENTRY    = $06          ; Entry mode set
@@ -33,6 +33,9 @@ LCD_LINE2    = $C0          ; DDRAM address for line 2, column 0
 LCD_COLS     = 16           ; Number of columns
 LCD_ROWS     = 2            ; Number of rows
 
+LCD_ROW  = $0230         ; current row
+LCD_COL  = $0231         ; current col
+
 
 start_shell:
     ; *** CLEAR KEY BUFFER HERE! ***
@@ -41,6 +44,57 @@ start_shell:
     JSR lcd_init
     JSR lcd_home_cursor
     JSR print_prompt
+
+
+    LDA #'1'
+    JSR lcd_putchar
+    JSR lcd_putchar
+    JSR lcd_putchar
+    JSR lcd_putchar
+    JSR lcd_putchar
+
+    ; LDA #LCD_HOME
+    ; JSR lcd_command
+
+    ; LDA #'H'
+    ; JSR lcd_putchar        
+    ; JSR lcd_putchar
+
+    ; LDA #LCD_LINE2
+    ; JSR lcd_command
+    ; LDA #1
+    ; STA LCD_ROW
+    ; LDA #0
+    ; STA LCD_COL
+
+    LDA #'2'
+    JSR lcd_putchar
+    LDA #'2'
+    JSR lcd_putchar
+    LDA #'2'
+    JSR lcd_putchar
+    LDA #'2'
+    JSR lcd_putchar
+    LDA #'2'
+    JSR lcd_putchar 
+    LDA #'2'
+    JSR lcd_putchar
+    LDA #'2'
+    JSR lcd_putchar
+    LDA #'2'
+    JSR lcd_putchar
+    LDA #'2'
+    JSR lcd_putchar
+
+    LDA #'3'
+    JSR lcd_putchar
+    LDA #'3'
+    JSR lcd_putchar
+    LDA #'3'
+    JSR lcd_putchar
+
+
+
 
 shell_loop:
     JSR poll_keyboard
@@ -200,8 +254,10 @@ lcd_putchar:
     RTS
 
 lcd_wrap_line:
+    PHA     ; save A , a char to print
     ; Current line is full, move to next line
     JSR lcd_newline
+    PLA     ; restore A, a char to print
     ; Now display the character
     STA LCD_DATA
     JSR lcd_delay
@@ -209,6 +265,7 @@ lcd_wrap_line:
     RTS
 
 lcd_newline:
+    ;PHA 
     ; Move to start of next line
     LDA LCD_ROW
     CMP #0
@@ -221,6 +278,7 @@ lcd_newline:
     STA LCD_COL
     LDA #LCD_LINE1
     JSR lcd_command
+    ;PLA 
     RTS
 
 move_to_line2:
@@ -375,8 +433,8 @@ ls_cmd:         .byte "ls",0
 prompt_msg:     .byte "> ",0
 unk_msg:        .byte "Unknown command",10,0
 ; LCD State Variables
-LCD_COL:     .byte 0        ; Current column (0-15)
-LCD_ROW:     .byte 0        ; Current row (0-1)
+;LCD_COL:     .byte 0        ; Current column (0-15)
+;LCD_ROW:     .byte 0        ; Current row (0-1)
 
 ; === External entry point ===
 ; start_ls should be defined in your ls_util.s

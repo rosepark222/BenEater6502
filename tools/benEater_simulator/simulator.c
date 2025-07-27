@@ -122,10 +122,11 @@ void print_cpu_state_to_stream(FILE *stream) {
     fprintf(stream, "CPU State: PC:%04X A:%02X X:%02X Y:%02X SP:%02X Status:%02X (NV-B DIZC)\n",
            pc, a, x, y, sp, status);
     fprintf(stream, "RAM State: $0000:%02X $0001:%02X $0002:%02X $0003:%02X\n", RAM[0x0000], RAM[0x0001], RAM[0x0002], RAM[0x0003]);
-    fprintf(stream, "RAM State: $0006:%02X $0007:%02X $0008:%02X $0009:%02X\n", RAM[0x0006], RAM[0x0007], RAM[0x0008], RAM[0x0009]);
-    fprintf(stream, "RAM State: $0200:%02X $0201:%02X $0202:%02X $0203:%02X\n", RAM[0x0200], RAM[0x0201], RAM[0x0202], RAM[0x0203]);
+    fprintf(stream, "RAM State: $6000:%02X $6001:%02X $0230:%02X $0231:%02X\n", RAM[0x6000], RAM[0x6001], RAM[0x0230], RAM[0x0231]);
+    // fprintf(stream, "RAM State: $0006:%02X $0007:%02X $0008:%02X $0009:%02X\n", RAM[0x0006], RAM[0x0007], RAM[0x0008], RAM[0x0009]);
+    // fprintf(stream, "RAM State: $0200:%02X $0201:%02X $0202:%02X $0203:%02X\n", RAM[0x0200], RAM[0x0201], RAM[0x0202], RAM[0x0203]);
     fprintf(stream, "RAM State: $0300:%02X $0301:%02X $0302:%02X $0303:%02X\n", RAM[0x0300], RAM[0x0301], RAM[0x0302], RAM[0x0303]);
-    fprintf(stream, "RAM State: $C000:%02X $C001:%02X $C002:%02X $C003:%02X\n", RAM[0xC000], RAM[0xC001], RAM[0xC002], RAM[0xC003]);
+    // fprintf(stream, "RAM State: $C000:%02X $C001:%02X $C002:%02X $C003:%02X\n", RAM[0xC000], RAM[0xC001], RAM[0xC002], RAM[0xC003]);
 }
 
 /**
@@ -478,8 +479,8 @@ bool initialize_sdl_and_lcd(SDL_Window **window, SDL_Surface **screen, LCDSim **
 
     *lcd = LCDSim_Create(*screen, 0, 0, "../../tools/LCDSim/");
     LCD_State(*lcd, 1, 1, 1);
-    // LCD_SetCursor(*lcd, 0, 3);
-    // LCD_PutS(*lcd, "ls /rom");
+    LCD_SetCursor(*lcd, 1, 0);
+    LCD_PutS(*lcd, "gg");
     LCDSim_Draw(*lcd);
     SDL_UpdateWindowSurface(*window);
     // LCD_SetCursor(*lcd, 0, 0);
@@ -635,6 +636,10 @@ int main(int argc, char *argv[]) {
     if (!initialize_sdl_and_lcd(&window, &screen, &lcd)) return EXIT_FAILURE;
 
     if (!load_program_and_irq(hex_filename, program_start_address, irq_handler_address)) return EXIT_FAILURE;
+        
+    
+    //usleep(100000);
+
 
     set_vectors(program_start_address, irq_handler_address);
     reset6502();
