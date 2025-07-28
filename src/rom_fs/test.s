@@ -242,13 +242,13 @@ Loop_bin:
     .org $CF60
 ; === File/Dir Names (14B) ===
 token2:       .byte "wwwwwwwwwwwwwwww"
-README_name: .byte "1", 0, 0, 0
-RAM_name:    .byte "2", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-ROM_name:    .byte "3", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-ROMFS_name:  .byte "4", 0, 0, 0, 0
-BIN_name:    .byte "5", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-; README_name: .byte "README.txt", 0, 0, 0
-; RAM_name:    .byte "ram", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-; ROM_name:    .byte "rom", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-; ROMFS_name:  .byte "romFS.txt", 0, 0, 0, 0
-; BIN_name:    .byte "bin", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; README_name: .byte "1", 0, 0, 0
+; RAM_name:    .byte "2", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; ROM_name:    .byte "3", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+; ROMFS_name:  .byte "4", 0, 0, 0, 0
+; BIN_name:    .byte "5", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+README_name: .byte "Readme.txt", 0, 0, 0
+RAM_name:    .byte "ram", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+ROM_name:    .byte "rom", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+ROMFS_name:  .byte "romfs.txt", 0, 0, 0, 0
+BIN_name:    .byte "bin", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0

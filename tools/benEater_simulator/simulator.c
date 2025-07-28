@@ -101,15 +101,42 @@ Your input remains coherent and editable.
 The command's output is displayed as intended, without being corrupted by your typing.
     */  
 
+
+    /*
+    BenEater computer uses 0x6000 as PORTB and 0x6001 as PORTA
+    PORTB for data and PORTA for control - RS, RW and E bits 
+    the sequence to send data is 
+
+        PORTB = $6000
+        PORTA = $6001
+        DDRB  = $6002
+        DDRA  = $6003
+
+        E  = %10000000
+        RW = %01000000
+        RS = %00100000
+
+        LDA #"H"        ; writes data to PORTB
+        STA PORTB
+        LDA #RS         ; RS = 1 for sending value to data register
+        STA PORTA
+        LDA #(RS | E)   ; set E high
+        STA PORTA
+        LDA #RS         ; set E low ( which accomplishes toggling E bit ) 
+        STA PORTA
+    
+    In the LCD emulator, it does not do the above. Using LCDSim_Instruction is enough 
+    */
+
     if (address == 0x6000) {
         // Data register: write a character or data
-        LCDSim_Instruction(lcd, 0x0100 | value);       // simulate RS=1, RW=0
+        LCDSim_Instruction(lcd, 0x0100 | value);       // simulate RS=1 (data register), RW=0 (write)
         LCDSim_Draw(lcd);
         SDL_UpdateWindowSurface(window);
     }
     else if (address == 0x6001) {
         // Instruction register: send a command
-        LCDSim_Instruction(lcd, value);       // simulate RS=0, RW=0
+        LCDSim_Instruction(lcd, value);       // simulate RS=0 (control register), RW=0 (write)
         LCDSim_Draw(lcd);
         SDL_UpdateWindowSurface(window);
     }
@@ -478,9 +505,9 @@ bool initialize_sdl_and_lcd(SDL_Window **window, SDL_Surface **screen, LCDSim **
     }
 
     *lcd = LCDSim_Create(*screen, 0, 0, "../../tools/LCDSim/");
-    LCD_State(*lcd, 1, 1, 1);
-    LCD_SetCursor(*lcd, 1, 0);
-    LCD_PutS(*lcd, "gg");
+    // LCD_State(*lcd, 1, 1, 1);
+    // LCD_SetCursor(*lcd, 1, 0);
+    // LCD_PutS(*lcd, "gg");
     LCDSim_Draw(*lcd);
     SDL_UpdateWindowSurface(*window);
     // LCD_SetCursor(*lcd, 0, 0);

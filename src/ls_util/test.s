@@ -120,12 +120,12 @@ done_resolving:
     JMP unknown_type
 
 do_ls_dir:
-    JSR lcd_newline
+    ;JSR clear_newline_and_move
     JSR print_dir
     RTS
 
 do_ls_file:
-    JSR lcd_newline
+    ;JSR clear_newline_and_move
     JSR print_file_info
     RTS
 
@@ -316,7 +316,7 @@ print_loop:
     CMP #INVALID_INODE
     BEQ print_next              ; invalid or empty inode, skip to next entry
 
-    JSR newline                 ; space between names
+    JSR separator                 ; space between names
     ; Move Y to name field (offset 2)
     TYA
     CLC
@@ -330,7 +330,7 @@ print_name:
     BNE print_name
 
 print_next:
-    ; JSR newline
+    ; JSR separator
     ; Round Y down to start of current entry
     TYA
     AND #$F0                    ; Mask out low bits to get base of 16-byte entry
@@ -356,7 +356,7 @@ print_file_info:
     JSR print_char
     LDA #'E'
     JSR print_char
-    JSR newline
+    JSR separator
     RTS
 
 ; ---------------------------------------------
@@ -408,8 +408,8 @@ end_token:
 ;    STA PRINT_CHAR_ADDR
 ;    RTS
 
-newline:
-    LDA #$5F ; #$25F underscore #$20 is space , #$0A = Line Feed
+separator:
+    LDA #$20 ; #$5F underscore #$20 is space , #$0A = Line Feed
     JSR print_char
     RTS
 
