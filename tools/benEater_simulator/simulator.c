@@ -604,6 +604,8 @@ void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window) {
 
     if (!input) return;
 
+    printf("key pressed: %04X\n", input);
+
     write6502(KEY_INPUT, input); // put it to keyboard buffer
 
     // if (input == '\b') {

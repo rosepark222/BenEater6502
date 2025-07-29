@@ -48,19 +48,19 @@ start_shell:
     JSR print_prompt
 
 
-    LDA #'1'
-    JSR lcd_putchar
-    JSR lcd_putchar
-    JSR lcd_putchar
-    JSR lcd_putchar
-    JSR lcd_putchar
+    ; LDA #'1'
+    ; JSR print_char
+    ; JSR print_char
+    ; JSR print_char
+    ; JSR print_char
+    ; JSR print_char
 
     ; LDA #LCD_HOME
     ; JSR lcd_command
 
     ; LDA #'H'
-    ; JSR lcd_putchar        
-    ; JSR lcd_putchar
+    ; JSR print_char        
+    ; JSR print_char
 
     ; LDA #LCD_ROW1_COL0_ADDR
     ; JSR lcd_command
@@ -69,32 +69,36 @@ start_shell:
     ; LDA #0
     ; STA LCD_CURRENT_COL
 
-    LDA #'2'
-    JSR lcd_putchar
-    LDA #'2'
-    JSR lcd_putchar
-    LDA #'2'
-    JSR lcd_putchar
-    LDA #'2'
-    JSR lcd_putchar
-    LDA #'2'
-    JSR lcd_putchar 
-    LDA #'2'
-    JSR lcd_putchar
-    LDA #'2'
-    JSR lcd_putchar
-    LDA #'2'
-    JSR lcd_putchar
-    LDA #'2'
-    JSR lcd_putchar
-
-    LDA #'3'
-    JSR lcd_putchar
-    LDA #'3'
-    JSR lcd_putchar
-    LDA #'3'
-    JSR lcd_putchar
-
+    LDA #'t'
+    JSR print_char
+    LDA #'h'
+    JSR print_char
+    LDA #'i'
+    JSR print_char
+    LDA #'s'
+    JSR print_char
+    LDA #' '
+    JSR print_char 
+    LDA #'i'
+    JSR print_char
+    LDA #'s'
+    JSR print_char
+    LDA #' '
+    JSR print_char
+    LDA #'s'
+    JSR print_char
+    LDA #'p'
+    JSR print_char
+    LDA #'a'
+    JSR print_char
+    LDA #'r'
+    JSR print_char
+    LDA #'t'
+    JSR print_char
+    LDA #'a'
+    JSR print_char
+    LDA #'n'
+    JSR print_char
 
 
 
@@ -117,7 +121,7 @@ shell_loop:
     BCS shell_loop
 
     ; Normal character input
-    JSR lcd_putchar
+    JSR print_char
     JSR store_char
     JMP shell_loop
 
@@ -240,7 +244,7 @@ lcd_command:
     JSR lcd_delay
     RTS
 
-lcd_putchar:
+print_char:
     ;CMP #$0A
     ;BEQ do_newline           ; emulator sends \r for enter key so this routine is not used
     CMP #$0D
@@ -277,7 +281,7 @@ clear_newline_and_move: ; Move to start of next line
     BEQ move_to_line2
     
     ; Currently on line 2, clear and go to line 1
-    JSR lcd_clear_line  ; lcd_clear_line1
+    JSR lcd_clear_line
     LDA #0
     STA LCD_CURRENT_ROW
     STA LCD_CURRENT_COL
@@ -288,7 +292,7 @@ clear_newline_and_move: ; Move to start of next line
 
 move_to_line2:
     ; Currently on line 1, clear line 2 and move there
-    JSR lcd_clear_line  ; lcd_clear_line2
+    JSR lcd_clear_line
     LDA #1
     STA LCD_CURRENT_ROW
     LDA #0
@@ -422,7 +426,7 @@ print_prompt:
 print_prompt_loop:
     LDA prompt_msg,Y
     BEQ done_prompt
-    JSR lcd_putchar
+    JSR print_char
     INY
     JMP print_prompt_loop
 done_prompt:
@@ -433,16 +437,16 @@ print_unknown:
 print_unk_loop:
     LDA unk_msg,Y
     BEQ done_unk
-    JSR lcd_putchar
+    JSR print_char
     INY
     JMP print_unk_loop
 done_unk:
     RTS
 
-; Override the print_char routine used by ls_util
-print_char:
-    JSR lcd_putchar
-    RTS
+; ; Override the print_char routine used by ls_util
+; print_char:
+;     JSR print_char
+;     RTS
 
 ; === Data ===
 
