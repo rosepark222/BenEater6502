@@ -101,7 +101,6 @@ start_shell:
     JSR print_char
 
 
-
 shell_loop:
     JSR poll_keyboard
     BCC shell_loop          ; No key yet, poll again
@@ -389,8 +388,8 @@ lcd_delay:
     ; Simple delay for LCD timing
     ; Adjust based on your system clock
     PHA
-    LDA #$FF  ; long delay
-    ;LDA #$03
+    ;LDA #$FF  ; long delay
+    LDA #$03
 delay_loop:
     NOP
     NOP

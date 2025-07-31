@@ -299,6 +299,8 @@ print_dir:
     JSR print_block             ; direct block 2
     RTS
 
+summer_break:
+
 print_block:
     CMP #MAX_DATABLOCK
     BCS skip_block

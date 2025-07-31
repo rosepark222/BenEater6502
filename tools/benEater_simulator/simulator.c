@@ -14,6 +14,11 @@
 #include "fake6502.h"
 #include <signal.h>
 
+
+#include <string.h>   // For strcmp if needed, or just for clarity
+#include <unistd.h>   // Required for getopt on many systems
+#include <getopt.h>   // Required for getopt_long
+
 volatile sig_atomic_t quit_flag = 0;
 #define SIM_TIME_SECONDS 40
 
@@ -27,6 +32,15 @@ uint8_t RAM[65536];
 LCDSim *lcd = NULL;
 SDL_Window *window = NULL;
 SDL_Surface *screen = NULL;
+
+
+// Global variables to store parsed arguments
+char *hex_file_path = NULL;
+char *list_file_path = NULL;
+char *break_symbol_name = NULL;
+unsigned int break_address = 0;
+
+
 
 // --- External CPU state variables (from fake6502.h) ---
 // These are declared in fake6502.h and updated by the emulator core.
@@ -547,6 +561,7 @@ void set_vectors(uint16_t reset, uint16_t irq) {
 
 void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds) {
     uint8_t opcode, op1, op2;
+    long int loop_cnt = 0;
     unsigned int last_irq = 0, total_cycles = 0;
     int irq_count = 0;
     int row = 1, col = 0;
@@ -555,15 +570,34 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
 
     time_t start_time = time(NULL);
 
+    int step_enabled = 0;
+    char gdb = NULL;
+
     while (time(NULL) - start_time < duration_seconds && !break_loop && !quit_flag) {
+
+
+        if( pc == break_address ) step_enabled = 1;
+        if( step_enabled ) {
+            duration_seconds = INT_MAX;
+            printf("DEBUG: press enter to step, c to continue > ");
+            gdb = getchar();
+            printf("\n");
+            if (gdb == 'c') step_enabled = 0;
+        }
+        
+        // SDL_PollEvent removes one event: Each call to SDL_PollEvent(&event) does two things:
+        // It checks if there's an event at the front of the queue.
+        // If there is, it copies that event's data into the event structure you provide AND removes that event from the queue.
+        // It returns 1 if an event was processed and 0 if the queue was empty.
+
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) { break_loop = 1; break; }
             else if (event.type == SDL_KEYDOWN) {
-                handle_keyboard_event(&event, lcd, window);
+                handle_keyboard_event(&event, lcd, window, loop_cnt);
             }
         }
 
-        //disassemble_current_instruction(stdout, pc, RAM, false);
+        if (step_enabled) disassemble_current_instruction(stdout, pc, RAM, false);
         break_loop = disassemble_current_instruction(log_file, pc, RAM, false);
 
 
@@ -572,7 +606,7 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
         exec6502(1);
         total_cycles += clockticks6502;
 
-        // print_cpu_state_to_stream(stdout);
+        if (step_enabled) print_cpu_state_to_stream(stdout);
         print_cpu_state_to_stream(log_file);
 
         if (total_cycles - last_irq >= irq_interval) {
@@ -583,6 +617,7 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
         }
 
         usleep(10);
+        loop_cnt++;
     }
 
     fprintf(log_file, "--- Simulation Finished ---\n");
@@ -594,7 +629,7 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
 
 }
 
-void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window) {
+void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window, long int loop_cnt) {
     char input = 0;
     SDL_Keycode key = event->key.keysym.sym;
 
@@ -604,7 +639,7 @@ void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window) {
 
     if (!input) return;
 
-    printf("key pressed: %04X\n", input);
+    printf("key pressed: %04X  at loop_cnt %04d\n", input, loop_cnt);
 
     write6502(KEY_INPUT, input); // put it to keyboard buffer
 
@@ -641,16 +676,213 @@ void handle_sigint(int sig) {
     quit_flag = 1;
 }
 
+// --- Data Structure for the Dictionary (Linked List) ---
+typedef struct SymbolEntry {
+    char *symbol_name;
+    unsigned int address;
+    struct SymbolEntry *next;
+} SymbolEntry;
+
+// Manual implementation of strdup()
+char* my_strdup(const char* s) {
+    if (s == NULL) return NULL;
+    size_t len = strlen(s) + 1; // +1 for the null terminator
+    char* new_str = malloc(len);
+    if (new_str == NULL) {
+        return NULL;
+    }
+    return memcpy(new_str, s, len);
+}
+
+// --- Function to Create and Populate the Dictionary ---
+SymbolEntry* create_symbol_dictionary(const char* filepath) {
+            printf("Symbol %s  11.\n", filepath); 
+    FILE *file = fopen(filepath, "r");
+    if (!file) {
+        perror("Failed to open list file");
+        return NULL;
+    }
+            printf("Symbol %s  12.\n", filepath); 
+
+    SymbolEntry *head = NULL;
+    char line[256];
+    char name_buffer[100];
+    char type_char;
+    unsigned int address;
+            printf("Symbol %s  13.\n", filepath); 
+
+    // Skip header lines
+    // The format seems to start after "Symbols by name:"
+    while (fgets(line, sizeof(line), file)) {
+        if (strstr(line, "Symbols by name:")) {
+            break;
+        }
+    }
+            printf("Symbol %s  14.\n", filepath); 
+
+    printf("create_symbol_dictionary: started"  );
+
+            printf("Symbol %s  15.\n", filepath); 
+
+    // Read and parse symbol entries
+    while (fgets(line, sizeof(line), file)) {
+                    printf("Symbol %s  16.\n", line); 
+
+        // Use sscanf to parse the symbol name, type, and address
+        // The format specifier handles spaces between the symbol name and the type.
+        // It also handles a colon and a hex value.
+        int result = sscanf(line, "%s %c:%x", name_buffer, &type_char, &address);
+                            printf("Symbol %s  17.\n", line); 
+
+        if (result == 3) {
+            // Found a valid symbol entry
+            SymbolEntry *new_entry = malloc(sizeof(SymbolEntry));
+            if (!new_entry) {
+                perror("Memory allocation failed");
+                fclose(file);
+                return head; // Return what we have so far
+            }
+                    printf("Symbol %s  18.\n", line); 
+
+            // Copy the symbol name
+            //new_entry->symbol_name = strdup(name_buffer);
+            new_entry->symbol_name = my_strdup(name_buffer);
+            if (!new_entry->symbol_name) {
+                perror("Memory allocation failed for symbol name");
+                free(new_entry);
+                fclose(file);
+                return head;
+            }
+                    printf("Symbol %s  19.\n", new_entry->symbol_name); 
+
+            new_entry->address = address;
+            
+            printf("create_symbol_dictionary: %s  %x", new_entry->symbol_name, new_entry->address);
+
+            // Add the new entry to the front of the list
+            new_entry->next = head;
+            head = new_entry;
+        }
+    }
+
+    fclose(file);
+    return head;
+}
+
+// --- Function to Free the Dictionary ---
+void free_dictionary(SymbolEntry* head) {
+    SymbolEntry *current = head;
+    while (current) {
+        SymbolEntry *temp = current;
+        free(current->symbol_name); // Free the string
+        current = current->next;
+        free(temp); // Free the struct
+    }
+}
 
 
-// === Main Function ===
+
+
+
+
+
+
+// --- Main Function ---
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <hex_file_path>\n", argv[0]);
+    int opt; // To store the return value of getopt_long
+
+    // Define the long options
+    static struct option long_options[] = {
+        {"hex",           required_argument, 0, 'h'}, // 'h' is the short option equivalent value
+        {"list",          required_argument, 0, 'l'}, // 'l' is the short option equivalent value
+        {"break_symbol",  required_argument, 0, 'b'}, // 'b' is the short option equivalent value
+        {0, 0, 0, 0} // Sentinel to mark the end of the array
+    };
+
+    int long_index = 0; // To store the index of the long option found
+
+    // Loop through command-line arguments using getopt_long
+    // ":" after a short option means it requires an argument.
+    // We're using 'h', 'l', 'b' as the return values for the long options.
+    while ((opt = getopt_long(argc, argv, "h:l:b:", long_options, &long_index)) != -1) {
+        switch (opt) {
+            case 'h': // Corresponds to --hex
+                hex_file_path = optarg;
+                printf("Hex file specified: %s\n", hex_file_path);
+                break;
+            case 'l': // Corresponds to --list
+                list_file_path = optarg;
+                printf("List file specified: %s\n", list_file_path);
+                break;
+            case 'b': // Corresponds to --break_symbol
+                break_symbol_name = optarg;
+                printf("Break symbol specified: %s\n", break_symbol_name);
+                break;
+            case '?': // getopt_long returns '?' for an unknown option
+                fprintf(stderr, "Unknown option or missing argument.\n");
+                // getopt_long already prints an error message.
+                return EXIT_FAILURE;
+            default:
+                // This case should ideally not be reached
+                fprintf(stderr, "Error parsing arguments.\n");
+                return EXIT_FAILURE;
+        }
+    }
+
+    // --- Validate parsed arguments ---
+    if (hex_file_path == NULL) {
+        fprintf(stderr, "Error: --hex <hex_file_path> is required.\n");
+        fprintf(stderr, "Usage: %s --hex <hex_file> [--list <list_file>] [--break_symbol <symbol>]\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    const char *hex_filename = argv[1];
+    // // --- Process remaining non-option arguments (if any) ---
+    // // In your case, all arguments are options, so optind should point to argc
+    // if (optind < argc) {
+    //     fprintf(stderr, "Warning: Non-option arguments detected after processing options:\n");
+    //     while (optind < argc) {
+    //         fprintf(stderr, "  '%s'\n", argv[optind++]);
+    //     }
+    //     // You might choose to return EXIT_FAILURE here if extra arguments are not allowed
+    //     // return EXIT_FAILURE;
+    // }
+
+
+    // Create the dictionary from the list file
+            printf("Symbol %s  1.\n", break_symbol_name); 
+    SymbolEntry *dictionary = create_symbol_dictionary(list_file_path);
+
+    if (!dictionary) {
+        return EXIT_FAILURE;
+    }
+        printf("Symbol %s  2.\n", break_symbol_name); 
+    // --- Example of searching for a symbol ---
+    printf("\n--- Searching for %s ---\n", break_symbol_name);
+    SymbolEntry *current = dictionary;
+    while (current) {
+        printf("Symbol: %-25s Address: 0x%04X\n", current->symbol_name, current->address);
+        current = current->next;
+    }
+
+    current = dictionary;
+    int found = 0;
+    while (current) {
+        if (strcmp(current->symbol_name, break_symbol_name) == 0) {
+            printf("Found %s at address 0x%04X\n", break_symbol_name, current->address);
+            found = 1;
+            break_address = current->address;
+            break;
+        }
+        current = current->next;
+    }
+    if (!found) {
+        printf("Symbol %s not found.\n", break_symbol_name);
+    } else {
+        printf("Symbol %s  found.\n", break_symbol_name); 
+    }
+ 
+
+    // const char *hex_file_path = argv[1];
     uint16_t program_start_address = 0x8000;
     uint16_t irq_handler_address = 0x0700;
 
@@ -664,7 +896,7 @@ int main(int argc, char *argv[]) {
 
     if (!initialize_sdl_and_lcd(&window, &screen, &lcd)) return EXIT_FAILURE;
 
-    if (!load_program_and_irq(hex_filename, program_start_address, irq_handler_address)) return EXIT_FAILURE;
+    if (!load_program_and_irq(hex_file_path, program_start_address, irq_handler_address)) return EXIT_FAILURE;
         
     
     //usleep(100000);
