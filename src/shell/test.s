@@ -244,6 +244,11 @@ lcd_command:
     RTS
 
 print_char:
+    ; PHA 
+    ; TYA
+    ; PHA
+    ; PLA 
+    ; STY Y_SCRATCH      ; bug at 4426a08, Y is the pointer used in print_name in ls_util, but also used in print_char and should be preserved
     ;CMP #$0A
     ;BEQ do_newline           ; emulator sends \r for enter key so this routine is not used
     CMP #$0D
@@ -257,6 +262,9 @@ do_normal: ; fallthrough normal write
     STA LCD_DATA
     JSR lcd_delay
     INC LCD_CURRENT_COL
+    ; PLA
+    ; TAY 
+    ; LDY Y_SCRATCH       ; bug at 4426a08
     RTS
 
 ;do_newline:   ; emulator sends \r for enter key so this routine is not used

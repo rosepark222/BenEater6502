@@ -299,7 +299,6 @@ print_dir:
     JSR print_block             ; direct block 2
     RTS
 
-summer_break:
 
 print_block:
     CMP #MAX_DATABLOCK
@@ -324,6 +323,9 @@ print_loop:
     CLC
     ADC #DE_NAME
     TAY
+    
+; summer_break:
+
 print_name:
     LDA (DIR_PTR_LO),Y          ; name string , null ending
     BEQ print_next              ; null -> next entry

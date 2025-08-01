@@ -21,6 +21,10 @@ BLOCK_BASE_HI = $13        ; High byte of block base
 INVALID_DATABLOCK = $FF
 INVALID_INODE = $00
 
+A_SCRATCH  = $20
+X_SCRATCH  = $21
+Y_SCRATCH  = $22
+
 ; === Initialize base addresses for ls_util ===
 InitBaseAddresses:
     LDA #>INODE_BASE       ; High byte of inode base ($BC)

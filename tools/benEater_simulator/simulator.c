@@ -25,6 +25,11 @@ volatile sig_atomic_t quit_flag = 0;
 #define magic_opcde 0xFF
 #define KEY_INPUT 0x0300
 #define PRINT_CHAR_ADDR 0x6000
+
+// Stack for subroutine calls (simplified - assumes standard 6502 stack)
+#define STACK_BASE 0xfd
+
+
 // --- Emulated 6502 Memory (64KB) ---
 // This array represents the 6502's 64KB address space.
 uint8_t RAM[65536];
@@ -40,6 +45,12 @@ char *list_file_path = NULL;
 char *break_symbol_name = NULL;
 unsigned int break_address = 0;
 
+// --- Data Structure for the symbol_list (Linked List) ---
+typedef struct SymbolEntry {
+    char *symbol_name;
+    unsigned int address;
+    struct SymbolEntry *next;
+} SymbolEntry;
 
 
 // --- External CPU state variables (from fake6502.h) ---
@@ -47,6 +58,30 @@ unsigned int break_address = 0;
 extern unsigned char   a, x, y, sp, status;
 extern unsigned short  pc;
 extern unsigned int    clockticks6502; // Total emulated CPU cycles (from fake6502 core)
+
+SymbolEntry *symbol_list = NULL;
+
+// Breakpoints storage
+#define MAX_BREAKPOINTS 50
+typedef struct {
+    unsigned int address;
+    char *label;
+} Breakpoint;
+
+static Breakpoint breakpoints[MAX_BREAKPOINTS];
+static int breakpoint_count = 0;
+
+// --- LCD Cursor Tracking (New Global/Static Variables) ---
+static int lcd_current_row = 0; // LCD has 2 rows (0 and 1)
+static int lcd_current_col = 0; // LCD has 16 columns (0-15)
+#define MAX_LCD_COLUMNS 16
+#define MAX_LCD_ROWS 2
+
+
+
+
+
+
 
 // --- Memory Access Functions for fake6502 ---
 // These are the functions fake6502 calls to read from and write to memory.
@@ -488,17 +523,7 @@ void dump_memory_range(FILE *stream, uint16_t start_addr, uint16_t end_addr) {
     }
     fprintf(stream, "\n"); // Newline at the end
 }
-// --- LCD Cursor Tracking (New Global/Static Variables) ---
-static int lcd_current_row = 0; // LCD has 2 rows (0 and 1)
-static int lcd_current_col = 0; // LCD has 16 columns (0-15)
-#define MAX_LCD_COLUMNS 16
-#define MAX_LCD_ROWS 2
-
  
-
-
-
-// === Helper Functions ===
 
 bool initialize_sdl_and_lcd(SDL_Window **window, SDL_Surface **screen, LCDSim **lcd) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -559,6 +584,237 @@ void set_vectors(uint16_t reset, uint16_t irq) {
     fprintf(log_file, "Vectors set: RESET = 0x%04X, IRQ = 0x%04X\n", reset, irq);
 }
 
+
+
+// Function to find symbol by address (closest match)
+SymbolEntry* find_closest_symbol(unsigned int address) {
+    SymbolEntry *current = symbol_list;
+    SymbolEntry *closest = NULL;
+    unsigned int min_distance = UINT_MAX;
+    
+    while (current != NULL) {
+        if (current->address <= address) {
+            unsigned int distance = address - current->address;
+            if (distance < min_distance) {
+                min_distance = distance;
+                closest = current;
+            }
+        }
+        current = current->next;
+    }
+    return closest;
+}
+
+// Function to find symbol by name
+SymbolEntry* find_symbol_by_name(const char *name) {
+    SymbolEntry *current = symbol_list;
+    while (current != NULL) {
+        if (strcmp(current->symbol_name, name) == 0) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+// Function to add breakpoint
+void add_breakpoint(unsigned int address, const char *label) {
+    if (breakpoint_count >= MAX_BREAKPOINTS) {
+        printf("Maximum breakpoints reached!\n");
+        return;
+    }
+    
+    // Check if breakpoint already exists
+    for (int i = 0; i < breakpoint_count; i++) {
+        if (breakpoints[i].address == address) {
+            printf("Breakpoint already exists at %04X\n", address);
+            return;
+        }
+    }
+    
+    breakpoints[breakpoint_count].address = address;
+    if (label) {
+        breakpoints[breakpoint_count].label = malloc(strlen(label) + 1);
+        strcpy(breakpoints[breakpoint_count].label, label);
+    } else {
+        breakpoints[breakpoint_count].label = NULL;
+    }
+    breakpoint_count++;
+    
+    // Find closest symbol for display
+    SymbolEntry *closest = find_closest_symbol(address);
+    if (closest) {
+        printf("Breakpoint set at %04X under %s\n", address, closest->symbol_name);
+    } else {
+        printf("Breakpoint set at %04X\n", address);
+    }
+}
+
+// Function to check if address is a breakpoint
+int is_breakpoint(unsigned int address) {
+    for (int i = 0; i < breakpoint_count; i++) {
+        if (breakpoints[i].address == address) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// Function to handle read command
+void handle_read_command(const char *input) {
+    unsigned int start_addr;
+    int count = 16; // default
+    
+    // Parse input: "r 8000 16" or "r 8000"
+    if (sscanf(input, "r %x %d", &start_addr, &count) < 1) {
+        printf("Usage: r <hex_address> [count]\n");
+        return;
+    }
+    
+    printf("Memory dump from %04X:\n", start_addr);
+    for (int i = 0; i < count; i++) {
+        if (i % 16 == 0) {
+            printf("%04X: ", start_addr + i);
+        }
+        printf("%02X ", RAM[(start_addr + i) & 0xFFFF]);
+        if (i % 16 == 15) {
+            printf("\n");
+        }
+    }
+    if (count % 16 != 0) {
+        printf("\n");
+    }
+}
+
+// Function to handle write command
+void handle_write_command(const char *input) {
+    unsigned int address;
+    unsigned int value;
+    
+    // Parse input: "w 8000 FF"
+    if (sscanf(input, "w %x %x", &address, &value) != 2) {
+        printf("Usage: w <hex_address> <hex_value>\n");
+        return;
+    }
+    
+    if (value > 0xFF) {
+        printf("Value must be 0x00-0xFF\n");
+        return;
+    }
+    
+    RAM[address & 0xFFFF] = (unsigned char)value;
+    printf("Wrote %02X to address %04X\n", value, address);
+}
+
+// Function to handle breakpoint command
+void handle_breakpoint_command(const char *input) {
+    char label_or_addr[256];
+    unsigned int address;
+    
+    // Skip 'b' and whitespace
+    const char *ptr = input + 1;
+    while (*ptr == ' ' || *ptr == '\t') ptr++;
+    
+    if (strlen(ptr) == 0) {
+        printf("Usage: b <address|label>\n");
+        return;
+    }
+    
+    // Check if it's a hex address (starts with 0x or all hex digits)
+    if (sscanf(ptr, "%x", &address) == 1 || sscanf(ptr, "0x%x", &address) == 1) {
+        add_breakpoint(address, NULL);
+    } else {
+        // It's a label
+        SymbolEntry *symbol = find_symbol_by_name(ptr);
+        if (symbol) {
+            add_breakpoint(symbol->address, ptr);
+        } else {
+            printf("Warning: Label '%s' not found\n", ptr);
+        }
+    }
+}
+
+// Function to print all breakpoints
+void print_breakpoints() {
+    if (breakpoint_count == 0) {
+        printf("No breakpoints set\n");
+        return;
+    }
+    
+    printf("Breakpoints:\n");
+    for (int i = 0; i < breakpoint_count; i++) {
+        if (breakpoints[i].label) {
+            printf("  %04X (%s)\n", breakpoints[i].address, breakpoints[i].label);
+        } else {
+            printf("  %04X\n", breakpoints[i].address);
+        }
+    }
+}
+
+
+ 
+// Function to print call stack trace
+void print_call_stack() {
+    printf("Call stack trace:\n");
+    
+    // Walk the stack from current SP to 0xFF
+    unsigned char current_sp = sp;
+    int level = 0;
+    
+    while (current_sp < 0xFF) {
+        // Return addresses are stored as address-1 on stack (JSR behavior)
+        unsigned int return_addr = RAM[STACK_BASE + current_sp + 1] | 
+                                  (RAM[STACK_BASE + current_sp + 2] << 8);
+        return_addr++; // Adjust for JSR behavior
+        
+        SymbolEntry *symbol = find_closest_symbol(return_addr);
+        if (symbol) {
+            printf("  #%d: %04X (%s+%d)\n", level, return_addr, 
+                   symbol->symbol_name, return_addr - symbol->address);
+        } else {
+            printf("  #%d: %04X\n", level, return_addr);
+        }
+        
+        current_sp += 2; // Each return address takes 2 bytes
+        level++;
+        
+        // Safety check to prevent infinite loop
+        if (level > 20) break;
+    }
+    
+    if (level == 0) {
+        printf("  No subroutine calls on stack\n");
+    }
+}
+
+// Function to handle "up" command - set breakpoint at return address
+void handle_up_command() {
+    if (sp >= 0xFF) {
+        printf("No return address on stack\n");
+        return;
+    }
+    
+    // Get return address from stack
+    unsigned int return_addr = RAM[STACK_BASE + sp + 1] | 
+                              (RAM[STACK_BASE + sp + 2] << 8);
+    return_addr++; // Adjust for JSR behavior
+    
+    // Set temporary breakpoint at return address
+    add_breakpoint(return_addr, "temp_return");
+    printf("Will break at return address %04X\n", return_addr);
+}
+
+// Cleanup function to free breakpoint memory
+void cleanup_breakpoints() {
+    for (int i = 0; i < breakpoint_count; i++) {
+        if (breakpoints[i].label) {
+            free(breakpoints[i].label);
+        }
+    }
+    breakpoint_count = 0;
+}
+
+
 void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds) {
     uint8_t opcode, op1, op2;
     long int loop_cnt = 0;
@@ -572,17 +828,60 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
 
     int step_enabled = 0;
     char gdb = NULL;
+    char input_buffer[60];
 
     while (time(NULL) - start_time < duration_seconds && !break_loop && !quit_flag) {
-
-
-        if( pc == break_address ) step_enabled = 1;
-        if( step_enabled ) {
+        
+        // Check for breakpoints (including original and new ones)
+        if (pc == break_address || is_breakpoint(pc)) {
+            step_enabled = 1;
+        }
+        
+        if (step_enabled) {
             duration_seconds = INT_MAX;
-            printf("DEBUG: press enter to step, c to continue > ");
-            gdb = getchar();
-            printf("\n");
-            if (gdb == 'c') step_enabled = 0;
+            printf("DEBUG [%04X]: ", pc);
+            
+            // Display current instruction
+            disassemble_current_instruction(stdout, pc, RAM, false);
+            
+            printf("Commands: (enter)=step, c=continue, r=read, w=write, u=up, t=trace, b=breakpoint, pb=print breakpoints\n> ");
+            
+            if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
+                break;
+            }
+            
+            // Remove newline
+            input_buffer[strcspn(input_buffer, "\n")] = 0;
+            
+            // Handle commands
+            if (strlen(input_buffer) == 0) {
+                // Enter pressed - step one instruction
+                // Continue to execute one instruction
+            } else if (input_buffer[0] == 'c') {
+                step_enabled = 0;
+                printf("Continuing execution...\n");
+            } else if (input_buffer[0] == 'r') {
+                handle_read_command(input_buffer);
+                continue; // Don't execute instruction, stay in debug mode
+            } else if (input_buffer[0] == 'w') {
+                handle_write_command(input_buffer);
+                continue; // Don't execute instruction, stay in debug mode
+            } else if (input_buffer[0] == 'u') {
+                handle_up_command();
+                step_enabled = 0; // Continue until return
+            } else if (input_buffer[0] == 't') {
+                print_call_stack();
+                continue; // Don't execute instruction, stay in debug mode
+            } else if (input_buffer[0] == 'b' && input_buffer[1] != 'p') {
+                handle_breakpoint_command(input_buffer);
+                continue; // Don't execute instruction, stay in debug mode
+            } else if (strncmp(input_buffer, "pb", 2) == 0) {
+                print_breakpoints();
+                continue; // Don't execute instruction, stay in debug mode
+            } else {
+                printf("Unknown command. Available: enter, c, r, w, u, t, b, pb\n");
+                continue; // Don't execute instruction, stay in debug mode
+            }
         }
         
         // SDL_PollEvent removes one event: Each call to SDL_PollEvent(&event) does two things:
@@ -676,12 +975,6 @@ void handle_sigint(int sig) {
     quit_flag = 1;
 }
 
-// --- Data Structure for the Dictionary (Linked List) ---
-typedef struct SymbolEntry {
-    char *symbol_name;
-    unsigned int address;
-    struct SymbolEntry *next;
-} SymbolEntry;
 
 // Manual implementation of strdup()
 char* my_strdup(const char* s) {
@@ -694,7 +987,7 @@ char* my_strdup(const char* s) {
     return memcpy(new_str, s, len);
 }
 
-// --- Function to Create and Populate the Dictionary ---
+// --- Function to Create and Populate the symbol_list ---
 SymbolEntry* create_symbol_dictionary(const char* filepath) {
             printf("Symbol %s  11.\n", filepath); 
     FILE *file = fopen(filepath, "r");
@@ -769,7 +1062,7 @@ SymbolEntry* create_symbol_dictionary(const char* filepath) {
     return head;
 }
 
-// --- Function to Free the Dictionary ---
+// --- Function to Free the symbol_list ---
 void free_dictionary(SymbolEntry* head) {
     SymbolEntry *current = head;
     while (current) {
@@ -848,23 +1141,23 @@ int main(int argc, char *argv[]) {
     // }
 
 
-    // Create the dictionary from the list file
+    // Create the symbol_list from the list file
             printf("Symbol %s  1.\n", break_symbol_name); 
-    SymbolEntry *dictionary = create_symbol_dictionary(list_file_path);
+    symbol_list = create_symbol_dictionary(list_file_path);
 
-    if (!dictionary) {
+    if (!symbol_list) {
         return EXIT_FAILURE;
     }
         printf("Symbol %s  2.\n", break_symbol_name); 
     // --- Example of searching for a symbol ---
     printf("\n--- Searching for %s ---\n", break_symbol_name);
-    SymbolEntry *current = dictionary;
+    SymbolEntry *current = symbol_list;
     while (current) {
         printf("Symbol: %-25s Address: 0x%04X\n", current->symbol_name, current->address);
         current = current->next;
     }
 
-    current = dictionary;
+    current = symbol_list;
     int found = 0;
     while (current) {
         if (strcmp(current->symbol_name, break_symbol_name) == 0) {
@@ -912,3 +1205,4 @@ int main(int argc, char *argv[]) {
     SDL_Quit();
     return EXIT_SUCCESS;
 }
+
