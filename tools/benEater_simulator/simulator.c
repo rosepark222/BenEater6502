@@ -634,14 +634,20 @@ void add_breakpoint(unsigned int address, const char *label) {
         return;
     }
     
-    // Check if breakpoint already exists
     for (int i = 0; i < breakpoint_count; i++) {
         if (breakpoints[i].address == address) {
-            printf("Breakpoint already exists at %04X\n", address);
+            printf("Breakpoint at %04X already exists. Removing it.\n", address);
+            
+            // Shift all subsequent elements down by one
+            for (int j = i; j < breakpoint_count - 1; j++) {
+                breakpoints[j] = breakpoints[j + 1];
+            }
+            
+            // Decrement the count of valid breakpoints
+            breakpoint_count--;
             return;
         }
     }
-    
     breakpoints[breakpoint_count].address = address;
     if (label) {
         breakpoints[breakpoint_count].label = malloc(strlen(label) + 1);
@@ -763,6 +769,21 @@ void print_breakpoints() {
     printf("\n");
 }
 
+void print_gdb_help() {
+    printf("h       :  print help\n");
+    printf("<enter> :  run next instruction\n");
+    printf("c       :  continue to the next breakpoint\n");
+    printf("r       :  load memory.  r addr 32 for printing 32 byte from addr\n");
+    printf("w       :  modify memory byte -- w addr value \n");
+    printf("t       :  print call stack\n");
+    printf("u       :  add a breakpoint at subroutine calls the current subroutine\n");
+    printf("b       :  print all breakpoints\n");
+    printf("b addr  :  add breakpoint at addr or remove it if it exists in the database already\n");
+    printf("b label :  add breakpoint at address correspoinding to the label\n");
+    
+    printf("s *lcd* :  print all labels matching the pattern\n");
+
+}
 
 // Function to push subroutine call onto debug stack
 void push_subroutine_call(unsigned int jsr_address) {
@@ -855,6 +876,89 @@ void cleanup_breakpoints() {
     breakpoint_count = 0;
 }
 
+// Simple wildcard pattern matching function
+// Supports * (match any sequence) and ? (match single character)
+int match_pattern(const char *pattern, const char *text) {
+    const char *p = pattern;
+    const char *t = text;
+    const char *star_pattern = NULL;
+    const char *star_text = NULL;
+    
+    while (*t) {
+        if (*p == '*') {
+            // Found wildcard, save positions
+            star_pattern = ++p;
+            star_text = t;
+        } else if (*p == '?' || *p == *t) {
+            // Character match or single wildcard
+            p++;
+            t++;
+        } else if (star_pattern) {
+            // No match, but we have a previous *, backtrack
+            p = star_pattern;
+            t = ++star_text;
+        } else {
+            // No match and no previous *
+            return 0;
+        }
+    }
+    
+    // Skip any trailing * in pattern
+    while (*p == '*') {
+        p++;
+    }
+    
+    // Pattern matches if we've consumed all of it
+    return *p == '\0';
+}
+
+// Function to search symbols by pattern
+void search_symbols(const char *pattern) {
+    if (!pattern || strlen(pattern) == 0) {
+        printf("Usage: s <pattern>\n");
+        printf("Examples: s print*, s *lcd*, s init_?\n");
+        return;
+    }
+    
+    SymbolEntry *current = symbol_list;
+    int match_count = 0;
+    
+    printf("Symbols matching pattern '%s':\n", pattern);
+    
+    while (current != NULL) {
+        if (match_pattern(pattern, current->symbol_name)) {
+            printf("  %04X  %s\n", current->address, current->symbol_name);
+            match_count++;
+        }
+        current = current->next;
+    }
+    
+    if (match_count == 0) {
+        printf("  No symbols found matching pattern '%s'\n", pattern);
+    } else {
+        printf("Found %d matching symbol(s)\n", match_count);
+    }
+}
+
+// Function to handle symbol search command
+void handle_symbol_search_command(const char *input) {
+    // Skip 's' and whitespace
+    const char *ptr = input + 1;
+    while (*ptr == ' ' || *ptr == '\t') ptr++;
+    
+    if (strlen(ptr) == 0) {
+        printf("Usage: s <pattern>\n");
+        printf("Wildcards: * (any sequence), ? (single char)\n");
+        printf("Examples:\n");
+        printf("  s print*     - symbols starting with 'print'\n");
+        printf("  s *lcd*      - symbols containing 'lcd'\n");
+        printf("  s init_?     - symbols like 'init_a', 'init_1', etc.\n");
+        printf("  s main       - exact match for 'main'\n");
+        return;
+    }
+    
+    search_symbols(ptr);
+}
 
 int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds) {
     uint8_t opcode, op1, op2;
@@ -887,7 +991,7 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
             // Display current instruction
             disassemble_current_instruction(stdout, pc, RAM, false);
             
-            printf("DEBUG: (enter)=step, c=continue, r=read, w=write, u=up, t=trace, b=breakpoint (b or b <addr>)\n> ");
+            printf("DEBUG> ");
             
             if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
                 break;
@@ -900,6 +1004,9 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
             if (strlen(input_buffer) == 0) {
                 // Enter pressed - step one instruction
                 // Continue to execute one instruction
+            } else if (input_buffer[0] == 'h') {
+                print_gdb_help();
+                continue;
             } else if (input_buffer[0] == 'c') {
                 step_enabled = 0;
                 printf("Continuing execution...\n");
@@ -918,8 +1025,11 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
             } else if (input_buffer[0] == 'b') {
                 handle_breakpoint_command(input_buffer);
                 continue; // Don't execute instruction, stay in debug mode
+            } else if (input_buffer[0] == 's') {
+                handle_symbol_search_command(input_buffer);
+                continue; // Don't execute instruction, stay in debug mode
             } else {
-                printf("Unknown command. Available: enter, c, r, w, u, t, b\n");
+                printf("Unknown command. Available: enter, c, r, w, u, t, b, s\n");
                 continue; // Don't execute instruction, stay in debug mode
             }
         }
