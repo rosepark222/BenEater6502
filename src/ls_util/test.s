@@ -324,7 +324,7 @@ print_loop:
     ADC #DE_NAME
     TAY
     
-; summer_break:
+ summer_break:
 
 print_name:
     LDA (DIR_PTR_LO),Y          ; name string , null ending

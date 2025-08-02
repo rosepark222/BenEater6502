@@ -29,6 +29,9 @@ volatile sig_atomic_t quit_flag = 0;
 // Stack for subroutine calls (simplified - assumes standard 6502 stack)
 #define STACK_BASE 0xfd
 
+#define JSR 0x20
+#define RTS 0x60
+
 
 // --- Emulated 6502 Memory (64KB) ---
 // This array represents the 6502's 64KB address space.
@@ -43,7 +46,7 @@ SDL_Surface *screen = NULL;
 char *hex_file_path = NULL;
 char *list_file_path = NULL;
 char *break_symbol_name = NULL;
-unsigned int break_address = 0;
+//unsigned int break_address = 0;
 
 // --- Data Structure for the symbol_list (Linked List) ---
 typedef struct SymbolEntry {
@@ -68,6 +71,15 @@ typedef struct {
     char *label;
 } Breakpoint;
 
+#define MAX_CALL_STACK 50
+typedef struct {
+    unsigned int address;
+    char *label;
+} Subroutine;
+
+static Subroutine call_stack[MAX_CALL_STACK];
+static int call_stack_depth = 0;
+
 static Breakpoint breakpoints[MAX_BREAKPOINTS];
 static int breakpoint_count = 0;
 
@@ -79,21 +91,6 @@ static int lcd_current_col = 0; // LCD has 16 columns (0-15)
 
 
 
-
-
-
-
-// --- Memory Access Functions for fake6502 ---
-// These are the functions fake6502 calls to read from and write to memory.
-// We implement them to access our global RAM array.
-uint8_t read6502(uint16_t address) {
-    return RAM[address];
-}
-
-void write6502(uint16_t address, uint8_t value) {
-
-    // In a true hardware system, memory-mapped devices (LCD, sound, etc.) “see” all writes to specific addresses, regardless of what instruction triggers those writes (STA, STX, etc). They don’t care about “what’s in RAM[pc] right now.”
-    // By only checking for STA $6000 (opcode==0x8D, op1==0x00, op2==0x60), you miss all other ways the code could write to 0x6000, such as STX, STY, indirect addressing, and even self-modifying code or DMA.
 
     /*   opcode = RAM[pc];
         op1 = RAM[(pc + 1) % 65536];
@@ -151,6 +148,18 @@ The command's output is displayed as intended, without being corrupted by your t
     */  
 
 
+// --- Memory Access Functions for fake6502 ---
+// These are the functions fake6502 calls to read from and write to memory.
+// We implement them to access our global RAM array.
+uint8_t read6502(uint16_t address) {
+    return RAM[address];
+}
+
+void write6502(uint16_t address, uint8_t value) {
+
+    // In a true hardware system, memory-mapped devices (LCD, sound, etc.) “see” all writes to specific addresses, regardless of what instruction triggers those writes (STA, STX, etc). They don’t care about “what’s in RAM[pc] right now.”
+    // By only checking for STA $6000 (opcode==0x8D, op1==0x00, op2==0x60), you miss all other ways the code could write to 0x6000, such as STX, STY, indirect addressing, and even self-modifying code or DMA.
+ 
     /*
     BenEater computer uses 0x6000 as PORTB and 0x6001 as PORTA
     PORTB for data and PORTA for control - RS, RW and E bits 
@@ -313,15 +322,14 @@ end_loading:; // Label for goto
 
 // Global file pointer for logging
 FILE *log_file = NULL;
-
- 
+  
 /**
  * @brief Disassembles and prints the 6502 instruction at the given PC to a stream.
  * @param stream The file stream to print to (e.g., stdout or log_file).
  * @param current_pc The current Program Counter of the 6502.
  * @param ram Pointer to the emulated RAM.
  */
-int disassemble_current_instruction(FILE *stream, uint16_t current_pc, const uint8_t *ram, bool kill_on_FF) {
+uint8_t disassemble_current_instruction(FILE *stream, uint16_t current_pc, const uint8_t *ram, bool kill_on_FF) {
     uint8_t opcode = ram[current_pc];
     uint8_t op1 = ram[(current_pc + 1) % 65536]; // % 65536 to handle wrap-around for peek
     uint8_t op2 = ram[(current_pc + 2) % 65536]; // % 65536 to handle wrap-around for peek
@@ -497,13 +505,15 @@ int disassemble_current_instruction(FILE *stream, uint16_t current_pc, const uin
     }
     fprintf(stream, "\n");
 
-    if(opcode == magic_opcde && kill_on_FF) {
-        fprintf(stream, "INFO: magic opcode 0xFF detected, terminate the simulation\n");
-        fprintf(stream, "INFO: this means the code jumps to pc where opcode is 0x00 BRK and executes \n");
+    return opcode;
 
-        return 1;
-    }
-    return 0;
+    // if(opcode == magic_opcde && kill_on_FF) {
+    //     fprintf(stream, "INFO: magic opcode 0xFF detected, terminate the simulation\n");
+    //     fprintf(stream, "INFO: this means the code jumps to pc where opcode is 0x00 BRK and executes \n");
+
+    //     return 1;
+    // }
+    // return 0;
 }
 
 void dump_memory_range(FILE *stream, uint16_t start_addr, uint16_t end_addr) {
@@ -715,11 +725,12 @@ void handle_breakpoint_command(const char *input) {
     const char *ptr = input + 1;
     while (*ptr == ' ' || *ptr == '\t') ptr++;
     
-    if (strlen(ptr) == 0) {
-        printf("Usage: b <address|label>\n");
+    if (*ptr == NULL) {
+        // printf("No breakpoint address specified. Currently active breakpoints:\n");
+        print_breakpoints();
         return;
     }
-    
+
     // Check if it's a hex address (starts with 0x or all hex digits)
     if (sscanf(ptr, "%x", &address) == 1 || sscanf(ptr, "0x%x", &address) == 1) {
         add_breakpoint(address, NULL);
@@ -749,43 +760,72 @@ void print_breakpoints() {
             printf("  %04X\n", breakpoints[i].address);
         }
     }
+    printf("\n");
 }
 
 
- 
+// Function to push subroutine call onto debug stack
+void push_subroutine_call(unsigned int jsr_address) {
+    if (call_stack_depth >= MAX_CALL_STACK) {
+        printf("Warning: Call stack overflow!\n");
+        return;
+    }
+    
+    // Find the symbol for this JSR target address
+    SymbolEntry *symbol = find_closest_symbol(jsr_address);
+    
+    call_stack[call_stack_depth].address = jsr_address;
+    if (symbol && symbol->address == jsr_address) {
+        // Exact match - use the symbol name
+        call_stack[call_stack_depth].label = malloc(strlen(symbol->symbol_name) + 1);
+        strcpy(call_stack[call_stack_depth].label, symbol->symbol_name);
+    } else if (symbol) {
+        // Close match - show symbol + offset
+        char temp_label[256];
+        snprintf(temp_label, sizeof(temp_label), "%s+%d", 
+                symbol->symbol_name, jsr_address - symbol->address);
+        call_stack[call_stack_depth].label = malloc(strlen(temp_label) + 1);
+        strcpy(call_stack[call_stack_depth].label, temp_label);
+    } else {
+        call_stack[call_stack_depth].label = NULL;
+    }
+    
+    call_stack_depth++;
+}
+
+// Function to pop subroutine call from debug stack
+void pop_subroutine_call() {
+    if (call_stack_depth <= 0) {
+        printf("Warning: RTS without matching JSR!\n");
+        return;
+    }
+    
+    call_stack_depth--;
+    if (call_stack[call_stack_depth].label) {
+        free(call_stack[call_stack_depth].label);
+        call_stack[call_stack_depth].label = NULL;
+    }
+}
+
 // Function to print call stack trace
 void print_call_stack() {
-    printf("Call stack trace:\n");
+    printf("Call stack trace (%d levels):\n", call_stack_depth);
     
-    // Walk the stack from current SP to 0xFF
-    unsigned char current_sp = sp;
-    int level = 0;
-    
-    while (current_sp < 0xFF) {
-        // Return addresses are stored as address-1 on stack (JSR behavior)
-        unsigned int return_addr = RAM[STACK_BASE + current_sp + 1] | 
-                                  (RAM[STACK_BASE + current_sp + 2] << 8);
-        return_addr++; // Adjust for JSR behavior
-        
-        SymbolEntry *symbol = find_closest_symbol(return_addr);
-        if (symbol) {
-            printf("  #%d: %04X (%s+%d)\n", level, return_addr, 
-                   symbol->symbol_name, return_addr - symbol->address);
-        } else {
-            printf("  #%d: %04X\n", level, return_addr);
-        }
-        
-        current_sp += 2; // Each return address takes 2 bytes
-        level++;
-        
-        // Safety check to prevent infinite loop
-        if (level > 20) break;
+    if (call_stack_depth == 0) {
+        printf("  No subroutine calls active\n");
+        return;
     }
     
-    if (level == 0) {
-        printf("  No subroutine calls on stack\n");
+    // Print from bottom to top (oldest to newest calls)
+    for (int i = 0; i < call_stack_depth; i++) {
+        if (call_stack[i].label) {
+            printf("  #%d: %04X (%s)\n", i, call_stack[i].address, call_stack[i].label);
+        } else {
+            printf("  #%d: %04X\n", i, call_stack[i].address);
+        }
     }
 }
+ 
 
 // Function to handle "up" command - set breakpoint at return address
 void handle_up_command() {
@@ -795,12 +835,13 @@ void handle_up_command() {
     }
     
     // Get return address from stack
-    unsigned int return_addr = RAM[STACK_BASE + sp + 1] | 
-                              (RAM[STACK_BASE + sp + 2] << 8);
-    return_addr++; // Adjust for JSR behavior
+    unsigned int return_addr = call_stack[call_stack_depth-1].address + 3;
+    // RAM[STACK_BASE + sp + 1] | 
+    // (RAM[STACK_BASE + sp + 2] << 8);
+    //return_addr++; // Adjust for JSR behavior
     
     // Set temporary breakpoint at return address
-    add_breakpoint(return_addr, "temp_return");
+    add_breakpoint(return_addr, "up command breakpoint");
     printf("Will break at return address %04X\n", return_addr);
 }
 
@@ -815,7 +856,7 @@ void cleanup_breakpoints() {
 }
 
 
-void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds) {
+int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds) {
     uint8_t opcode, op1, op2;
     long int loop_cnt = 0;
     unsigned int last_irq = 0, total_cycles = 0;
@@ -829,22 +870,24 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
     int step_enabled = 0;
     char gdb = NULL;
     char input_buffer[60];
+    uint8_t opcode_decoded;
 
     while (time(NULL) - start_time < duration_seconds && !break_loop && !quit_flag) {
         
         // Check for breakpoints (including original and new ones)
-        if (pc == break_address || is_breakpoint(pc)) {
+        //if (pc == break_address || is_breakpoint(pc)) {
+        if (is_breakpoint(pc)) {
             step_enabled = 1;
         }
         
         if (step_enabled) {
             duration_seconds = INT_MAX;
-            printf("DEBUG [%04X]: ", pc);
+            //printf("DEBUG [%04X]: ", pc);
             
             // Display current instruction
             disassemble_current_instruction(stdout, pc, RAM, false);
             
-            printf("Commands: (enter)=step, c=continue, r=read, w=write, u=up, t=trace, b=breakpoint, pb=print breakpoints\n> ");
+            printf("DEBUG: (enter)=step, c=continue, r=read, w=write, u=up, t=trace, b=breakpoint (b or b <addr>)\n> ");
             
             if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
                 break;
@@ -853,7 +896,7 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
             // Remove newline
             input_buffer[strcspn(input_buffer, "\n")] = 0;
             
-            // Handle commands
+            // https://claude.ai/public/artifacts/5b13b41f-26f7-4864-948a-6ae15031a7c6
             if (strlen(input_buffer) == 0) {
                 // Enter pressed - step one instruction
                 // Continue to execute one instruction
@@ -872,14 +915,11 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
             } else if (input_buffer[0] == 't') {
                 print_call_stack();
                 continue; // Don't execute instruction, stay in debug mode
-            } else if (input_buffer[0] == 'b' && input_buffer[1] != 'p') {
+            } else if (input_buffer[0] == 'b') {
                 handle_breakpoint_command(input_buffer);
                 continue; // Don't execute instruction, stay in debug mode
-            } else if (strncmp(input_buffer, "pb", 2) == 0) {
-                print_breakpoints();
-                continue; // Don't execute instruction, stay in debug mode
             } else {
-                printf("Unknown command. Available: enter, c, r, w, u, t, b, pb\n");
+                printf("Unknown command. Available: enter, c, r, w, u, t, b\n");
                 continue; // Don't execute instruction, stay in debug mode
             }
         }
@@ -897,9 +937,18 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
         }
 
         if (step_enabled) disassemble_current_instruction(stdout, pc, RAM, false);
-        break_loop = disassemble_current_instruction(log_file, pc, RAM, false);
+        opcode_decoded = disassemble_current_instruction(log_file, pc, RAM, false);
+        if(opcode_decoded == magic_opcde) {
+            fprintf(log_file, "INFO: magic opcode 0xFF detected, terminate the simulation\n");
+            fprintf(log_file, "INFO: this means the code jumps to pc where opcode is 0x00 BRK and executes \n");
 
-
+            break; // break the while loop
+        } else if(opcode_decoded == JSR) {
+            unsigned int target_address = pc; // RAM[(pc + 1) & 0xFFFF] | (RAM[(pc + 2) & 0xFFFF] << 8);
+            push_subroutine_call(target_address);
+        } else if(opcode_decoded == RTS) {
+            pop_subroutine_call();
+        }
 
 
         exec6502(1);
@@ -925,6 +974,7 @@ void run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, i
     fprintf(log_file, "Total Cycles: %u | IRQs: %d | $02 = %02X\n", total_cycles, irq_count, RAM[0x02]);
     fclose(log_file);
 
+    return 0;
 
 }
 
@@ -1110,6 +1160,7 @@ int main(int argc, char *argv[]) {
             case 'b': // Corresponds to --break_symbol
                 break_symbol_name = optarg;
                 printf("Break symbol specified: %s\n", break_symbol_name);
+                //add_breakpoint(return_addr, "up command breakpoint");
                 break;
             case '?': // getopt_long returns '?' for an unknown option
                 fprintf(stderr, "Unknown option or missing argument.\n");
@@ -1142,15 +1193,12 @@ int main(int argc, char *argv[]) {
 
 
     // Create the symbol_list from the list file
-            printf("Symbol %s  1.\n", break_symbol_name); 
     symbol_list = create_symbol_dictionary(list_file_path);
 
     if (!symbol_list) {
         return EXIT_FAILURE;
     }
-        printf("Symbol %s  2.\n", break_symbol_name); 
-    // --- Example of searching for a symbol ---
-    printf("\n--- Searching for %s ---\n", break_symbol_name);
+     // --- Example of searching for a symbol ---
     SymbolEntry *current = symbol_list;
     while (current) {
         printf("Symbol: %-25s Address: 0x%04X\n", current->symbol_name, current->address);
@@ -1163,7 +1211,8 @@ int main(int argc, char *argv[]) {
         if (strcmp(current->symbol_name, break_symbol_name) == 0) {
             printf("Found %s at address 0x%04X\n", break_symbol_name, current->address);
             found = 1;
-            break_address = current->address;
+            //break_address = current->address;
+            add_breakpoint(current->address, break_symbol_name);
             break;
         }
         current = current->next;
