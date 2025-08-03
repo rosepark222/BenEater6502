@@ -91,6 +91,22 @@ static int lcd_current_col = 0; // LCD has 16 columns (0-15)
 
 
 
+// Global file pointer for logging
+FILE *log_file = NULL;
+ 
+
+
+#define MAX_MONITOR_ADDRESSES 50
+
+typedef struct {
+    unsigned int address;
+    int size;
+} MonitorAddr;
+
+static MonitorAddr monitor_addresses[MAX_MONITOR_ADDRESSES];
+static int monitor_count = 0;
+
+
 
     /*   opcode = RAM[pc];
         op1 = RAM[(pc + 1) % 65536];
@@ -201,17 +217,72 @@ void write6502(uint16_t address, uint8_t value) {
     RAM[address] = value;
 }
 
-// --- Helper to print CPU state to a specified stream ---
+// Function to print all monitored addresses
+void print_monitor_addresses() {
+    if (monitor_count == 0) {
+        printf("No addresses being monitored\n");
+        return;
+    }
+    
+    printf("Monitored addresses:\n");
+    for (int i = 0; i < monitor_count; i++) {
+        printf("  %04X (%d bytes)\n", monitor_addresses[i].address, monitor_addresses[i].size);
+    }
+}
+
+// Updated print_cpu_state_to_stream function
 void print_cpu_state_to_stream(FILE *stream) {
-    // Note: status register bits are: N V - B D I Z C
-    fprintf(stream, "CPU State: PC:%04X A:%02X X:%02X Y:%02X SP:%02X Status:%02X (NV-B DIZC)\n",
-           pc, a, x, y, sp, status);
-    fprintf(stream, "RAM State: $0000:%02X $0001:%02X $0002:%02X $0003:%02X\n", RAM[0x0000], RAM[0x0001], RAM[0x0002], RAM[0x0003]);
-    fprintf(stream, "RAM State: $6000:%02X $6001:%02X $0230:%02X $0231:%02X\n", RAM[0x6000], RAM[0x6001], RAM[0x0230], RAM[0x0231]);
-    // fprintf(stream, "RAM State: $0006:%02X $0007:%02X $0008:%02X $0009:%02X\n", RAM[0x0006], RAM[0x0007], RAM[0x0008], RAM[0x0009]);
-    // fprintf(stream, "RAM State: $0200:%02X $0201:%02X $0202:%02X $0203:%02X\n", RAM[0x0200], RAM[0x0201], RAM[0x0202], RAM[0x0203]);
-    fprintf(stream, "RAM State: $0300:%02X $0301:%02X $0302:%02X $0303:%02X\n", RAM[0x0300], RAM[0x0301], RAM[0x0302], RAM[0x0303]);
-    // fprintf(stream, "RAM State: $C000:%02X $C001:%02X $C002:%02X $C003:%02X\n", RAM[0xC000], RAM[0xC001], RAM[0xC002], RAM[0xC003]);
+    // Print CPU registers
+    fprintf(stream, "CPU State: PC:%04X A:%02X X:%02X Y:%02X SP:%02X Status:%02X (NV-B DIZC)\n", 
+            pc, a, x, y, sp, status);
+    
+    // Print monitored memory addresses
+    for (int i = 0; i < monitor_count; i++) {
+        unsigned int start_addr = monitor_addresses[i].address;
+        int size = monitor_addresses[i].size;
+        
+        // Print memory in 16-byte rows
+        int bytes_printed = 0;
+        while (bytes_printed < size) {
+            unsigned int current_addr = start_addr + bytes_printed;
+            int bytes_in_row = (size - bytes_printed > 16) ? 16 : (size - bytes_printed);
+            
+            fprintf(stream, "RAM State $%04X: ", current_addr);
+            
+            for (int j = 0; j < bytes_in_row; j++) {
+                fprintf(stream, "%02X ", RAM[(current_addr + j) & 0xFFFF]);
+            }
+            
+            // Add padding if less than 16 bytes in this row
+            for (int j = bytes_in_row; j < 16; j++) {
+                fprintf(stream, "   ");
+            }
+            
+            // Print ASCII representation
+            fprintf(stream, " |");
+            for (int j = 0; j < bytes_in_row; j++) {
+                unsigned char byte = RAM[(current_addr + j) & 0xFFFF];
+                if (byte >= 32 && byte <= 126) {
+                    fprintf(stream, "%c", byte);
+                } else {
+                    fprintf(stream, ".");
+                }
+            }
+            fprintf(stream, "|\n");
+            
+            bytes_printed += bytes_in_row;
+        }
+    }
+    
+    // If no monitors set, show default memory locations for backward compatibility
+    if (monitor_count == 0) {
+        fprintf(stream, "RAM State: $0000:%02X $0001:%02X $0002:%02X $0003:%02X\n", 
+                RAM[0x0000], RAM[0x0001], RAM[0x0002], RAM[0x0003]);
+        fprintf(stream, "RAM State: $6000:%02X $6001:%02X $0230:%02X $0231:%02X\n", 
+                RAM[0x6000], RAM[0x6001], RAM[0x0230], RAM[0x0231]);
+        fprintf(stream, "RAM State: $0300:%02X $0301:%02X $0302:%02X $0303:%02X\n", 
+                RAM[0x0300], RAM[0x0301], RAM[0x0302], RAM[0x0303]);
+    }
 }
 
 /**
@@ -320,8 +391,6 @@ end_loading:; // Label for goto
     return bytes_loaded;
 }
 
-// Global file pointer for logging
-FILE *log_file = NULL;
   
 /**
  * @brief Disassembles and prints the 6502 instruction at the given PC to a stream.
@@ -722,6 +791,24 @@ void handle_write_command(const char *input) {
     printf("Wrote %02X to address %04X\n", value, address);
 }
 
+// Function to print all breakpoints
+void print_breakpoints() {
+    if (breakpoint_count == 0) {
+        printf("No breakpoints set\n");
+        return;
+    }
+    
+    printf("Breakpoints:\n");
+    for (int i = 0; i < breakpoint_count; i++) {
+        if (breakpoints[i].label) {
+            printf("  %04X (%s)\n", breakpoints[i].address, breakpoints[i].label);
+        } else {
+            printf("  %04X\n", breakpoints[i].address);
+        }
+    }
+    printf("\n");
+}
+
 // Function to handle breakpoint command
 void handle_breakpoint_command(const char *input) {
     char label_or_addr[256];
@@ -731,7 +818,7 @@ void handle_breakpoint_command(const char *input) {
     const char *ptr = input + 1;
     while (*ptr == ' ' || *ptr == '\t') ptr++;
     
-    if (*ptr == NULL) {
+    if (*ptr == '\0') {
         // printf("No breakpoint address specified. Currently active breakpoints:\n");
         print_breakpoints();
         return;
@@ -751,38 +838,25 @@ void handle_breakpoint_command(const char *input) {
     }
 }
 
-// Function to print all breakpoints
-void print_breakpoints() {
-    if (breakpoint_count == 0) {
-        printf("No breakpoints set\n");
-        return;
-    }
-    
-    printf("Breakpoints:\n");
-    for (int i = 0; i < breakpoint_count; i++) {
-        if (breakpoints[i].label) {
-            printf("  %04X (%s)\n", breakpoints[i].address, breakpoints[i].label);
-        } else {
-            printf("  %04X\n", breakpoints[i].address);
-        }
-    }
-    printf("\n");
-}
+
 
 void print_gdb_help() {
-    printf("h       :  print help\n");
-    printf("<enter> :  run next instruction\n");
-    printf("c       :  continue to the next breakpoint\n");
-    printf("r       :  load memory.  r addr 32 for printing 32 byte from addr\n");
-    printf("w       :  modify memory byte -- w addr value \n");
-    printf("t       :  print call stack\n");
-    printf("u       :  add a breakpoint at subroutine calls the current subroutine\n");
-    printf("b       :  print all breakpoints\n");
-    printf("b addr  :  add breakpoint at addr or remove it if it exists in the database already\n");
-    printf("b label :  add breakpoint at address correspoinding to the label\n");
+    printf("Debug Command Examples\n");
+    printf("h           :  print help\n");
+    printf("<enter>     :  run next instruction\n");
+    printf("c           :  continue to the next breakpoint\n");
+    printf("r           :  read memory.  r addr 32 for printing 32 byte from addr\n");
+    printf("w addr val  :  write memory byte -- w addr value \n");
+    printf("t           :  print call stack\n");
+    printf("u           :  add a breakpoint at subroutine calls the current subroutine\n");
+    printf("b           :  print all breakpoints\n");
+    printf("b addr      :  add breakpoint at addr; it also remove it if the breakpoint exists in the database already\n");
+    printf("b label     :  add breakpoint at address correspoinding to the label\n");
     
-    printf("s *lcd* :  print all labels matching the pattern\n");
-
+    printf("s *lcd*     :  print all labels matching the pattern\n");
+    printf("m           :  print current monitoring address\n");
+    printf("m addr      :  monitor address (4 byte default); it also remove it from monitor if exits \n");
+    printf("m addr n    :  monitor address n byte\n");
 }
 
 // Function to push subroutine call onto debug stack
@@ -845,6 +919,16 @@ void print_call_stack() {
             printf("  #%d: %04X\n", i, call_stack[i].address);
         }
     }
+    printf("\n");
+    printf("CPU status:\n");
+    SymbolEntry *closest = find_closest_symbol(pc);
+    if (closest) {
+        printf("pc at %04X under %s\n", pc, closest->symbol_name);
+    }  
+
+    disassemble_current_instruction(stdout, pc, RAM, false);
+    print_cpu_state_to_stream(stdout);
+    //print_monitor_addresses();
 }
  
 
@@ -878,6 +962,90 @@ void cleanup_breakpoints() {
 
 // Simple wildcard pattern matching function
 // Supports * (match any sequence) and ? (match single character)
+
+/* 
+
+I asked perplexity as:
+Explain using s*ts pattern and ststs text.
+
+--------------------------------------------------------------------------------
+Here's how the pattern s*ts matches the text ststs using the wildcard matching logic from your code:
+
+Text:    ststs
+Pattern: s*ts
+
+'s': matches literal 's'
+'*': matches zero or more characters
+'t': matches literal 't'
+'s': matches literal 's'
+
+--------------------------------------------------------------------------------
+my understanding on the backtracking after reading the answer from preplexity:
+
+    s match (t=p=0)
+    * found, remember t to return if needed (start_pattern = 2)
+    t match (t=1, p=2)
+    s match (t=2, p=3)
+    pattern done but text remains
+    return to t (backtracking) (p=2) in pattern because there may be *ts
+    t match (t=3, p=2)
+    s match  (t=4, p=3)
+    text end and pattern end --> match found
+
+--------------------------------------------------------------------------------
+the below is how perplexity explains:
+
+Step-by-step matching process:
+
+1, Match the first 's'
+Pattern 's' matches Text 's' (first character)
+Advance pointers: Pattern now at '*', Text at 't'
+
+2, Encounter '*' in pattern
+Record star_pattern pointing to 't' (after '*')
+Record star_text at current text 't'
+Advance pattern beyond '*': Pattern at 't'
+Do not advance text yet (still at 't')
+
+3, Try to match 't' in pattern with 't' in text
+Match! Advance both: Pattern at 's', Text at 's' (third character)
+
+4, Try to match 's' in pattern with 's' in text
+Match! Advance both: Pattern at end ('\0'), Text at 't' (fourth character)
+
+5, Pattern finished? No, text remains ('t' and 's')
+Since pattern pointer is at end, but text is not, backtrack to last '*' and try to expand it to consume more text.
+
+6, Backtrack and consume one more character with '*'
+Pattern reset to 't' (after '*')
+Text advances to 's' (fourth character)
+
+7, Try to match 't' to 's'
+No match, backtrack again: text advances to next char 't' (fifth character)
+
+8, Try to match 't' to 't'
+Match! Advance both: Pattern at 's', Text at 's' (last character)
+
+9, Try to match 's' to 's'
+Match! Advance both: Pattern and text both at end
+
+10, Pattern and Text fully matched → successful match!
+
+What did '*' match?
+'*' matched the substring "ts" (characters 2 and 3 in the text "ststs").
+
+
+Matching split looks like:
+'s' matched the first 's'
+'*' matched "ts"
+'t' matched the second 't' (fifth character)
+'s' matched the last 's'
+
+Why backtracking?
+Initially, the '*' tried to match zero characters (empty), but that led to a mismatch later (text was longer than pattern).
+Backtracking let '*' expand its match to "t" and then "ts" until the entire pattern matched the text. 
+*/
+
 int match_pattern(const char *pattern, const char *text) {
     const char *p = pattern;
     const char *t = text;
@@ -960,134 +1128,6 @@ void handle_symbol_search_command(const char *input) {
     search_symbols(ptr);
 }
 
-int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds) {
-    uint8_t opcode, op1, op2;
-    long int loop_cnt = 0;
-    unsigned int last_irq = 0, total_cycles = 0;
-    int irq_count = 0;
-    int row = 1, col = 0;
-    int break_loop = 0;
-    SDL_Event event;
-
-    time_t start_time = time(NULL);
-
-    int step_enabled = 0;
-    char gdb = NULL;
-    char input_buffer[60];
-    uint8_t opcode_decoded;
-
-    while (time(NULL) - start_time < duration_seconds && !break_loop && !quit_flag) {
-        
-        // Check for breakpoints (including original and new ones)
-        //if (pc == break_address || is_breakpoint(pc)) {
-        if (is_breakpoint(pc)) {
-            step_enabled = 1;
-        }
-        
-        if (step_enabled) {
-            duration_seconds = INT_MAX;
-            //printf("DEBUG [%04X]: ", pc);
-            
-            // Display current instruction
-            disassemble_current_instruction(stdout, pc, RAM, false);
-            
-            printf("DEBUG> ");
-            
-            if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
-                break;
-            }
-            
-            // Remove newline
-            input_buffer[strcspn(input_buffer, "\n")] = 0;
-            
-            // https://claude.ai/public/artifacts/5b13b41f-26f7-4864-948a-6ae15031a7c6
-            if (strlen(input_buffer) == 0) {
-                // Enter pressed - step one instruction
-                // Continue to execute one instruction
-            } else if (input_buffer[0] == 'h') {
-                print_gdb_help();
-                continue;
-            } else if (input_buffer[0] == 'c') {
-                step_enabled = 0;
-                printf("Continuing execution...\n");
-            } else if (input_buffer[0] == 'r') {
-                handle_read_command(input_buffer);
-                continue; // Don't execute instruction, stay in debug mode
-            } else if (input_buffer[0] == 'w') {
-                handle_write_command(input_buffer);
-                continue; // Don't execute instruction, stay in debug mode
-            } else if (input_buffer[0] == 'u') {
-                handle_up_command();
-                step_enabled = 0; // Continue until return
-            } else if (input_buffer[0] == 't') {
-                print_call_stack();
-                continue; // Don't execute instruction, stay in debug mode
-            } else if (input_buffer[0] == 'b') {
-                handle_breakpoint_command(input_buffer);
-                continue; // Don't execute instruction, stay in debug mode
-            } else if (input_buffer[0] == 's') {
-                handle_symbol_search_command(input_buffer);
-                continue; // Don't execute instruction, stay in debug mode
-            } else {
-                printf("Unknown command. Available: enter, c, r, w, u, t, b, s\n");
-                continue; // Don't execute instruction, stay in debug mode
-            }
-        }
-        
-        // SDL_PollEvent removes one event: Each call to SDL_PollEvent(&event) does two things:
-        // It checks if there's an event at the front of the queue.
-        // If there is, it copies that event's data into the event structure you provide AND removes that event from the queue.
-        // It returns 1 if an event was processed and 0 if the queue was empty.
-
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) { break_loop = 1; break; }
-            else if (event.type == SDL_KEYDOWN) {
-                handle_keyboard_event(&event, lcd, window, loop_cnt);
-            }
-        }
-
-        if (step_enabled) disassemble_current_instruction(stdout, pc, RAM, false);
-        opcode_decoded = disassemble_current_instruction(log_file, pc, RAM, false);
-        if(opcode_decoded == magic_opcde) {
-            fprintf(log_file, "INFO: magic opcode 0xFF detected, terminate the simulation\n");
-            fprintf(log_file, "INFO: this means the code jumps to pc where opcode is 0x00 BRK and executes \n");
-
-            break; // break the while loop
-        } else if(opcode_decoded == JSR) {
-            unsigned int target_address = pc; // RAM[(pc + 1) & 0xFFFF] | (RAM[(pc + 2) & 0xFFFF] << 8);
-            push_subroutine_call(target_address);
-        } else if(opcode_decoded == RTS) {
-            pop_subroutine_call();
-        }
-
-
-        exec6502(1);
-        total_cycles += clockticks6502;
-
-        if (step_enabled) print_cpu_state_to_stream(stdout);
-        print_cpu_state_to_stream(log_file);
-
-        if (total_cycles - last_irq >= irq_interval) {
-            fprintf(stdout, "Triggering IRQ at %u cycles\n", total_cycles);
-            irq6502();
-            last_irq = total_cycles;
-            irq_count++;
-        }
-
-        usleep(10);
-        loop_cnt++;
-    }
-
-    fprintf(log_file, "--- Simulation Finished ---\n");
-    dump_memory_range(log_file, 0xBB00, 0xCFFF);
-    print_cpu_state_to_stream(stdout);
-    fprintf(log_file, "Total Cycles: %u | IRQs: %d | $02 = %02X\n", total_cycles, irq_count, RAM[0x02]);
-    fclose(log_file);
-
-    return 0;
-
-}
-
 void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window, long int loop_cnt) {
     char input = 0;
     SDL_Keycode key = event->key.keysym.sym;
@@ -1098,37 +1138,14 @@ void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window, lo
 
     if (!input) return;
 
-    printf("key pressed: %04X  at loop_cnt %04d\n", input, loop_cnt);
+    printf("key pressed: %04X  at loop_cnt %04ld\n", input, loop_cnt);
 
     write6502(KEY_INPUT, input); // put it to keyboard buffer
-
-    // if (input == '\b') {
-    //     if (lcd_current_col > 0) {
-    //         lcd_current_col--;
-    //         LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-    //         LCD_PutChar(lcd, ' ');
-
-    //     }
-    // } else if (input == '\r') {
-    //     lcd_current_col = 0;
-    //     lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS;
-    //     LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-    //     LCD_ClearLine(lcd, lcd_current_row);
-    // } else {
-    //     LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-    //     LCD_PutChar(lcd, input);
-    //     lcd_current_col++;
-    //     if (lcd_current_col >= MAX_LCD_COLUMNS) {
-    //         lcd_current_col = 0;
-    //         lcd_current_row = (lcd_current_row + 1) % MAX_LCD_ROWS;
-    //         LCD_SetCursor(lcd, lcd_current_row, lcd_current_col);
-    //         LCD_ClearLine(lcd, lcd_current_row);
-    //     }
-    // }
 
     LCDSim_Draw(lcd);
     SDL_UpdateWindowSurface(window);
 }
+
 
 void handle_sigint(int sig) {
     (void)sig; // unused
@@ -1235,8 +1252,220 @@ void free_dictionary(SymbolEntry* head) {
 
 
 
+// Function to find monitor address index (-1 if not found)
+int find_monitor_address(unsigned int address) {
+    for (int i = 0; i < monitor_count; i++) {
+        if (monitor_addresses[i].address == address) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Function to add monitor address
+void add_monitor_address(unsigned int address, int size) {
+    if (monitor_count >= MAX_MONITOR_ADDRESSES) {
+        printf("Maximum monitor addresses reached (%d)!\n", MAX_MONITOR_ADDRESSES);
+        return;
+    }
+    
+    monitor_addresses[monitor_count].address = address;
+    monitor_addresses[monitor_count].size = size;
+    monitor_count++;
+    
+    printf("Added monitor: %04X (%d bytes)\n", address, size);
+}
+
+// Function to remove monitor address
+void remove_monitor_address(unsigned int address) {
+    int index = find_monitor_address(address);
+    if (index == -1) {
+        printf("Address %04X not found in monitor list\n", address);
+        return;
+    }
+    
+    // Shift remaining addresses down
+    for (int i = index; i < monitor_count - 1; i++) {
+        monitor_addresses[i] = monitor_addresses[i + 1];
+    }
+    monitor_count--;
+    
+    printf("Removed monitor: %04X\n", address);
+}
 
 
+
+// Function to handle memory monitor command
+void handle_memory_monitor_command(const char *input) {
+    unsigned int address;
+    int size = 4; // default size
+    
+    // Skip 'm' and whitespace
+    const char *ptr = input + 1;
+    while (*ptr == ' ' || *ptr == '\t') ptr++;
+    
+    if (strlen(ptr) == 0) {
+        // Just 'm' - print all monitored addresses
+        print_monitor_addresses();
+        return;
+    }
+    
+    // Parse input: "m 0200" or "m 0200 16"
+    int parsed = sscanf(ptr, "%x %d", &address, &size);
+    if (parsed < 1) {
+        printf("Usage: m [address] [size]\n");
+        printf("Examples:\n");
+        printf("  m           - show all monitored addresses\n");
+        printf("  m 0200      - toggle monitoring of address 0200 (4 bytes default)\n");
+        printf("  m 0200 16   - toggle monitoring of address 0200 (16 bytes)\n");
+        return;
+    }
+    
+    // If only address specified, use default size
+    if (parsed == 1) {
+        size = 4;
+    }
+    
+    // Check if address is already being monitored
+    int existing_index = find_monitor_address(address);
+    if (existing_index != -1) {
+        // Address exists, remove it
+        remove_monitor_address(address);
+    } else {
+        // Address doesn't exist, add it
+        add_monitor_address(address, size);
+    }
+}
+
+int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds) {
+    uint8_t opcode, op1, op2;
+    long int loop_cnt = 0;
+    unsigned int last_irq = 0, total_cycles = 0;
+    int irq_count = 0;
+    int row = 1, col = 0;
+    int break_loop = 0;
+    SDL_Event event;
+
+    time_t start_time = time(NULL);
+
+    int step_enabled = 0;
+    char input_buffer[60];
+    uint8_t opcode_decoded;
+
+    while (time(NULL) - start_time < duration_seconds && !break_loop && !quit_flag) {
+        
+        // Check for breakpoints (including original and new ones)
+        //if (pc == break_address || is_breakpoint(pc)) {
+        if (is_breakpoint(pc)) {
+            step_enabled = 1;
+        }
+        
+        if (step_enabled) {
+            duration_seconds = INT_MAX;
+            //printf("DEBUG [%04X]: ", pc);
+            
+            // Display current instruction
+            //disassemble_current_instruction(stdout, pc, RAM, false);
+            
+            printf("\nDEBUG> ");
+            
+            if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
+                break;
+            }
+            
+            // Remove newline
+            input_buffer[strcspn(input_buffer, "\n")] = 0;
+            
+            // https://claude.ai/public/artifacts/6c8eb142-6502-40ab-b77a-705c9245dd59
+            if (strlen(input_buffer) == 0) {
+                // Enter pressed - step one instruction
+                // Continue to execute one instruction
+            } else if (input_buffer[0] == 'h') {
+                print_gdb_help();
+                continue;
+            } else if (input_buffer[0] == 'c') {
+                step_enabled = 0;
+                printf("Continuing execution...\n");
+            } else if (input_buffer[0] == 'r') {
+                handle_read_command(input_buffer);
+                continue; // Don't execute instruction, stay in debug mode
+            } else if (input_buffer[0] == 'w') {
+                handle_write_command(input_buffer);
+                continue; // Don't execute instruction, stay in debug mode
+            } else if (input_buffer[0] == 'u') {
+                handle_up_command();
+                step_enabled = 0; // Continue until return
+            } else if (input_buffer[0] == 't') {
+                print_call_stack();
+                continue; // Don't execute instruction, stay in debug mode
+            } else if (input_buffer[0] == 'b') {
+                handle_breakpoint_command(input_buffer);
+                continue; // Don't execute instruction, stay in debug mode
+            } else if (input_buffer[0] == 's') {
+                handle_symbol_search_command(input_buffer);
+                continue; // Don't execute instruction, stay in debug mode
+            } else if (input_buffer[0] == 'm') {
+                handle_memory_monitor_command(input_buffer);
+                continue; // Don't execute instruction, stay in debug mode
+            } else {
+                printf("Unknown command. Available: enter, c, r, w, u, t, b, s\n");
+                continue; // Don't execute instruction, stay in debug mode
+            }
+        }
+        
+        // SDL_PollEvent removes one event: Each call to SDL_PollEvent(&event) does two things:
+        // It checks if there's an event at the front of the queue.
+        // If there is, it copies that event's data into the event structure you provide AND removes that event from the queue.
+        // It returns 1 if an event was processed and 0 if the queue was empty.
+
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) { break_loop = 1; break; }
+            else if (event.type == SDL_KEYDOWN) {
+                handle_keyboard_event(&event, lcd, window, loop_cnt);
+            }
+        }
+
+        if (step_enabled) disassemble_current_instruction(stdout, pc, RAM, false);
+        opcode_decoded = disassemble_current_instruction(log_file, pc, RAM, false);
+        if(opcode_decoded == magic_opcde) {
+            fprintf(log_file, "INFO: magic opcode 0xFF detected, terminate the simulation\n");
+            fprintf(log_file, "INFO: this means the code jumps to pc where opcode is 0x00 BRK and executes \n");
+
+            break; // break the while loop
+        } else if(opcode_decoded == JSR) {
+            unsigned int target_address = pc; // RAM[(pc + 1) & 0xFFFF] | (RAM[(pc + 2) & 0xFFFF] << 8);
+            push_subroutine_call(target_address);
+        } else if(opcode_decoded == RTS) {
+            pop_subroutine_call();
+        }
+
+
+        exec6502(1);
+        total_cycles += clockticks6502;
+
+        if (step_enabled) print_cpu_state_to_stream(stdout);
+        print_cpu_state_to_stream(log_file);
+
+        if (total_cycles - last_irq >= irq_interval) {
+            fprintf(stdout, "Triggering IRQ at %u cycles\n", total_cycles);
+            irq6502();
+            last_irq = total_cycles;
+            irq_count++;
+        }
+
+        usleep(10);
+        loop_cnt++;
+    }
+
+    fprintf(log_file, "--- Simulation Finished ---\n");
+    dump_memory_range(log_file, 0xBB00, 0xCFFF);
+    print_cpu_state_to_stream(stdout);
+    fprintf(log_file, "Total Cycles: %u | IRQs: %d | $02 = %02X\n", total_cycles, irq_count, RAM[0x02]);
+    fclose(log_file);
+
+    return 0;
+
+}
 
 
 
@@ -1289,18 +1518,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Usage: %s --hex <hex_file> [--list <list_file>] [--break_symbol <symbol>]\n", argv[0]);
         return EXIT_FAILURE;
     }
-
-    // // --- Process remaining non-option arguments (if any) ---
-    // // In your case, all arguments are options, so optind should point to argc
-    // if (optind < argc) {
-    //     fprintf(stderr, "Warning: Non-option arguments detected after processing options:\n");
-    //     while (optind < argc) {
-    //         fprintf(stderr, "  '%s'\n", argv[optind++]);
-    //     }
-    //     // You might choose to return EXIT_FAILURE here if extra arguments are not allowed
-    //     // return EXIT_FAILURE;
-    // }
-
 
     // Create the symbol_list from the list file
     symbol_list = create_symbol_dictionary(list_file_path);
