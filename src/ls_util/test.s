@@ -81,9 +81,34 @@ start_ls:
     LDA #>PATH_INPUT
     STA PATH_PTR_HI             ; zero-page high byte of path pointer
 
+    ; CHANGE 1: Check if path is empty (ls with no arguments) ; pwd support
+    LDY #0
+    LDA (PATH_PTR_LO),Y
+    CMP #0
+    BEQ ls_current_dir          ; Empty path = list current directory ; pwd support
+
+    ; CHANGE 2: Check if path starts with '/' (absolute vs relative) ; pwd support
+    CMP #'/'
+    BEQ absolute_path
+    
+    ; Relative path - start from current working directory ; pwd support
+    LDA WORKING_DIR_INODE
+    STA CURRENT_INODE
+    JMP resolve_path
+
+absolute_path:
+    ; Absolute path - start from root ; pwd support
     LDA #0
     STA CURRENT_INODE           ; Start from root inode 0
+    JMP resolve_path
 
+ls_current_dir:
+    ; CHANGE 3: List current working directory ; pwd support
+    LDA WORKING_DIR_INODE
+    STA CURRENT_INODE
+    JMP done_resolving
+
+resolve_path: ; pwd support
 next_token:
     JSR next_path_token         ; Extract next path component into TOKEN_BUFFER
     BEQ done_resolving          ; If empty, done traversing
@@ -324,7 +349,6 @@ print_loop:
     ADC #DE_NAME
     TAY
     
- summer_break:
 
 print_name:
     LDA (DIR_PTR_LO),Y          ; name string , null ending

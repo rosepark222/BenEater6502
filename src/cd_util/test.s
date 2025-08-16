@@ -1,0 +1,131 @@
+; ---------------------------------------------
+; 6502 RAM File System CD Utility (Minimal Version)
+; Author: Based on ls_util design
+; Assumes ls_util is included before this code
+; All common functions and variables are defined in ls_util
+; ---------------------------------------------
+
+; ---------------------------------------------
+; CD Utility Entry Point
+; ---------------------------------------------
+simulate_cd:
+    JSR prepare_path
+    LDA #$FF
+    PHA
+    PHA
+    PHA
+    BRK                         ; Exit simulation
+    RTS
+
+; bug_report -- cd .. and cd . has not been fully debugged
+; at rom/bin cd .. bring pwd to rom
+; at rom cd .. say not found but bring pwd to rom/bin  -- very funny
+
+; ; --- Prepare Path String (reused from ls_util pattern) ---
+; prepare_path:
+;     LDX #$00
+; copyLoop:
+;     LDA rom_bin_cd,X            ; Load byte from ROM string  
+;     STA PATH_INPUT,X            ; Store to RAM path buffer
+;     BEQ start_cd                ; If null terminator, jump to cd
+;     INX
+;     JMP copyLoop
+
+; --- CD Entry Point ---
+start_cd:
+    LDA #<PATH_INPUT
+    STA PATH_PTR_LO             ; zero-page low byte of path pointer
+    LDA #>PATH_INPUT
+    STA PATH_PTR_HI             ; zero-page high byte of path pointer
+
+    ; Check if path starts with '/' (absolute path)
+    LDY #0
+    LDA (PATH_PTR_LO),Y
+    CMP #'/'
+    BEQ absolute_path_cd
+    
+    ; Relative path - start from current working directory
+    LDA WORKING_DIR_INODE
+    STA CURRENT_INODE
+    JMP resolve_path_cd
+
+absolute_path_cd:
+    ; Absolute path - start from root
+    LDA #0
+    STA CURRENT_INODE           ; Start from root inode 0
+
+resolve_path_cd:
+next_token_cd:
+    JSR next_path_token         ; Extract next path component into TOKEN_BUFFER
+    BEQ done_resolving_cd          ; If empty, done traversing
+
+    ; ; Check for special directories
+    ; JSR check_dot_dirs
+    ; BCC handle_special          ; Carry clear means special directory handled
+    
+    LDA CURRENT_INODE
+    JSR get_inode_ptr           ; Set pointer to inode address in WORK_PTR
+
+    ; --- if current inode is file, cannot cd into it
+    LDY #I_MODE
+    LDA (WORK_PTR_LO),Y
+    AND #%11110000
+    CMP #FT_DIR
+    BNE path_not_found
+
+    JSR find_in_dir_block       ; Look for token in this directory
+    BCS path_not_found
+
+    STA CURRENT_INODE           ; Found! Update inode number
+    JMP next_token_cd
+
+handle_special:
+    ; CURRENT_INODE already updated by check_dot_dirs
+    JMP next_token_cd
+
+done_resolving_cd:
+    ; Verify final target is a directory
+    LDA CURRENT_INODE
+    JSR get_inode_ptr
+
+    LDY #I_MODE
+    LDA (WORK_PTR_LO),Y
+    AND #%11110000
+    CMP #FT_DIR                 ; Directory?
+    BNE path_not_found
+
+    ; Success! Update working directory
+    LDA CURRENT_INODE
+    STA WORKING_DIR_INODE
+    RTS
+
+path_not_found:
+    ; Print "path not found" message
+    LDX #0
+path_not_found_loop:
+    LDA path_not_found_msg,X
+    BEQ path_not_found_done
+    JSR print_char
+    INX
+    JMP path_not_found_loop
+path_not_found_done:
+    RTS
+
+
+
+; ---------------------------------------------
+; Get current working directory inode
+; Output: A = current working directory inode number
+get_working_dir:
+    LDA WORKING_DIR_INODE
+    RTS
+
+; --- Messages ---
+path_not_found_msg:
+    .byte "path not found", $0A, 0
+
+; --- ROM String for testing ---
+rom_bin_cd:
+    .byte "/rom/bin", 0         ; Test path
+;    .byte "..", 0              ; Test parent directory
+;    .byte "bin", 0             ; Test relative path

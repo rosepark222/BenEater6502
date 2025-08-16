@@ -1365,7 +1365,7 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
             //printf("DEBUG [%04X]: ", pc);
             
             // Display current instruction
-            //disassemble_current_instruction(stdout, pc, RAM, false);
+            disassemble_current_instruction(stdout, pc, RAM, false);
             
             printf("\nDEBUG> ");
             
