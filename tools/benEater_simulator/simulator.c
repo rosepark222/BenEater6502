@@ -1352,7 +1352,8 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
     char input_buffer[60];
     uint8_t opcode_decoded;
 
-    while (time(NULL) - start_time < duration_seconds && !break_loop && !quit_flag) {
+    while (!break_loop && !quit_flag) {
+    // while (time(NULL) - start_time < duration_seconds && !break_loop && !quit_flag) {
         
         // Check for breakpoints (including original and new ones)
         //if (pc == break_address || is_breakpoint(pc)) {

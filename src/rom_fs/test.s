@@ -348,6 +348,7 @@ Loop_BIN_DOTDOT:           ; dot, dot_dot entries
 ;BRK
 ;    .align 2 ; 2 byte alignment
 ;token1:       .byte "wwwwwwwwwwwwwwww"
+    .include "../lcd_driver/test.s"
     .include "../shell/test.s"
     .include "../ls_util/test.s"
     .include "../cd_util/test.s"
