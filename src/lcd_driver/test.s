@@ -38,12 +38,11 @@ LCD_ROWS                = 2            ; Number of rows
 LCD_CURRENT_ROW  = $0230         ; current row
 LCD_CURRENT_COL  = $0231         ; current col
 
-; Buffer for line content (32 bytes: 16 for each line) ;; scroll feature
-LCD_LINE_BUFFER  = $0240         ; Buffer for line content (32 bytes: 16 for each line) ;; scroll feature
-LCD_LINE1_BUFFER = $0240         ; First line buffer ;; scroll feature
-LCD_LINE2_BUFFER = $0250         ; Second line buffer ;; scroll feature
+; Buffer for line content (32 bytes: 16 for each line) 
+LCD_LINE1_BUFFER = $0240         ; First line buffer 
+LCD_LINE2_BUFFER = $0250         ; Second line buffer 
 
-WORKING_DIR_INODE = $0212       ; Current working directory inode number (ADDED) ; pwd support
+WORKING_DIR_INODE = $0213       ; Current working directory inode number (ADDED) ; pwd support
 
 ; ---------------------------------------------
 ; Initialize working directory (call this at system startup)
@@ -51,6 +50,7 @@ WORKING_DIR_INODE = $0212       ; Current working directory inode number (ADDED)
 
 
 
+;summer_break:
 start_lcd:
 
 ;    JSR init_working_dir
@@ -127,12 +127,13 @@ handle_backspace:
 handle_enter:
     JSR process_shell_cmd
 
-summer_break:
+; summer_break:
 reset_shell:
     ;LDX #-1
     LDX #0
     STX CMD_INDEX
     ;JSR clear_newline_and_move ; do_wrap_and_print
+    JSR do_carriage
     JSR print_prompt
 
     JMP keyinput_loop
@@ -149,7 +150,7 @@ lcd_init:
     LDA #LCD_ENTRY
     JSR lcd_command
     JSR lcd_clear
-    JSR lcd_clear_buffers      ;; scroll feature
+    JSR lcd_clear_buffers      
     RTS
 
 lcd_clear:
@@ -163,17 +164,17 @@ lcd_clear:
     STA LCD_CURRENT_ROW
     RTS
 
-lcd_clear_buffers:             ;; scroll feature
-    ; Clear both line buffers   ;; scroll feature
-    LDX #0                     ;; scroll feature
-    LDA #' '                   ;; scroll feature
-clear_buffers_loop:            ;; scroll feature
-    STA LCD_LINE1_BUFFER,X     ;; scroll feature
-    STA LCD_LINE2_BUFFER,X     ;; scroll feature
-    INX                        ;; scroll feature
-    CPX #LCD_COLS              ;; scroll feature
-    BNE clear_buffers_loop     ;; scroll feature
-    RTS                        ;; scroll feature
+lcd_clear_buffers:             
+    ; Clear both line buffers   
+    LDX #0                     
+    LDA #' '                   
+clear_buffers_loop:            
+    STA LCD_LINE1_BUFFER,X     
+    STA LCD_LINE2_BUFFER,X     
+    INX                        
+    CPX #LCD_COLS              
+    BNE clear_buffers_loop     
+    RTS                        
 
 lcd_home_cursor:
     LDA #0
@@ -193,11 +194,14 @@ lcd_command:
 
 print_char:
  
+    STX X_SCRATCH      ; 
     STY Y_SCRATCH      ; bug_report at 4426a08, Y is the pointer used in print_name in ls_util, but also used in print_char and should be preserved
     ;CMP #$0A
     ;BEQ do_newline           ; emulator sends \r for enter key so this routine is not used
-    CMP #$0D
-    BEQ do_carriage
+; 
+; bug_report : \r should not be printed
+    ; CMP #$0D
+    ; BEQ do_carriage
 
     LDX LCD_CURRENT_COL
     CPX #LCD_COLS            ; end of column, wrap
@@ -206,10 +210,11 @@ print_char:
 do_normal: ; fallthrough normal write
     STA LCD_DATA
     JSR lcd_delay
-    JSR lcd_store_char_in_buffer   ;; scroll feature
+    JSR lcd_store_char_in_buffer   
     INC LCD_CURRENT_COL
  
-    LDY Y_SCRATCH       ; bug_report at 4426a08
+    LDY Y_SCRATCH      ; bug_report at 4426a08
+    LDX X_SCRATCH      ; 
     RTS
 
 ;do_newline:   ; emulator sends \r for enter key so this routine is not used
@@ -218,96 +223,96 @@ do_normal: ; fallthrough normal write
 
 do_carriage:
 ;summer_break:
-    LDA LCD_CURRENT_ROW        ;; scroll feature
-    BEQ carriage_line1         ;; scroll feature
-    ; On line 2, need to scroll ;; scroll feature
-    JSR lcd_scroll_up          ;; scroll feature
-    RTS                        ;; scroll feature
-carriage_line1:                ;; scroll feature
+    LDA LCD_CURRENT_ROW        
+    BEQ carriage_line1         
+    ; On line 2, need to scroll 
+    JSR lcd_scroll_up          
+    RTS                        
+carriage_line1:                
     JSR clear_newline_and_move ; lcd_carriage_return
     RTS
 
 do_wrap_and_print:
     PHA
-    LDA LCD_CURRENT_ROW        ;; scroll feature
-    BEQ wrap_to_line2          ;; scroll feature
-    ; On line 2, need to scroll before printing ;; scroll feature
-    JSR lcd_scroll_up          ;; scroll feature
-    PLA                        ;; scroll feature
-    JMP do_normal              ;; scroll feature
-wrap_to_line2:                 ;; scroll feature
+    LDA LCD_CURRENT_ROW        
+    BEQ wrap_to_line2          
+    ; On line 2, need to scroll before printing 
+    JSR lcd_scroll_up          
+    PLA                        
+    JMP do_normal              
+wrap_to_line2:                 
     JSR clear_newline_and_move  ; clear new line, put curtor at the head 
     PLA
     JMP do_normal   ; print the char
 
-lcd_scroll_up:                 ;; scroll feature
-    ; Copy line 2 to line 1     ;; scroll feature
-    LDX #0                     ;; scroll feature
-scroll_copy_loop:              ;; scroll feature
-    LDA LCD_LINE2_BUFFER,X     ;; scroll feature
-    STA LCD_LINE1_BUFFER,X     ;; scroll feature
-    INX                        ;; scroll feature
-    CPX #LCD_COLS              ;; scroll feature
-    BNE scroll_copy_loop       ;; scroll feature
-                               ;; scroll feature
-    ; Clear line 2 buffer       ;; scroll feature
-    LDX #0                     ;; scroll feature
-    LDA #' '                   ;; scroll feature
-scroll_clear_loop:             ;; scroll feature
-    STA LCD_LINE2_BUFFER,X     ;; scroll feature
-    INX                        ;; scroll feature
-    CPX #LCD_COLS              ;; scroll feature
-    BNE scroll_clear_loop      ;; scroll feature
-                               ;; scroll feature
-    ; Refresh LCD display       ;; scroll feature
-    JSR lcd_refresh_display    ;; scroll feature
-                               ;; scroll feature
-    ; Position cursor at start of line 2 ;; scroll feature
-    LDA #1                     ;; scroll feature
-    STA LCD_CURRENT_ROW        ;; scroll feature
-    LDA #0                     ;; scroll feature
-    STA LCD_CURRENT_COL        ;; scroll feature
-    LDA #LCD_ROW1_COL0_ADDR    ;; scroll feature
-    JSR lcd_command            ;; scroll feature
-    RTS                        ;; scroll feature
+lcd_scroll_up:                 
+    ; Copy line 2 to line 1     
+    LDX #0                     
+scroll_copy_loop:              
+    LDA LCD_LINE2_BUFFER,X     
+    STA LCD_LINE1_BUFFER,X     
+    INX                        
+    CPX #LCD_COLS              
+    BNE scroll_copy_loop       
+                               
+    ; Clear line 2 buffer       
+    LDX #0                     
+    LDA #' '                   
+scroll_clear_loop:             
+    STA LCD_LINE2_BUFFER,X     
+    INX                        
+    CPX #LCD_COLS              
+    BNE scroll_clear_loop      
+                               
+    ; Refresh LCD display       
+    JSR lcd_refresh_display    
+                               
+    ; Position cursor at start of line 2 
+    LDA #1                     
+    STA LCD_CURRENT_ROW        
+    LDA #0                     
+    STA LCD_CURRENT_COL        
+    LDA #LCD_ROW1_COL0_ADDR    
+    JSR lcd_command            
+    RTS                        
 
-lcd_refresh_display:           ;; scroll feature
-    ; Display line 1            ;; scroll feature
-    LDA #LCD_ROW0_COL0_ADDR    ;; scroll feature
-    JSR lcd_command            ;; scroll feature
-    LDX #0                     ;; scroll feature
-refresh_line1_loop:            ;; scroll feature
-    LDA LCD_LINE1_BUFFER,X     ;; scroll feature
-    STA LCD_DATA               ;; scroll feature
-    JSR lcd_delay              ;; scroll feature
-    INX                        ;; scroll feature
-    CPX #LCD_COLS              ;; scroll feature
-    BNE refresh_line1_loop     ;; scroll feature
-                               ;; scroll feature
-    ; Display line 2            ;; scroll feature
-    LDA #LCD_ROW1_COL0_ADDR    ;; scroll feature
-    JSR lcd_command            ;; scroll feature
-    LDX #0                     ;; scroll feature
-refresh_line2_loop:            ;; scroll feature
-    LDA LCD_LINE2_BUFFER,X     ;; scroll feature
-    STA LCD_DATA               ;; scroll feature
-    JSR lcd_delay              ;; scroll feature
-    INX                        ;; scroll feature
-    CPX #LCD_COLS              ;; scroll feature
-    BNE refresh_line2_loop     ;; scroll feature
-    RTS                        ;; scroll feature
+lcd_refresh_display:           
+    ; Display line 1            
+    LDA #LCD_ROW0_COL0_ADDR    
+    JSR lcd_command            
+    LDX #0                     
+refresh_line1_loop:            
+    LDA LCD_LINE1_BUFFER,X     
+    STA LCD_DATA               
+    JSR lcd_delay              
+    INX                        
+    CPX #LCD_COLS              
+    BNE refresh_line1_loop     
+                               
+    ; Display line 2            
+    LDA #LCD_ROW1_COL0_ADDR    
+    JSR lcd_command            
+    LDX #0                     
+refresh_line2_loop:            
+    LDA LCD_LINE2_BUFFER,X     
+    STA LCD_DATA               
+    JSR lcd_delay              
+    INX                        
+    CPX #LCD_COLS              
+    BNE refresh_line2_loop     
+    RTS                        
 
-lcd_store_char_in_buffer:      ;; scroll feature
-    ; Store character in appropriate line buffer ;; scroll feature
-    LDX LCD_CURRENT_COL        ;; scroll feature
-    LDY LCD_CURRENT_ROW        ;; scroll feature
-    BEQ store_in_line1         ;; scroll feature
-    ; Store in line 2           ;; scroll feature
-    STA LCD_LINE2_BUFFER,X     ;; scroll feature
-    RTS                        ;; scroll feature
-store_in_line1:                ;; scroll feature
-    STA LCD_LINE1_BUFFER,X     ;; scroll feature
-    RTS                        ;; scroll feature
+lcd_store_char_in_buffer:      
+    ; Store character in appropriate line buffer 
+    LDX LCD_CURRENT_COL        
+    LDY LCD_CURRENT_ROW        
+    BEQ store_in_line1         
+    ; Store in line 2           
+    STA LCD_LINE2_BUFFER,X     
+    RTS                        
+store_in_line1:                
+    STA LCD_LINE1_BUFFER,X     
+    RTS                        
 
 clear_newline_and_move: ; Move to start of next line
     ;PHA     
@@ -317,7 +322,7 @@ clear_newline_and_move: ; Move to start of next line
     
     ; Currently on line 2, clear and go to line 1
     JSR lcd_clear_line
-    JSR lcd_clear_line_buffer  ;; scroll feature
+    JSR lcd_clear_line_buffer  
     LDA #0
     STA LCD_CURRENT_ROW
     STA LCD_CURRENT_COL
@@ -329,7 +334,7 @@ clear_newline_and_move: ; Move to start of next line
 move_to_line2:
     ; Currently on line 1, clear line 2 and move there
     JSR lcd_clear_line
-    JSR lcd_clear_line_buffer  ;; scroll feature
+    JSR lcd_clear_line_buffer  
     LDA #1
     STA LCD_CURRENT_ROW
     LDA #0
@@ -338,28 +343,28 @@ move_to_line2:
     JSR lcd_command
     RTS
 
-lcd_clear_line_buffer:         ;; scroll feature
-    ; Clear the buffer for current line ;; scroll feature
-    LDA LCD_CURRENT_ROW        ;; scroll feature
-    BEQ clear_line1_buffer     ;; scroll feature
-    ; Clear line 2 buffer       ;; scroll feature
-    LDX #0                     ;; scroll feature
-    LDA #' '                   ;; scroll feature
-clear_line2_buf_loop:          ;; scroll feature
-    STA LCD_LINE2_BUFFER,X     ;; scroll feature
-    INX                        ;; scroll feature
-    CPX #LCD_COLS              ;; scroll feature
-    BNE clear_line2_buf_loop   ;; scroll feature
-    RTS                        ;; scroll feature
-clear_line1_buffer:            ;; scroll feature
-    LDX #0                     ;; scroll feature
-    LDA #' '                   ;; scroll feature
-clear_line1_buf_loop:          ;; scroll feature
-    STA LCD_LINE1_BUFFER,X     ;; scroll feature
-    INX                        ;; scroll feature
-    CPX #LCD_COLS              ;; scroll feature
-    BNE clear_line1_buf_loop   ;; scroll feature
-    RTS                        ;; scroll feature
+lcd_clear_line_buffer:         
+    ; Clear the buffer for current line 
+    LDA LCD_CURRENT_ROW        
+    BEQ clear_line1_buffer     
+    ; Clear line 2 buffer       
+    LDX #0                     
+    LDA #' '                   
+clear_line2_buf_loop:          
+    STA LCD_LINE2_BUFFER,X     
+    INX                        
+    CPX #LCD_COLS              
+    BNE clear_line2_buf_loop   
+    RTS                        
+clear_line1_buffer:            
+    LDX #0                     
+    LDA #' '                   
+clear_line1_buf_loop:          
+    STA LCD_LINE1_BUFFER,X     
+    INX                        
+    CPX #LCD_COLS              
+    BNE clear_line1_buf_loop   
+    RTS                        
 
 lcd_carriage_return:
     ; Move to start of current line
@@ -388,7 +393,7 @@ lcd_backspace:
     LDA #' '
     STA LCD_DATA
     JSR lcd_delay
-    JSR lcd_store_char_in_buffer   ;; scroll feature
+    JSR lcd_store_char_in_buffer   
     
     ; Move cursor back again
     JSR lcd_update_cursor

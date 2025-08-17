@@ -39,7 +39,7 @@ start_pwd:
 ; bug_report -- pwd print inode
 ; uncomment the below RTS and return the pwd after priting the inode
 ; , not trying to form the full path
-    RTS
+    ;RTS
     
 ; bug_report --  the below pwd code has not been debugged
 ; it supposed to terverse .. to root and stack the directory name

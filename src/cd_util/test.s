@@ -95,12 +95,23 @@ done_resolving_cd:
     BNE path_not_found
 
     ; Success! Update working directory
+    JSR cd_ok_print
     LDA CURRENT_INODE
     STA WORKING_DIR_INODE
     RTS
 
+cd_ok_print:
+    LDX #0
+cd_ok_loop:
+    LDA cd_ok_msg, X
+    BEQ cd_ok_done
+    JSR print_char
+    INX
+    JMP cd_ok_loop
+cd_ok_done:
+    RTS
+
 path_not_found:
-    ; Print "path not found" message
     LDX #0
 path_not_found_loop:
     LDA path_not_found_msg,X
@@ -121,11 +132,13 @@ get_working_dir:
     RTS
 
 ; --- Messages ---
+cd_ok_msg:
+    .byte " ok", 0
 path_not_found_msg:
-    .byte "path not found", $0A, 0
+    .byte " cd_fail", 0
 
 ; --- ROM String for testing ---
-rom_bin_cd:
-    .byte "/rom/bin", 0         ; Test path
+; rom_bin_cd:
+;     .byte "/rom/bin", 0         ; Test path
 ;    .byte "..", 0              ; Test parent directory
 ;    .byte "bin", 0             ; Test relative path
