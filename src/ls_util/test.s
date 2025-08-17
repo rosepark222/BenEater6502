@@ -27,7 +27,6 @@ SCAN_PTR_HI     = $07           ; Scan block pointer high byte
 
 ; Input/Output
 PATH_INPUT      = $0400         ; Input path string buffer
-PRINT_CHAR_ADDR = $6000         ; Character output address
 
 ; File System Constants
 MAX_INODES      = 64            ; Maximum number of inodes
@@ -428,13 +427,6 @@ end_token:
     LDA TOKEN_BUFFER            ; check if token is empty
     CMP #0
     RTS
-
-; --- Stub routines ---
-; remove this because it is defined in shell
-; print_char:
-;    ; your character output
-;    STA PRINT_CHAR_ADDR
-;    RTS
 
 separator:
     LDA #$20 ; #$5F underscore #$20 is space , #$0A = Line Feed

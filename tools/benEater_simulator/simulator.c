@@ -278,8 +278,8 @@ void print_cpu_state_to_stream(FILE *stream) {
     if (monitor_count == 0) {
         fprintf(stream, "RAM State: $0000:%02X $0001:%02X $0002:%02X $0003:%02X\n", 
                 RAM[0x0000], RAM[0x0001], RAM[0x0002], RAM[0x0003]);
-        fprintf(stream, "RAM State: $6000:%02X $6001:%02X $0230:%02X $0231:%02X\n", 
-                RAM[0x6000], RAM[0x6001], RAM[0x0230], RAM[0x0231]);
+        fprintf(stream, "RAM State: $6000:%02X $6001:%02X scroll mode $0264:%02X row $0230:%02X col $0231:%02X   \n", 
+                RAM[0x6000], RAM[0x6001], RAM[0x0264], RAM[0x0230], RAM[0x0231] );
         fprintf(stream, "RAM State: $0300:%02X $0301:%02X $0302:%02X $0303:%02X\n", 
                 RAM[0x0300], RAM[0x0301], RAM[0x0302], RAM[0x0303]);
     }
@@ -1135,6 +1135,11 @@ void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window, lo
     if (key >= SDLK_SPACE && key <= SDLK_z) input = key;
     else if (key == SDLK_RETURN) input = '\r';
     else if (key == SDLK_BACKSPACE) input = '\b';
+    //
+    // TODO: attemp to pass arrow up/down to 6502
+    //       for now, use [ and ] for scroll up and down
+    // else if (key == SDLK_UP) input = key;
+    // else if (key == SDLK_DOWN) input = key;
 
     if (!input) return;
 

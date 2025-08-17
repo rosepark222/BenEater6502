@@ -42,7 +42,21 @@ LCD_CURRENT_COL  = $0231         ; current col
 LCD_LINE1_BUFFER = $0240         ; First line buffer 
 LCD_LINE2_BUFFER = $0250         ; Second line buffer 
 
-WORKING_DIR_INODE = $0213       ; Current working directory inode number (ADDED) ; pwd support
+;; scroll up down - Scrollable buffer variables
+SCROLL_BUFFER_SIZE = 16          ; 16 lines in circular buffer
+SCROLL_LINE_SIZE   = 16          ; 16 characters per line
+SCROLL_BUFFER      = $0500       ; Start of 16-line buffer (16*16 = 256 bytes)
+SCROLL_HEAD        = $0260       ; Index of newest line (0-15)
+SCROLL_TAIL        = $0261       ; Index of oldest line (0-15)  
+SCROLL_VIEW_TOP    = $0262       ; Index of top line currently displayed (0-15)
+SCROLL_COUNT       = $0263       ; Number of lines in buffer (0-16)
+SCROLL_MODE        = $0264       ; 0=normal mode, 1=scroll mode
+
+;; scroll up down - Key codes for arrow keys
+KEY_UP             = $5B ;  '['  Up scroll key
+KEY_DOWN           = $5D ;  ']'  Down scroll key
+
+WORKING_DIR_INODE  = $0213       ; Current working directory inode number (ADDED) ; pwd support
 
 ; ---------------------------------------------
 ; Initialize working directory (call this at system startup)
@@ -50,7 +64,6 @@ WORKING_DIR_INODE = $0213       ; Current working directory inode number (ADDED)
 
 
 
-;summer_break:
 start_lcd:
 
 ;    JSR init_working_dir
@@ -65,35 +78,29 @@ init_working_dir:
      LDA #0                      ; Start at root directory
      STA WORKING_DIR_INODE
 
-    ; LDA #'1'
-    ; JSR print_char
-    ; JSR print_char
-    ; JSR print_char
-    ; JSR print_char
-    ; JSR print_char
-
-    ; LDA #LCD_HOME
-    ; JSR lcd_command
-
-    ; LDA #'H'
-    ; JSR print_char        
-    ; JSR print_char
-
-    ; LDA #LCD_ROW1_COL0_ADDR
-    ; JSR lcd_command
-    ; LDA #1
-    ; STA LCD_CURRENT_ROW
-    ; LDA #0
-    ; STA LCD_CURRENT_COL
-
+    ; LDA #'1' ; JSR print_char ; JSR print_char ; JSR print_char ; JSR print_char ; JSR print_char ; LDA #LCD_HOME ; JSR lcd_command ; LDA #'H' ; JSR print_char        ; JSR print_char ; LDA #LCD_ROW1_COL0_ADDR ; JSR lcd_command ; LDA #1 ; STA LCD_CURRENT_ROW ; LDA #0 ; STA LCD_CURRENT_COL
 
 keyinput_loop:
     JSR poll_keyboard
     BCC keyinput_loop          ; No key yet, poll again
 
-    ; uncomment this to process shell command
-     CMP #$0D                ; Enter key (CR)
-     BEQ handle_enter
+    ;; scroll up down - Check for arrow keys first
+    CMP #KEY_UP
+    BEQ handle_key_up
+    CMP #KEY_DOWN
+    BEQ handle_key_down
+    
+    ;; scroll up down - Any other key exits scroll mode
+    PHA                    ; Save the key value
+    LDA SCROLL_MODE
+    BEQ normal_key_processing_restore
+;summer_break:
+    JSR exit_scroll_mode
+
+normal_key_processing_restore:
+    PLA                    ; Restore the key value
+    CMP #$0D                ; Enter key (CR)
+    BEQ handle_enter
     ; CMP #$0A                ; Line feed?
     ; BEQ process_shell_cmd
 
@@ -108,6 +115,20 @@ keyinput_loop:
     ; Normal character input
     JSR print_char
     JSR store_char
+    JMP keyinput_loop
+
+;; scroll up down - Handle up arrow key
+handle_key_up:
+    JSR scroll_up
+    LDA #0
+    STA KEY_INPUT
+    JMP keyinput_loop
+
+;; scroll up down - Handle down arrow key  
+handle_key_down:
+    JSR scroll_down
+    LDA #0
+    STA KEY_INPUT
     JMP keyinput_loop
 
 handle_backspace:
@@ -127,7 +148,6 @@ handle_backspace:
 handle_enter:
     JSR process_shell_cmd
 
-; summer_break:
 reset_shell:
     ;LDX #-1
     LDX #0
@@ -137,9 +157,216 @@ reset_shell:
     JSR print_prompt
 
     JMP keyinput_loop
+
+;; scroll up down - Scroll buffer management routines
+scroll_up:
+    LDA SCROLL_MODE
+    BNE scroll_up_continue
+    ; Entering scroll mode for first time
+    LDA #1
+    STA SCROLL_MODE
+    LDA SCROLL_HEAD
+    STA SCROLL_VIEW_TOP
+    
+scroll_up_continue:
+    ; Check if we can scroll up (view_top != tail)
+    LDA SCROLL_VIEW_TOP
+    CMP SCROLL_TAIL
+    BEQ scroll_up_done      ; Can't scroll up anymore
+    
+    ; Move view up one line
+    DEC SCROLL_VIEW_TOP
+    LDA SCROLL_VIEW_TOP
+    BPL scroll_up_refresh
+    LDA #SCROLL_BUFFER_SIZE-1  ; Wrap around
+    STA SCROLL_VIEW_TOP
+    
+scroll_up_refresh:
+    JSR refresh_scroll_display
+    
+scroll_up_done:
+    RTS
+
+scroll_down:
+    LDA SCROLL_MODE
+    BEQ scroll_down_done    ; Not in scroll mode
+    
+    ; Check if we can scroll down
+    LDA SCROLL_VIEW_TOP
+    CMP SCROLL_HEAD
+    BEQ scroll_down_done    ; Already at newest
+    
+    ; Move view down one line
+    INC SCROLL_VIEW_TOP
+    LDA SCROLL_VIEW_TOP
+    CMP #SCROLL_BUFFER_SIZE
+    BNE scroll_down_refresh
+    LDA #0                  ; Wrap around
+    STA SCROLL_VIEW_TOP
+    
+scroll_down_refresh:
+    JSR refresh_scroll_display
+    
+scroll_down_done:
+    RTS
+
+; exit_scroll_mode:
+;     LDA #0
+;     STA SCROLL_MODE
+;     ; Refresh display to show current lines
+;     JSR lcd_refresh_display
+;     RTS
+
+; The key addition is JSR lcd_update_cursor at the end of exit_scroll_mode. This ensures that after refreshing the display with the current line buffers, the LCD cursor is positioned correctly based on LCD_CURRENT_ROW and LCD_CURRENT_COL so that normal character input can continue from the right position.
+
+exit_scroll_mode:
+    LDA #0
+    STA SCROLL_MODE
+    ; Refresh display to show current lines
+    JSR lcd_refresh_display
+    ;; scroll up down - Restore cursor position after exiting scroll mode
+    JSR lcd_update_cursor
+    RTS
+
+refresh_scroll_display:
+    ; Display two lines starting from SCROLL_VIEW_TOP
+    
+    ; Calculate first line address
+    LDA SCROLL_VIEW_TOP
+    ASL A                   ; Multiply by 16 (line size)
+    ASL A
+    ASL A  
+    ASL A
+    TAX                     ; X = line offset in buffer
+    
+    ; Display first line
+    LDA #LCD_ROW0_COL0_ADDR
+    JSR lcd_command
+    LDY #0
+refresh_line1:
+    LDA SCROLL_BUFFER,X
+    STA LCD_DATA
+    JSR lcd_delay
+    INX
+    INY
+    CPY #LCD_COLS
+    BNE refresh_line1
+    
+    ; Calculate second line (next line in circular buffer)
+    LDA SCROLL_VIEW_TOP
+    CLC 
+    ADC #$01
+    CMP #SCROLL_BUFFER_SIZE
+    BNE calc_second_line
+    LDA #0                  ; Wrap around
+calc_second_line:
+    ASL A                   ; Multiply by 16
+    ASL A
+    ASL A
+    ASL A
+    TAX
+    
+    ; Display second line
+    LDA #LCD_ROW1_COL0_ADDR
+    JSR lcd_command
+    LDY #0
+refresh_line2:
+    LDA SCROLL_BUFFER,X
+    STA LCD_DATA
+    JSR lcd_delay
+    INX
+    INY
+    CPY #LCD_COLS
+    BNE refresh_line2
+    
+    RTS
+
+add_line_to_scroll_buffer:
+    ; Add current LCD_LINE1_BUFFER and LCD_LINE2_BUFFER to scroll buffer
+    
+    ; First, add line 1 to buffer
+    LDA SCROLL_HEAD
+    CLC 
+    ADC #$01
+    CMP #SCROLL_BUFFER_SIZE
+    BNE store_head1
+    LDA #0                  ; Wrap around
+store_head1:
+    STA SCROLL_HEAD
+    
+    ; Calculate buffer offset
+    ASL A                   ; Multiply by 16
+    ASL A
+    ASL A
+    ASL A
+    TAX
+    
+    ; Copy LCD_LINE1_BUFFER to scroll buffer
+    LDY #0
+copy_line1:
+    LDA LCD_LINE1_BUFFER,Y
+    STA SCROLL_BUFFER,X
+    INX
+    INY
+    CPY #LCD_COLS
+    BNE copy_line1
+    
+    ; Update count and tail if buffer is full
+    LDA SCROLL_COUNT
+    CMP #SCROLL_BUFFER_SIZE
+    BEQ update_tail1
+    INC SCROLL_COUNT
+    JMP add_line2
+update_tail1:
+    INC SCROLL_TAIL
+    LDA SCROLL_TAIL
+    CMP #SCROLL_BUFFER_SIZE
+    BNE add_line2
+    LDA #0
+    STA SCROLL_TAIL
+    
+add_line2:
+    ; Add line 2 to buffer
+    LDA SCROLL_HEAD
+    CLC 
+    ADC #$01
+    CMP #SCROLL_BUFFER_SIZE
+    BNE store_head2
+    LDA #0
+store_head2:
+    STA SCROLL_HEAD
+    
+    ASL A
+    ASL A
+    ASL A
+    ASL A
+    TAX
+    
+    LDY #0
+copy_line2:
+    LDA LCD_LINE2_BUFFER,Y
+    STA SCROLL_BUFFER,X
+    INX
+    INY
+    CPY #LCD_COLS
+    BNE copy_line2
+    
+    LDA SCROLL_COUNT
+    CMP #SCROLL_BUFFER_SIZE
+    BEQ update_tail2
+    INC SCROLL_COUNT
+    RTS
+update_tail2:
+    INC SCROLL_TAIL
+    LDA SCROLL_TAIL
+    CMP #SCROLL_BUFFER_SIZE
+    BNE done_add_line
+    LDA #0
+    STA SCROLL_TAIL
+done_add_line:
+    RTS
+
 ; lcd driver including line discipline and scroll
-
-
 
 lcd_init:
     ; Initialize LCD in 8-bit mode, 2-line display
@@ -151,6 +378,18 @@ lcd_init:
     JSR lcd_command
     JSR lcd_clear
     JSR lcd_clear_buffers      
+    ;; scroll up down - Initialize scroll buffer
+    JSR init_scroll_buffer
+    RTS
+
+;; scroll up down - Initialize scroll buffer variables
+init_scroll_buffer:
+    LDA #0
+    STA SCROLL_HEAD
+    STA SCROLL_TAIL
+    STA SCROLL_VIEW_TOP
+    STA SCROLL_COUNT
+    STA SCROLL_MODE
     RTS
 
 lcd_clear:
@@ -193,7 +432,7 @@ lcd_command:
     RTS
 
 print_char:
- 
+; summer_break:
     STX X_SCRATCH      ; 
     STY Y_SCRATCH      ; bug_report at 4426a08, Y is the pointer used in print_name in ls_util, but also used in print_char and should be preserved
     ;CMP #$0A
@@ -222,7 +461,9 @@ do_normal: ; fallthrough normal write
 ;    RTS
 
 do_carriage:
-;summer_break:
+    ;; scroll up down - Add current screen to scroll buffer before carriage
+    JSR add_line_to_scroll_buffer
+    
     LDA LCD_CURRENT_ROW        
     BEQ carriage_line1         
     ; On line 2, need to scroll 
