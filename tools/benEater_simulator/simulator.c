@@ -283,6 +283,8 @@ void print_cpu_state_to_stream(FILE *stream) {
         fprintf(stream, "RAM State: $0300:%02X $0301:%02X $0302:%02X $0303:%02X\n", 
                 RAM[0x0300], RAM[0x0301], RAM[0x0302], RAM[0x0303]);
     }
+
+    fflush(stream);
 }
 
 /**
@@ -573,6 +575,7 @@ uint8_t disassemble_current_instruction(FILE *stream, uint16_t current_pc, const
             break;
     }
     fprintf(stream, "\n");
+    fflush(stream);
 
     return opcode;
 

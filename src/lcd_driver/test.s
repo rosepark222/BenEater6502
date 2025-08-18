@@ -166,7 +166,15 @@ scroll_up:
     LDA #1
     STA SCROLL_MODE
     LDA SCROLL_HEAD
-    STA SCROLL_VIEW_TOP
+    ; bug_report : if HEAD = 8, it means the latest line stored to the scroll buffer is line 8. When user presses UP, the screen should show line 7 and 8 at the top and bottom of LCD, respectively. For this, SCROLL_VIEW_TOP should be 7 not 8. What do you think ?
+
+
+    SEC                    ; scroll up fix - Set carry for subtraction
+    SBC #1                 ; scroll up fix - SCROLL_VIEW_TOP = HEAD - 1
+    BPL store_view_top     ; scroll up fix - If positive, store it
+    LDA #SCROLL_BUFFER_SIZE-1  ; scroll up fix - If negative, wrap to 15
+store_view_top:            ; scroll up fix
+    STA SCROLL_VIEW_TOP    ; scroll up fix
     
 scroll_up_continue:
     ; Check if we can scroll up (view_top != tail)
@@ -759,3 +767,218 @@ unk_msg:        .byte "Unknown command", 0
 ; LCD State Variables
 ;LCD_CURRENT_COL:     .byte 0        ; Current column (0-15)
 ;LCD_CURRENT_ROW:     .byte 0        ; Current row (0-1)
+
+
+; # Scroll Buffer Visual Explanation
+
+; ## Buffer Structure
+; The scroll buffer is a **circular buffer** that holds 16 lines, each 16 characters wide:
+
+; ```
+; SCROLL_BUFFER (256 bytes total):
+; ┌─────────────────┐
+; │ Line 0 (16 ch)  │  ← Index 0  (bytes 0-15)
+; │ Line 1 (16 ch)  │  ← Index 1  (bytes 16-31)
+; │ Line 2 (16 ch)  │  ← Index 2  (bytes 32-47)
+; │      ...        │
+; │ Line 15 (16 ch) │  ← Index 15 (bytes 240-255)
+; └─────────────────┘
+; ```
+
+; ## Key Variables
+; - **SCROLL_HEAD**: Points to the newest line (last written)
+; - **SCROLL_TAIL**: Points to the oldest line (first to be overwritten)
+; - **SCROLL_COUNT**: Number of lines currently stored (0-16)
+; - **SCROLL_VIEW_TOP**: Which line is shown at top of LCD when scrolling
+
+; ## How Lines Are Added
+
+; ### Initial State (Empty Buffer)
+; ```
+; HEAD=0, TAIL=0, COUNT=0
+; ┌─────────────────┐
+; │ Line 0 [empty]  │  ← HEAD, TAIL
+; │ Line 1 [empty]  │
+; │ Line 2 [empty]  │
+; │      ...        │
+; │ Line 15 [empty] │
+; └─────────────────┘
+; ```
+
+; ### Step 1: First Carriage Return (adds 2 lines)
+; When user presses Enter, `do_carriage` → `add_line_to_scroll_buffer`:
+
+; 1. **Add LINE1_BUFFER**:
+;    ```
+;    HEAD moves: 0 → 1, COUNT: 0 → 1
+;    ┌─────────────────┐
+;    │ Line 0 [empty]  │  ← TAIL
+;    │ Line 1 [LINE1]  │  ← HEAD (just written)
+;    │ Line 2 [empty]  │
+;    │      ...        │
+;    └─────────────────┘
+;    ```
+
+; 2. **Add LINE2_BUFFER**:
+;    ```
+;    HEAD moves: 1 → 2, COUNT: 1 → 2
+;    ┌─────────────────┐
+;    │ Line 0 [empty]  │  ← TAIL
+;    │ Line 1 [LINE1]  │
+;    │ Line 2 [LINE2]  │  ← HEAD (just written)
+;    │ Line 3 [empty]  │
+;    │      ...        │
+;    └─────────────────┘
+;    ```
+
+; ### Step 2: After Several Carriage Returns
+; ```
+; HEAD=8, TAIL=0, COUNT=8
+; ┌─────────────────┐
+; │ Line 0 [empty]  │  ← TAIL
+; │ Line 1 [LINE1]  │  ← oldest data
+; │ Line 2 [LINE2]  │
+; │ Line 3 [LINE3]  │
+; │ Line 4 [LINE4]  │
+; │ Line 5 [LINE5]  │
+; │ Line 6 [LINE6]  │
+; │ Line 7 [LINE7]  │
+; │ Line 8 [LINE8]  │  ← HEAD (newest)
+; │ Line 9 [empty]  │
+; │      ...        │
+; └─────────────────┘
+; ```
+
+; ### Step 3: Buffer Full (16 lines)
+; ```
+; HEAD=0, TAIL=1, COUNT=16 (wraps around)
+; ┌─────────────────┐
+; │ Line 0 [LINE16] │  ← HEAD (newest, wrapped)
+; │ Line 1 [LINE1]  │  ← TAIL (oldest)
+; │ Line 2 [LINE2]  │
+; │      ...        │
+; │ Line 15[LINE15] │
+; └─────────────────┘
+; ```
+
+; ### Step 4: Overwriting Old Data
+; When buffer is full and we add new lines:
+; ```
+; Before: HEAD=0, TAIL=1
+; After adding 2 new lines: HEAD=2, TAIL=3
+
+; ┌─────────────────┐
+; │ Line 0 [LINE16] │  (old)
+; │ Line 1 [NEW1]   │  ← HEAD moved here
+; │ Line 2 [NEW2]   │  ← HEAD moved here  
+; │ Line 3 [LINE2]  │  ← TAIL moved here (LINE1 overwritten)
+; │      ...        │
+; └─────────────────┘
+; ```
+
+; ## Scrolling View
+
+; ### Normal Display
+; LCD shows the current LINE1_BUFFER and LINE2_BUFFER:
+; ```
+; LCD Display:
+; ┌─────────────────┐
+; │ Current Line 1  │  ← What user is typing
+; │ Current Line 2  │  ← Current cursor position
+; └─────────────────┘
+; ```
+
+; ### Scroll Mode Activated
+; When user presses UP arrow:
+; - SCROLL_VIEW_TOP = SCROLL_HEAD (start at newest)
+; - Display shows 2 consecutive lines from scroll buffer
+
+; ```
+; Example: HEAD=8, user presses UP
+; SCROLL_VIEW_TOP = 8
+
+; LCD Display:
+; ┌─────────────────┐
+; │ Line 8 content  │  ← SCROLL_VIEW_TOP
+; │ Line 9 content  │  ← SCROLL_VIEW_TOP + 1
+; └─────────────────┘
+; ```
+; 
+; bug_report : 
+; if HEAD = 8, it means the latest line stored to the scroll buffer is line 8. 
+; When user presses UP, the screen should show line 7 and 8 at 
+; the top and bottom of LCD, respectively. 
+; For this, SCROLL_VIEW_TOP should be 7 not 8. What do you think ?
+
+; AI suggested before (b) and after (a) for the fix:
+; scroll_up:
+;     LDA SCROLL_MODE
+;     BNE scroll_up_continue
+;     ; Entering scroll mode for first time
+;     LDA #1
+;     STA SCROLL_MODE
+;     LDA SCROLL_HEAD
+; b   STA SCROLL_VIEW_TOP
+; a   SEC                    ; scroll up fix - Set carry for subtraction
+; a   SBC #1                 ; scroll up fix - SCROLL_VIEW_TOP = HEAD - 1
+; a   BPL store_view_top     ; scroll up fix - If positive, store it
+; a   LDA #SCROLL_BUFFER_SIZE-1  ; scroll up fix - If negative, wrap to 15
+; astore_view_top:            ; scroll up fix
+; a   STA SCROLL_VIEW_TOP    ; scroll up fix
+    
+; scroll_up_continue:
+;     ; Check if we can scroll up (view_top != tail)
+;     LDA SCROLL_VIEW_TOP
+;     CMP SCROLL_TAIL
+;     BEQ scroll_up_done      ; Can't scroll up anymore
+    
+;     ; Move view up one line
+;     DEC SCROLL_VIEW_TOP
+;     LDA SCROLL_VIEW_TOP
+;     BPL scroll_up_refresh
+;     LDA #SCROLL_BUFFER_SIZE-1  ; Wrap around
+;     STA SCROLL_VIEW_TOP
+
+
+; ### Scrolling Up Further
+; User presses UP again:
+; ```
+; SCROLL_VIEW_TOP moves: 8 → 7
+
+; LCD Display:
+; ┌─────────────────┐
+; │ Line 7 content  │  ← SCROLL_VIEW_TOP
+; │ Line 8 content  │  ← SCROLL_VIEW_TOP + 1
+; └─────────────────┘
+; ```
+
+; ### Scroll Limits
+; - **Can't scroll up past TAIL**: `SCROLL_VIEW_TOP == SCROLL_TAIL` stops upward scrolling
+; - **Can't scroll down past HEAD**: `SCROLL_VIEW_TOP == SCROLL_HEAD` stops downward scrolling
+
+; ## Key Algorithm: Circular Buffer Math
+
+; **Buffer Address Calculation**:
+; ```assembly
+; ; To get byte offset for line N:
+; LDA line_index    ; 0-15
+; ASL A             ; × 2
+; ASL A             ; × 4  
+; ASL A             ; × 8
+; ASL A             ; × 16 = line_index * 16
+; TAX               ; X = offset into SCROLL_BUFFER
+; ```
+
+; **Wraparound Logic**:
+; ```assembly
+; ; Increment with wraparound
+; INC HEAD
+; LDA HEAD
+; CMP #SCROLL_BUFFER_SIZE  ; 16
+; BNE no_wrap
+; LDA #0                   ; Wrap to 0
+; STA HEAD
+; ```
+
+; This design efficiently manages a rolling window of the last 16 lines displayed, 
+; allowing users to scroll back through recent history without losing current typing position.
