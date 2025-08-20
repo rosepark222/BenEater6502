@@ -1,0 +1,2998 @@
+Sections:
+00: "org0001:8000" (8000-89DD)
+01: "org0002:cf60" (CF60-CFD0)
+
+
+Source: "./test.s"
+                        	     1:     .org $8000         ; Start of program
+                        	     2: 
+                        	     3: ; === Base Address Configuration ===
+                        	     4: 
+                        	     5: BITMAP_BASE   = $BB00      ; Base address for bitmaps
+                        	     6: INODE_BASE    = $BC00      ; Base address for inodes
+                        	     7: BLOCK_BASE    = $C000      ; Base address for data blocks
+                        	     8: 
+                        	     9: ;BITMAP_BASE   = $1B00      ; Base address for bitmaps
+                        	    10: ;INODE_BASE    = $1C00      ; Base address for inodes
+                        	    11: ;BLOCK_BASE    = $2000      ; Base address for data blocks
+                        	    12: 
+                        	    13: ; Derived addresses
+                        	    14: BLOCK_BITMAP  = BITMAP_BASE + $10   ; Block bitmap at $BB10
+                        	    15: INODE_BITMAP  = BITMAP_BASE + $00   ; Inode bitmap at $BB00
+                        	    16: 
+                        	    17: ; Zero page addresses for ls_util compatibility
+                        	    18: INODE_BASE_HI = $12        ; High byte of inode base
+                        	    19: BLOCK_BASE_HI = $13        ; High byte of block base
+                        	    20: 
+                        	    21: INVALID_DATABLOCK = $FF
+                        	    22: INVALID_INODE = $00
+                        	    23: 
+                        	    24: A_SCRATCH  = $20
+                        	    25: X_SCRATCH  = $21
+                        	    26: Y_SCRATCH  = $22
+                        	    27: 
+                        	    28: ; === Initialize base addresses for ls_util ===
+                        	    29: InitBaseAddresses:
+00:8000 A9BC            	    30:     LDA #>INODE_BASE       ; High byte of inode base ($BC)
+00:8002 8512            	    31:     STA INODE_BASE_HI      ; Store in $12
+00:8004 A9C0            	    32:     LDA #>BLOCK_BASE       ; High byte of block base ($C0)
+00:8006 8513            	    33:     STA BLOCK_BASE_HI      ; Store in $13
+                        	    34: 
+                        	    35: ; === Set inode and block bitmaps ===
+                        	    36: SetBitmaps:
+00:8008 A97F            	    37:     LDA #%01111111         ; Blocks 0-4 + 6 used
+00:800A 8D10BB          	    38:     STA BLOCK_BITMAP       ; Block bitmap
+00:800D A93F            	    39:     LDA #%00111111         ; Inodes 0-5 used
+00:800F 8D00BB          	    40:     STA INODE_BITMAP       ; Inode bitmap
+                        	    41: 
+                        	    42: ; === Inode 0: root directory ===
+00:8012 A911            	    43:     LDA #%00010001
+00:8014 8D00BC          	    44:     STA INODE_BASE+$00     ; i_mode
+00:8017 A900            	    45:     LDA #$00
+00:8019 8D01BC          	    46:     STA INODE_BASE+$01     ; uid
+00:801C A950            	    47:     LDA #$50               ; size = 5 entries * 16 (added . and ..) ; dot, dot_dot entries
+00:801E 8D02BC          	    48:     STA INODE_BASE+$02     ; 
+00:8021 A900            	    49:     LDA #$00
+00:8023 8D03BC          	    50:     STA INODE_BASE+$03
+00:8026 8D04BC          	    51:     STA INODE_BASE+$04
+00:8029 8D05BC          	    52:     STA INODE_BASE+$05
+00:802C A900            	    53:     LDA #$00
+00:802E 8D06BC          	    54:     STA INODE_BASE+$06     ; block 0
+00:8031 A9FF            	    55:     LDA #INVALID_DATABLOCK
+00:8033 8D07BC          	    56:     STA INODE_BASE+$07
+00:8036 8D08BC          	    57:     STA INODE_BASE+$08
+                        	    58: 
+                        	    59: ; === Inode 1: README.txt ===
+00:8039 A901            	    60:     LDA #%00000001
+00:803B 8D10BC          	    61:     STA INODE_BASE+$10
+00:803E 8D11BC          	    62:     STA INODE_BASE+$11
+00:8041 A900            	    63:     LDA #$00
+00:8043 8D12BC          	    64:     STA INODE_BASE+$12
+00:8046 A904            	    65:     LDA #$04
+00:8048 8D13BC          	    66:     STA INODE_BASE+$13     ; size = 1024 bytes
+00:804B 8D14BC          	    67:     STA INODE_BASE+$14
+00:804E 8D15BC          	    68:     STA INODE_BASE+$15
+00:8051 A901            	    69:     LDA #$01
+00:8053 8D16BC          	    70:     STA INODE_BASE+$16     ; i_block[0] = block 1
+00:8056 A902            	    71:     LDA #$02
+00:8058 8D17BC          	    72:     STA INODE_BASE+$17     ; i_block[1] = block 2
+00:805B A907            	    73:     LDA #$07
+00:805D 8D18BC          	    74:     STA INODE_BASE+$18     ; i_block[2] = block 6 (indirect)
+                        	    75: 
+                        	    76: ; === Inode 2: /ram ===
+00:8060 A911            	    77:     LDA #%00010001
+00:8062 8D20BC          	    78:     STA INODE_BASE+$20
+00:8065 8D21BC          	    79:     STA INODE_BASE+$21
+00:8068 A920            	    80:     LDA #$20               ; size = 2 entries * 16 (. and ..) ; dot, dot_dot entries
+00:806A 8D22BC          	    81:     STA INODE_BASE+$22     ; dot, dot_dot entries
+00:806D 8D23BC          	    82:     STA INODE_BASE+$23
+00:8070 8D24BC          	    83:     STA INODE_BASE+$24
+00:8073 8D25BC          	    84:     STA INODE_BASE+$25
+00:8076 A905            	    85:     LDA #$05
+00:8078 8D26BC          	    86:     STA INODE_BASE+$26     ; block 5
+00:807B A9FF            	    87:     LDA #INVALID_DATABLOCK
+00:807D 8D27BC          	    88:     STA INODE_BASE+$27
+00:8080 8D28BC          	    89:     STA INODE_BASE+$28
+                        	    90: 
+                        	    91: ; === Inode 3: /rom ===
+00:8083 A911            	    92:     LDA #%00010001
+00:8085 8D30BC          	    93:     STA INODE_BASE+$30
+00:8088 8D31BC          	    94:     STA INODE_BASE+$31
+00:808B A940            	    95:     LDA #$40               ; size = 4 entries * 16 (., .., romfs.txt, bin) ; dot, dot_dot entries
+00:808D 8D32BC          	    96:     STA INODE_BASE+$32     ; dot, dot_dot entries
+00:8090 8D33BC          	    97:     STA INODE_BASE+$33
+00:8093 8D34BC          	    98:     STA INODE_BASE+$34
+00:8096 8D35BC          	    99:     STA INODE_BASE+$35
+00:8099 A906            	   100:     LDA #$06
+00:809B 8D36BC          	   101:     STA INODE_BASE+$36     ; block 6
+00:809E A9FF            	   102:     LDA #INVALID_DATABLOCK
+00:80A0 8D37BC          	   103:     STA INODE_BASE+$37
+00:80A3 8D38BC          	   104:     STA INODE_BASE+$38
+                        	   105: 
+                        	   106: ; === Inode 4: romFS.txt ===
+00:80A6 A901            	   107:     LDA #%00000001
+00:80A8 8D40BC          	   108:     STA INODE_BASE+$40
+00:80AB 8D41BC          	   109:     STA INODE_BASE+$41
+00:80AE 8D42BC          	   110:     STA INODE_BASE+$42
+00:80B1 8D43BC          	   111:     STA INODE_BASE+$43
+00:80B4 8D44BC          	   112:     STA INODE_BASE+$44
+00:80B7 8D45BC          	   113:     STA INODE_BASE+$45
+00:80BA A908            	   114:     LDA #$08
+00:80BC 8D46BC          	   115:     STA INODE_BASE+$46
+00:80BF A9FF            	   116:     LDA #INVALID_DATABLOCK
+00:80C1 8D47BC          	   117:     STA INODE_BASE+$47
+00:80C4 8D48BC          	   118:     STA INODE_BASE+$48
+                        	   119: 
+                        	   120: ; === Inode 5: /rom/bin ===
+00:80C7 A911            	   121:     LDA #%00010001
+00:80C9 8D50BC          	   122:     STA INODE_BASE+$50
+00:80CC 8D51BC          	   123:     STA INODE_BASE+$51
+00:80CF A920            	   124:     LDA #$20               ; size = 2 entries * 16 (. and ..) ; dot, dot_dot entries
+00:80D1 8D52BC          	   125:     STA INODE_BASE+$52     ; dot, dot_dot entries
+00:80D4 8D53BC          	   126:     STA INODE_BASE+$53
+00:80D7 8D54BC          	   127:     STA INODE_BASE+$54
+00:80DA 8D55BC          	   128:     STA INODE_BASE+$55
+00:80DD A909            	   129:     LDA #$09
+00:80DF 8D56BC          	   130:     STA INODE_BASE+$56     ; reused block 4 (for testing, update if needed)
+00:80E2 A9FF            	   131:     LDA #INVALID_DATABLOCK
+00:80E4 8D57BC          	   132:     STA INODE_BASE+$57
+00:80E7 8D58BC          	   133:     STA INODE_BASE+$58
+                        	   134: 
+                        	   135: ; === Root dir @ block 0 ===
+                        	   136:     ; Entry 1: . (current directory - points to inode 0) ; dot, dot_dot entries
+00:80EA A900            	   137:     LDA #$00               ; dot, dot_dot entries
+00:80EC 8D00C0          	   138:     STA BLOCK_BASE+$000    ; dot, dot_dot entries
+00:80EF A901            	   139:     LDA #$01               ; dot, dot_dot entries
+00:80F1 8D01C0          	   140:     STA BLOCK_BASE+$001    ; dot, dot_dot entries
+00:80F4 A200            	   141:     LDX #$00               ; dot, dot_dot entries
+                        	   142: Loop_DOT:                  ; dot, dot_dot entries
+00:80F6 BD70CF          	   143:     LDA DOT_name,X         ; dot, dot_dot entries
+00:80F9 9D02C0          	   144:     STA BLOCK_BASE+$002,X  ; dot, dot_dot entries
+00:80FC E8              	   145:     INX                    ; dot, dot_dot entries
+00:80FD E00E            	   146:     CPX #14                ; dot, dot_dot entries
+00:80FF D0F5            	   147:     BNE Loop_DOT           ; dot, dot_dot entries
+                        	   148: 
+                        	   149:     ; Entry 2: .. (parent directory - root has no parent, points to itself) ; dot, dot_dot entries
+00:8101 A900            	   150:     LDA #$00               ; dot, dot_dot entries
+00:8103 8D10C0          	   151:     STA BLOCK_BASE+$010    ; dot, dot_dot entries
+00:8106 A901            	   152:     LDA #$01               ; dot, dot_dot entries
+00:8108 8D11C0          	   153:     STA BLOCK_BASE+$011    ; dot, dot_dot entries
+00:810B A200            	   154:     LDX #$00               ; dot, dot_dot entries
+                        	   155: Loop_DOTDOT:               ; dot, dot_dot entries
+00:810D BD7ECF          	   156:     LDA DOTDOT_name,X      ; dot, dot_dot entries
+00:8110 9D12C0          	   157:     STA BLOCK_BASE+$012,X  ; dot, dot_dot entries
+00:8113 E8              	   158:     INX                    ; dot, dot_dot entries
+00:8114 E00E            	   159:     CPX #14                ; dot, dot_dot entries
+00:8116 D0F5            	   160:     BNE Loop_DOTDOT        ; dot, dot_dot entries
+                        	   161: 
+                        	   162:     ; Entry 3: README.txt ; dot, dot_dot entries
+00:8118 A901            	   163:     LDA #$01
+00:811A 8D20C0          	   164:     STA BLOCK_BASE+$020    ; dot, dot_dot entries
+00:811D A900            	   165:     LDA #$00
+00:811F 8D21C0          	   166:     STA BLOCK_BASE+$021    ; dot, dot_dot entries
+00:8122 A200            	   167:     LDX #$00
+                        	   168: Loop_README:
+00:8124 BD8CCF          	   169:     LDA README_name,X
+00:8127 9D22C0          	   170:     STA BLOCK_BASE+$022,X  ; dot, dot_dot entries
+00:812A E8              	   171:     INX
+00:812B E00E            	   172:     CPX #14
+00:812D D0F5            	   173:     BNE Loop_README
+                        	   174: 
+                        	   175:     ; Entry 4: ram ; dot, dot_dot entries
+00:812F A902            	   176:     LDA #$02
+00:8131 8D30C0          	   177:     STA BLOCK_BASE+$030    ; dot, dot_dot entries
+00:8134 A901            	   178:     LDA #$01
+00:8136 8D31C0          	   179:     STA BLOCK_BASE+$031    ; dot, dot_dot entries
+00:8139 A200            	   180:     LDX #$00
+                        	   181: Loop_RAM:
+00:813B BD99CF          	   182:     LDA RAM_name,X
+00:813E 9D32C0          	   183:     STA BLOCK_BASE+$032,X  ; dot, dot_dot entries
+00:8141 E8              	   184:     INX
+00:8142 E00E            	   185:     CPX #14
+00:8144 D0F5            	   186:     BNE Loop_RAM
+                        	   187: 
+                        	   188:     ; Entry 5: rom ; dot, dot_dot entries
+00:8146 A903            	   189:     LDA #$03
+00:8148 8D40C0          	   190:     STA BLOCK_BASE+$040    ; dot, dot_dot entries
+00:814B A901            	   191:     LDA #$01
+00:814D 8D41C0          	   192:     STA BLOCK_BASE+$041    ; dot, dot_dot entries
+00:8150 A200            	   193:     LDX #$00
+                        	   194: Loop_ROM:
+00:8152 BDA7CF          	   195:     LDA ROM_name,X
+00:8155 9D42C0          	   196:     STA BLOCK_BASE+$042,X  ; dot, dot_dot entries
+00:8158 E8              	   197:     INX
+00:8159 E00E            	   198:     CPX #14
+00:815B D0F5            	   199:     BNE Loop_ROM
+                        	   200: 
+                        	   201: ; === /ram dir @ block 5 === ; dot, dot_dot entries
+                        	   202:     ; Entry 1: . (current directory - points to inode 2) ; dot, dot_dot entries
+00:815D A902            	   203:     LDA #$02               ; dot, dot_dot entries
+00:815F 8D00C5          	   204:     STA BLOCK_BASE+$500    ; dot, dot_dot entries
+00:8162 A901            	   205:     LDA #$01               ; dot, dot_dot entries
+00:8164 8D01C5          	   206:     STA BLOCK_BASE+$501    ; dot, dot_dot entries
+00:8167 A200            	   207:     LDX #$00               ; dot, dot_dot entries
+                        	   208: Loop_RAM_DOT:              ; dot, dot_dot entries
+00:8169 BD70CF          	   209:     LDA DOT_name,X         ; dot, dot_dot entries
+00:816C 9D02C5          	   210:     STA BLOCK_BASE+$502,X  ; dot, dot_dot entries
+00:816F E8              	   211:     INX                    ; dot, dot_dot entries
+00:8170 E00E            	   212:     CPX #14                ; dot, dot_dot entries
+00:8172 D0F5            	   213:     BNE Loop_RAM_DOT       ; dot, dot_dot entries
+                        	   214: 
+                        	   215:     ; Entry 2: .. (parent directory - points to root inode 0) ; dot, dot_dot entries
+00:8174 A900            	   216:     LDA #$00               ; dot, dot_dot entries
+00:8176 8D10C5          	   217:     STA BLOCK_BASE+$510    ; dot, dot_dot entries
+00:8179 A901            	   218:     LDA #$01               ; dot, dot_dot entries
+00:817B 8D11C5          	   219:     STA BLOCK_BASE+$511    ; dot, dot_dot entries
+00:817E A200            	   220:     LDX #$00               ; dot, dot_dot entries
+                        	   221: Loop_RAM_DOTDOT:           ; dot, dot_dot entries
+00:8180 BD7ECF          	   222:     LDA DOTDOT_name,X      ; dot, dot_dot entries
+00:8183 9D12C5          	   223:     STA BLOCK_BASE+$512,X  ; dot, dot_dot entries
+00:8186 E8              	   224:     INX                    ; dot, dot_dot entries
+00:8187 E00E            	   225:     CPX #14                ; dot, dot_dot entries
+00:8189 D0F5            	   226:     BNE Loop_RAM_DOTDOT    ; dot, dot_dot entries
+                        	   227: 
+                        	   228: ; === /rom dir @ block 6 ===
+                        	   229:     ; Entry 1: . (current directory - points to inode 3) ; dot, dot_dot entries
+00:818B A903            	   230:     LDA #$03               ; dot, dot_dot entries
+00:818D 8D00C6          	   231:     STA BLOCK_BASE+$600    ; dot, dot_dot entries
+00:8190 A901            	   232:     LDA #$01               ; dot, dot_dot entries
+00:8192 8D01C6          	   233:     STA BLOCK_BASE+$601    ; dot, dot_dot entries
+00:8195 A200            	   234:     LDX #$00               ; dot, dot_dot entries
+                        	   235: Loop_ROM_DOT:              ; dot, dot_dot entries
+00:8197 BD70CF          	   236:     LDA DOT_name,X         ; dot, dot_dot entries
+00:819A 9D02C6          	   237:     STA BLOCK_BASE+$602,X  ; dot, dot_dot entries
+00:819D E8              	   238:     INX                    ; dot, dot_dot entries
+00:819E E00E            	   239:     CPX #14                ; dot, dot_dot entries
+00:81A0 D0F5            	   240:     BNE Loop_ROM_DOT       ; dot, dot_dot entries
+                        	   241: 
+                        	   242:     ; Entry 2: .. (parent directory - points to root inode 0) ; dot, dot_dot entries
+00:81A2 A900            	   243:     LDA #$00               ; dot, dot_dot entries
+00:81A4 8D10C6          	   244:     STA BLOCK_BASE+$610    ; dot, dot_dot entries
+00:81A7 A901            	   245:     LDA #$01               ; dot, dot_dot entries
+00:81A9 8D11C6          	   246:     STA BLOCK_BASE+$611    ; dot, dot_dot entries
+00:81AC A200            	   247:     LDX #$00               ; dot, dot_dot entries
+                        	   248: Loop_ROM_DOTDOT:           ; dot, dot_dot entries
+00:81AE BD7ECF          	   249:     LDA DOTDOT_name,X      ; dot, dot_dot entries
+00:81B1 9D12C6          	   250:     STA BLOCK_BASE+$612,X  ; dot, dot_dot entries
+00:81B4 E8              	   251:     INX                    ; dot, dot_dot entries
+00:81B5 E00E            	   252:     CPX #14                ; dot, dot_dot entries
+00:81B7 D0F5            	   253:     BNE Loop_ROM_DOTDOT    ; dot, dot_dot entries
+                        	   254: 
+                        	   255:     ; Entry 3: romFS.txt ; dot, dot_dot entries
+00:81B9 A904            	   256:     LDA #$04
+00:81BB 8D20C6          	   257:     STA BLOCK_BASE+$620    ; dot, dot_dot entries
+00:81BE A900            	   258:     LDA #$00
+00:81C0 8D21C6          	   259:     STA BLOCK_BASE+$621    ; dot, dot_dot entries
+00:81C3 A200            	   260:     LDX #$00
+                        	   261: Loop_romFS:
+00:81C5 BDB5CF          	   262:     LDA ROMFS_name,X
+00:81C8 9D22C6          	   263:     STA BLOCK_BASE+$622,X  ; dot, dot_dot entries
+00:81CB E8              	   264:     INX
+00:81CC E00E            	   265:     CPX #14
+00:81CE D0F5            	   266:     BNE Loop_romFS
+                        	   267: 
+                        	   268:     ; Entry 4: bin ; dot, dot_dot entries
+00:81D0 A905            	   269:     LDA #$05
+00:81D2 8D30C6          	   270:     STA BLOCK_BASE+$630    ; dot, dot_dot entries
+00:81D5 A901            	   271:     LDA #$01
+00:81D7 8D31C6          	   272:     STA BLOCK_BASE+$631    ; dot, dot_dot entries
+00:81DA A200            	   273:     LDX #$00
+                        	   274: Loop_bin:
+00:81DC BDC2CF          	   275:     LDA BIN_name,X
+00:81DF 9D32C6          	   276:     STA BLOCK_BASE+$632,X  ; dot, dot_dot entries
+00:81E2 E8              	   277:     INX
+00:81E3 E00E            	   278:     CPX #14
+00:81E5 D0F5            	   279:     BNE Loop_bin
+                        	   280: 
+                        	   281: ; === /rom/bin dir @ block 9 === ; dot, dot_dot entries
+                        	   282:     ; Entry 1: . (current directory - points to inode 5) ; dot, dot_dot entries
+00:81E7 A905            	   283:     LDA #$05               ; dot, dot_dot entries
+00:81E9 8D00C9          	   284:     STA BLOCK_BASE+$900    ; dot, dot_dot entries
+00:81EC A901            	   285:     LDA #$01               ; dot, dot_dot entries
+00:81EE 8D01C9          	   286:     STA BLOCK_BASE+$901    ; dot, dot_dot entries
+00:81F1 A200            	   287:     LDX #$00               ; dot, dot_dot entries
+                        	   288: Loop_BIN_DOT:              ; dot, dot_dot entries
+00:81F3 BD70CF          	   289:     LDA DOT_name,X         ; dot, dot_dot entries
+00:81F6 9D02C9          	   290:     STA BLOCK_BASE+$902,X  ; dot, dot_dot entries
+00:81F9 E8              	   291:     INX                    ; dot, dot_dot entries
+00:81FA E00E            	   292:     CPX #14                ; dot, dot_dot entries
+00:81FC D0F5            	   293:     BNE Loop_BIN_DOT       ; dot, dot_dot entries
+                        	   294: 
+                        	   295:     ; Entry 2: .. (parent directory - points to /rom inode 3) ; dot, dot_dot entries
+00:81FE A903            	   296:     LDA #$03               ; dot, dot_dot entries
+00:8200 8D10C9          	   297:     STA BLOCK_BASE+$910    ; dot, dot_dot entries
+00:8203 A901            	   298:     LDA #$01               ; dot, dot_dot entries
+00:8205 8D11C9          	   299:     STA BLOCK_BASE+$911    ; dot, dot_dot entries
+00:8208 A200            	   300:     LDX #$00               ; dot, dot_dot entries
+                        	   301: Loop_BIN_DOTDOT:           ; dot, dot_dot entries
+00:820A BD7ECF          	   302:     LDA DOTDOT_name,X      ; dot, dot_dot entries
+00:820D 9D12C9          	   303:     STA BLOCK_BASE+$912,X  ; dot, dot_dot entries
+00:8210 E8              	   304:     INX                    ; dot, dot_dot entries
+00:8211 E00E            	   305:     CPX #14                ; dot, dot_dot entries
+00:8213 D0F5            	   306:     BNE Loop_BIN_DOTDOT    ; dot, dot_dot entries
+                        	   307: 
+                        	   308: ; === README.txt indirect block (block 7) ===
+00:8215 A903            	   309:     LDA #$03
+00:8217 8D00C7          	   310:     STA BLOCK_BASE+$700
+00:821A A904            	   311:     LDA #$04
+00:821C 8D01C7          	   312:     STA BLOCK_BASE+$701
+                        	   313: 
+                        	   314: ; === Fill README.txt file data blocks (1, 2, 3, 4) with 0xEA ===
+                        	   315: 
+                        	   316: ; FillBlock1:
+                        	   317: ;     LDX #$00
+                        	   318: ; LoopB1:
+                        	   319: ;     LDA #$EA
+                        	   320: ;     STA BLOCK_BASE+$100,X
+                        	   321: ;     INX
+                        	   322: ;     BNE LoopB1
+                        	   323: 
+                        	   324: ; FillBlock2:
+                        	   325: ;     LDX #$00
+                        	   326: ; LoopB2:
+                        	   327: ;     LDA #$EA
+                        	   328: ;     STA BLOCK_BASE+$200,X
+                        	   329: ;     INX
+                        	   330: ;     BNE LoopB2
+                        	   331: 
+                        	   332: ; FillBlock3:
+                        	   333: ;     LDX #$00
+                        	   334: ; LoopB3:
+                        	   335: ;     LDA #$EA
+                        	   336: ;     STA BLOCK_BASE+$300,X
+                        	   337: ;     INX
+                        	   338: ;     BNE LoopB3
+                        	   339: 
+                        	   340: ; FillBlock4:
+                        	   341: ;     LDX #$00
+                        	   342: ; LoopB4:
+                        	   343: ;     LDA #$EA
+                        	   344: ;     STA BLOCK_BASE+$400,X
+                        	   345: ;     INX
+                        	   346: ;     BNE LoopB4
+                        	   347: 
+                        	   348: ;BRK
+                        	   349: ;    .align 2 ; 2 byte alignment
+                        	   350: ;token1:       .byte "wwwwwwwwwwwwwwww"
+                        	   351:     .include "../lcd_driver/test.s"
+
+Source: "../lcd_driver/test.s"
+                        	     1: ; HD44780 LCD  
+                        	     2: 
+                        	     3: 
+                        	     4: ; using the code in the previous commit,
+                        	     5: ; asked claude the below
+                        	     6: 
+                        	     7: ; the below is a small 6502 code handling keyboard input and jumps to ls util if the command is ls.
+                        	     8: ; It access   HD44780 LCD by writing a character to 0x6000. 
+                        	     9: ; However, I need a full line discipline doing
+                        	    10: ; 1, at the start, place cursor to 0 col and 0 row.
+                        	    11: ; 2, when writing characters, if column goes beyond 15 (max can be displayed), it should clear the other row and start 
+                        	    12: ; can you modify the code so that it can function like tty on  16x2 LCD ?
+                        	    13: 
+                        	    14: 
+                        	    15: ; === LCD and Shell Configuration ===
+                        	    16: KEY_INPUT    = $0300        ; Key byte buffer
+                        	    17: LCD_DATA     = $6000        ; LCD data register
+                        	    18: LCD_CMD      = $6001        ; LCD command register (if available)
+                        	    19: CMD_BUFFER   = $0400        ; Command string buffer
+                        	    20: CMD_MAX      = 64           ; Max command length
+                        	    21: 
+                        	    22: ; HD44780 LCD Commands 
+                        	    23: LCD_CLEAR    = $01          ; Clear display
+                        	    24: LCD_HOME     = $02          ; Return home
+                        	    25: LCD_ENTRY    = $06          ; Entry mode set
+                        	    26: ; LCD_DISPLAY  = $0C          ; Display on, cursor off
+                        	    27: LCD_DISPLAY  = $0F          ; Display on, cursor on, Blinking on
+                        	    28: LCD_FUNCTION = $38          ; Function set: 8-bit, 2-line, 5x8 dots
+                        	    29: LCD_CGRAM    = $40          ; Set CGRAM address
+                        	    30: LCD_DDRAM    = $80          ; Set DDRAM address
+                        	    31: 
+                        	    32: ; LCD Position Constants
+                        	    33: LCD_ROW0_COL0_ADDR      = $80          ; DDRAM address for line 1, column 0
+                        	    34: LCD_ROW1_COL0_ADDR      = $C0          ; DDRAM address for line 2, column 0
+                        	    35: LCD_COLS                = 16           ; Number of columns
+                        	    36: LCD_ROWS                = 2            ; Number of rows
+                        	    37: 
+                        	    38: LCD_CURRENT_ROW  = $0230         ; current row
+                        	    39: LCD_CURRENT_COL  = $0231         ; current col
+                        	    40: 
+                        	    41: ; Buffer for line content (32 bytes: 16 for each line) 
+                        	    42: LCD_LINE1_BUFFER = $0240         ; First line buffer 
+                        	    43: LCD_LINE2_BUFFER = $0250         ; Second line buffer 
+                        	    44: 
+                        	    45: ;; scroll up down - Scrollable buffer variables
+                        	    46: SCROLL_BUFFER_SIZE = 16          ; 16 lines in circular buffer
+                        	    47: SCROLL_LINE_SIZE   = 16          ; 16 characters per line
+                        	    48: SCROLL_BUFFER      = $0500       ; Start of 16-line buffer (16*16 = 256 bytes)
+                        	    49: SCROLL_HEAD        = $0260       ; Index of newest line (0-15)
+                        	    50: SCROLL_TAIL        = $0261       ; Index of oldest line (0-15)  
+                        	    51: SCROLL_VIEW_TOP    = $0262       ; Index of top line currently displayed (0-15)
+                        	    52: SCROLL_COUNT       = $0263       ; Number of lines in buffer (0-16)
+                        	    53: SCROLL_MODE        = $0264       ; 0=normal mode, 1=scroll mode
+                        	    54: 
+                        	    55: ;; scroll up down - Key codes for arrow keys
+                        	    56: KEY_UP             = $5B ;  '['  Up scroll key
+                        	    57: KEY_DOWN           = $5D ;  ']'  Down scroll key
+                        	    58: 
+                        	    59: WORKING_DIR_INODE  = $0213       ; Current working directory inode number (ADDED) ; pwd support
+                        	    60: 
+                        	    61: ; ---------------------------------------------
+                        	    62: ; Initialize working directory (call this at system startup)
+                        	    63: ;     RTS
+                        	    64: 
+                        	    65: 
+                        	    66: 
+                        	    67: start_lcd:
+                        	    68: 
+                        	    69: ;    JSR init_working_dir
+                        	    70:     ; *** CLEAR KEY BUFFER HERE! ***
+00:821F A900            	    71:     LDA #0
+00:8221 8D0003          	    72:     STA KEY_INPUT
+00:8224 20B983          	    73:     JSR lcd_init
+00:8227 200284          	    74:     JSR lcd_home_cursor
+00:822A 209A85          	    75:     JSR print_prompt
+                        	    76: 
+                        	    77: init_working_dir:
+00:822D A900            	    78:      LDA #0                      ; Start at root directory
+00:822F 8D1302          	    79:      STA WORKING_DIR_INODE
+                        	    80: 
+                        	    81:     ; LDA #'1' ; JSR print_char ; JSR print_char ; JSR print_char ; JSR print_char ; JSR print_char ; LDA #LCD_HOME ; J
+                        	    82: 
+                        	    83: keyinput_loop:
+00:8232 207F85          	    84:     JSR poll_keyboard
+00:8235 90FB            	    85:     BCC keyinput_loop          ; No key yet, poll again
+                        	    86: 
+                        	    87:     ;; scroll up down - Check for arrow keys first
+00:8237 C95B            	    88:     CMP #KEY_UP
+00:8239 F026            	    89:     BEQ handle_key_up
+00:823B C95D            	    90:     CMP #KEY_DOWN
+00:823D F02D            	    91:     BEQ handle_key_down
+                        	    92:     
+                        	    93:     ;; scroll up down - Any other key exits scroll mode
+00:823F 48              	    94:     PHA                    ; Save the key value
+00:8240 AD6402          	    95:     LDA SCROLL_MODE
+00:8243 F003            	    96:     BEQ normal_key_processing_restore
+                        	    97: ;summer_break:
+00:8245 20EC82          	    98:     JSR exit_scroll_mode
+                        	    99: 
+                        	   100: normal_key_processing_restore:
+00:8248 68              	   101:     PLA                    ; Restore the key value
+00:8249 C90D            	   102:     CMP #$0D                ; Enter key (CR)
+00:824B F03E            	   103:     BEQ handle_enter
+                        	   104:     ; CMP #$0A                ; Line feed?
+                        	   105:     ; BEQ process_shell_cmd
+                        	   106: 
+00:824D C908            	   107:     CMP #$08                ; Backspace?
+00:824F F026            	   108:     BEQ handle_backspace
+                        	   109: 
+                        	   110:     ; Ignore extra input if buffer full
+00:8251 AEB885          	   111:     LDX CMD_INDEX
+00:8254 E040            	   112:     CPX #CMD_MAX            ; len(cmd) >= CMD_MAX, do not fall through
+00:8256 B0DA            	   113:     BCS keyinput_loop
+                        	   114: 
+                        	   115:     ; Normal character input
+00:8258 201784          	   116:     JSR print_char
+00:825B 208A85          	   117:     JSR store_char
+00:825E 4C3282          	   118:     JMP keyinput_loop
+                        	   119: 
+                        	   120: ;; scroll up down - Handle up arrow key
+                        	   121: handle_key_up:
+00:8261 209C82          	   122:     JSR scroll_up
+00:8264 A900            	   123:     LDA #0
+00:8266 8D0003          	   124:     STA KEY_INPUT
+00:8269 4C3282          	   125:     JMP keyinput_loop
+                        	   126: 
+                        	   127: ;; scroll up down - Handle down arrow key  
+                        	   128: handle_key_down:
+00:826C 20CC82          	   129:     JSR scroll_down
+00:826F A900            	   130:     LDA #0
+00:8271 8D0003          	   131:     STA KEY_INPUT
+00:8274 4C3282          	   132:     JMP keyinput_loop
+                        	   133: 
+                        	   134: handle_backspace:
+00:8277 AEB885          	   135:     LDX CMD_INDEX
+00:827A F0B6            	   136:     BEQ keyinput_loop          ; No chars to delete
+                        	   137: 
+00:827C CA              	   138:     DEX
+00:827D 8EB885          	   139:     STX CMD_INDEX
+                        	   140: 
+                        	   141:     ; Handle LCD backspace
+00:8280 202485          	   142:     JSR lcd_backspace
+                        	   143:     ; *** CLEAR KEY BUFFER HERE! ***
+00:8283 A900            	   144:     LDA #0
+00:8285 8D0003          	   145:     STA KEY_INPUT
+00:8288 4C3282          	   146:     JMP keyinput_loop
+                        	   147: 
+                        	   148: handle_enter:
+00:828B 20CC85          	   149:     JSR process_shell_cmd
+                        	   150: 
+                        	   151: reset_shell:
+                        	   152:     ;LDX #-1
+00:828E A200            	   153:     LDX #0
+00:8290 8EB885          	   154:     STX CMD_INDEX
+                        	   155:     ;JSR clear_newline_and_move ; do_wrap_and_print
+00:8293 203384          	   156:     JSR do_carriage
+00:8296 209A85          	   157:     JSR print_prompt
+                        	   158: 
+00:8299 4C3282          	   159:     JMP keyinput_loop
+                        	   160: 
+                        	   161: ;; scroll up down - Scroll buffer management routines
+                        	   162: scroll_up:
+00:829C AD6402          	   163:     LDA SCROLL_MODE
+00:829F D012            	   164:     BNE scroll_up_continue
+                        	   165:     ; Entering scroll mode for first time
+00:82A1 A901            	   166:     LDA #1
+00:82A3 8D6402          	   167:     STA SCROLL_MODE
+00:82A6 AD6002          	   168:     LDA SCROLL_HEAD
+                        	   169:     ; bug_report : if HEAD = 8, it means the latest line stored to the scroll buffer is line 8. When user presses UP, t
+                        	   170: 
+                        	   171: 
+00:82A9 38              	   172:     SEC                    ; scroll up fix - Set carry for subtraction
+00:82AA E901            	   173:     SBC #1                 ; scroll up fix - SCROLL_VIEW_TOP = HEAD - 1
+00:82AC 1002            	   174:     BPL store_view_top     ; scroll up fix - If positive, store it
+00:82AE A90F            	   175:     LDA #SCROLL_BUFFER_SIZE-1  ; scroll up fix - If negative, wrap to 15
+                        	   176: store_view_top:            ; scroll up fix
+00:82B0 8D6202          	   177:     STA SCROLL_VIEW_TOP    ; scroll up fix
+                        	   178:     
+                        	   179: scroll_up_continue:
+                        	   180:     ; Check if we can scroll up (view_top != tail)
+00:82B3 AD6202          	   181:     LDA SCROLL_VIEW_TOP
+00:82B6 CD6102          	   182:     CMP SCROLL_TAIL
+00:82B9 F010            	   183:     BEQ scroll_up_done      ; Can't scroll up anymore
+                        	   184:     
+                        	   185:     ; Move view up one line
+00:82BB CE6202          	   186:     DEC SCROLL_VIEW_TOP
+00:82BE AD6202          	   187:     LDA SCROLL_VIEW_TOP
+00:82C1 1005            	   188:     BPL scroll_up_refresh
+00:82C3 A90F            	   189:     LDA #SCROLL_BUFFER_SIZE-1  ; Wrap around
+00:82C5 8D6202          	   190:     STA SCROLL_VIEW_TOP
+                        	   191:     
+                        	   192: scroll_up_refresh:
+00:82C8 20F882          	   193:     JSR refresh_scroll_display
+                        	   194:     
+                        	   195: scroll_up_done:
+00:82CB 60              	   196:     RTS
+                        	   197: 
+                        	   198: scroll_down:
+00:82CC AD6402          	   199:     LDA SCROLL_MODE
+00:82CF F01A            	   200:     BEQ scroll_down_done    ; Not in scroll mode
+                        	   201:     
+                        	   202:     ; Check if we can scroll down
+00:82D1 AD6202          	   203:     LDA SCROLL_VIEW_TOP
+00:82D4 CD6002          	   204:     CMP SCROLL_HEAD
+00:82D7 F012            	   205:     BEQ scroll_down_done    ; Already at newest
+                        	   206:     
+                        	   207:     ; Move view down one line
+00:82D9 EE6202          	   208:     INC SCROLL_VIEW_TOP
+00:82DC AD6202          	   209:     LDA SCROLL_VIEW_TOP
+00:82DF C910            	   210:     CMP #SCROLL_BUFFER_SIZE
+00:82E1 D005            	   211:     BNE scroll_down_refresh
+00:82E3 A900            	   212:     LDA #0                  ; Wrap around
+00:82E5 8D6202          	   213:     STA SCROLL_VIEW_TOP
+                        	   214:     
+                        	   215: scroll_down_refresh:
+00:82E8 20F882          	   216:     JSR refresh_scroll_display
+                        	   217:     
+                        	   218: scroll_down_done:
+00:82EB 60              	   219:     RTS
+                        	   220: 
+                        	   221: ; exit_scroll_mode:
+                        	   222: ;     LDA #0
+                        	   223: ;     STA SCROLL_MODE
+                        	   224: ;     ; Refresh display to show current lines
+                        	   225: ;     JSR lcd_refresh_display
+                        	   226: ;     RTS
+                        	   227: 
+                        	   228: ; The key addition is JSR lcd_update_cursor at the end of exit_scroll_mode. This ensures that after refreshing the disp
+                        	   229: 
+                        	   230: exit_scroll_mode:
+00:82EC A900            	   231:     LDA #0
+00:82EE 8D6402          	   232:     STA SCROLL_MODE
+                        	   233:     ; Refresh display to show current lines
+00:82F1 208384          	   234:     JSR lcd_refresh_display
+                        	   235:     ;; scroll up down - Restore cursor position after exiting scroll mode
+00:82F4 203F85          	   236:     JSR lcd_update_cursor
+00:82F7 60              	   237:     RTS
+                        	   238: 
+                        	   239: refresh_scroll_display:
+                        	   240:     ; Display two lines starting from SCROLL_VIEW_TOP
+                        	   241:     
+                        	   242:     ; Calculate first line address
+00:82F8 AD6202          	   243:     LDA SCROLL_VIEW_TOP
+00:82FB 0A              	   244:     ASL A                   ; Multiply by 16 (line size)
+00:82FC 0A              	   245:     ASL A
+00:82FD 0A              	   246:     ASL A  
+00:82FE 0A              	   247:     ASL A
+00:82FF AA              	   248:     TAX                     ; X = line offset in buffer
+                        	   249:     
+                        	   250:     ; Display first line
+00:8300 A980            	   251:     LDA #LCD_ROW0_COL0_ADDR
+00:8302 201084          	   252:     JSR lcd_command
+00:8305 A000            	   253:     LDY #0
+                        	   254: refresh_line1:
+00:8307 BD0005          	   255:     LDA SCROLL_BUFFER,X
+00:830A 8D0060          	   256:     STA LCD_DATA
+00:830D 207485          	   257:     JSR lcd_delay
+00:8310 E8              	   258:     INX
+00:8311 C8              	   259:     INY
+00:8312 C010            	   260:     CPY #LCD_COLS
+00:8314 D0F1            	   261:     BNE refresh_line1
+                        	   262:     
+                        	   263:     ; Calculate second line (next line in circular buffer)
+00:8316 AD6202          	   264:     LDA SCROLL_VIEW_TOP
+00:8319 18              	   265:     CLC 
+00:831A 6901            	   266:     ADC #$01
+00:831C C910            	   267:     CMP #SCROLL_BUFFER_SIZE
+00:831E D002            	   268:     BNE calc_second_line
+00:8320 A900            	   269:     LDA #0                  ; Wrap around
+                        	   270: calc_second_line:
+00:8322 0A              	   271:     ASL A                   ; Multiply by 16
+00:8323 0A              	   272:     ASL A
+00:8324 0A              	   273:     ASL A
+00:8325 0A              	   274:     ASL A
+00:8326 AA              	   275:     TAX
+                        	   276:     
+                        	   277:     ; Display second line
+00:8327 A9C0            	   278:     LDA #LCD_ROW1_COL0_ADDR
+00:8329 201084          	   279:     JSR lcd_command
+00:832C A000            	   280:     LDY #0
+                        	   281: refresh_line2:
+00:832E BD0005          	   282:     LDA SCROLL_BUFFER,X
+00:8331 8D0060          	   283:     STA LCD_DATA
+00:8334 207485          	   284:     JSR lcd_delay
+00:8337 E8              	   285:     INX
+00:8338 C8              	   286:     INY
+00:8339 C010            	   287:     CPY #LCD_COLS
+00:833B D0F1            	   288:     BNE refresh_line2
+                        	   289:     
+00:833D 60              	   290:     RTS
+                        	   291: 
+                        	   292: add_line_to_scroll_buffer:
+                        	   293:     ; Add current LCD_LINE1_BUFFER and LCD_LINE2_BUFFER to scroll buffer
+                        	   294:     
+                        	   295:     ; First, add line 1 to buffer
+00:833E AD6002          	   296:     LDA SCROLL_HEAD
+00:8341 18              	   297:     CLC 
+00:8342 6901            	   298:     ADC #$01
+00:8344 C910            	   299:     CMP #SCROLL_BUFFER_SIZE
+00:8346 D002            	   300:     BNE store_head1
+00:8348 A900            	   301:     LDA #0                  ; Wrap around
+                        	   302: store_head1:
+00:834A 8D6002          	   303:     STA SCROLL_HEAD
+                        	   304:     
+                        	   305:     ; Calculate buffer offset
+00:834D 0A              	   306:     ASL A                   ; Multiply by 16
+00:834E 0A              	   307:     ASL A
+00:834F 0A              	   308:     ASL A
+00:8350 0A              	   309:     ASL A
+00:8351 AA              	   310:     TAX
+                        	   311:     
+                        	   312:     ; Copy LCD_LINE1_BUFFER to scroll buffer
+00:8352 A000            	   313:     LDY #0
+                        	   314: copy_line1:
+00:8354 B94002          	   315:     LDA LCD_LINE1_BUFFER,Y
+00:8357 9D0005          	   316:     STA SCROLL_BUFFER,X
+00:835A E8              	   317:     INX
+00:835B C8              	   318:     INY
+00:835C C010            	   319:     CPY #LCD_COLS
+00:835E D0F4            	   320:     BNE copy_line1
+                        	   321:     
+                        	   322:     ; Update count and tail if buffer is full
+00:8360 AD6302          	   323:     LDA SCROLL_COUNT
+00:8363 C910            	   324:     CMP #SCROLL_BUFFER_SIZE
+00:8365 F006            	   325:     BEQ update_tail1
+00:8367 EE6302          	   326:     INC SCROLL_COUNT
+00:836A 4C7C83          	   327:     JMP add_line2
+                        	   328: update_tail1:
+00:836D EE6102          	   329:     INC SCROLL_TAIL
+00:8370 AD6102          	   330:     LDA SCROLL_TAIL
+00:8373 C910            	   331:     CMP #SCROLL_BUFFER_SIZE
+00:8375 D005            	   332:     BNE add_line2
+00:8377 A900            	   333:     LDA #0
+00:8379 8D6102          	   334:     STA SCROLL_TAIL
+                        	   335:     
+                        	   336: add_line2:
+                        	   337:     ; Add line 2 to buffer
+00:837C AD6002          	   338:     LDA SCROLL_HEAD
+00:837F 18              	   339:     CLC 
+00:8380 6901            	   340:     ADC #$01
+00:8382 C910            	   341:     CMP #SCROLL_BUFFER_SIZE
+00:8384 D002            	   342:     BNE store_head2
+00:8386 A900            	   343:     LDA #0
+                        	   344: store_head2:
+00:8388 8D6002          	   345:     STA SCROLL_HEAD
+                        	   346:     
+00:838B 0A              	   347:     ASL A
+00:838C 0A              	   348:     ASL A
+00:838D 0A              	   349:     ASL A
+00:838E 0A              	   350:     ASL A
+00:838F AA              	   351:     TAX
+                        	   352:     
+00:8390 A000            	   353:     LDY #0
+                        	   354: copy_line2:
+00:8392 B95002          	   355:     LDA LCD_LINE2_BUFFER,Y
+00:8395 9D0005          	   356:     STA SCROLL_BUFFER,X
+00:8398 E8              	   357:     INX
+00:8399 C8              	   358:     INY
+00:839A C010            	   359:     CPY #LCD_COLS
+00:839C D0F4            	   360:     BNE copy_line2
+                        	   361:     
+00:839E AD6302          	   362:     LDA SCROLL_COUNT
+00:83A1 C910            	   363:     CMP #SCROLL_BUFFER_SIZE
+00:83A3 F004            	   364:     BEQ update_tail2
+00:83A5 EE6302          	   365:     INC SCROLL_COUNT
+00:83A8 60              	   366:     RTS
+                        	   367: update_tail2:
+00:83A9 EE6102          	   368:     INC SCROLL_TAIL
+00:83AC AD6102          	   369:     LDA SCROLL_TAIL
+00:83AF C910            	   370:     CMP #SCROLL_BUFFER_SIZE
+00:83B1 D005            	   371:     BNE done_add_line
+00:83B3 A900            	   372:     LDA #0
+00:83B5 8D6102          	   373:     STA SCROLL_TAIL
+                        	   374: done_add_line:
+00:83B8 60              	   375:     RTS
+                        	   376: 
+                        	   377: ; lcd driver including line discipline and scroll
+                        	   378: 
+                        	   379: lcd_init:
+                        	   380:     ; Initialize LCD in 8-bit mode, 2-line display
+00:83B9 A938            	   381:     LDA #LCD_FUNCTION
+00:83BB 201084          	   382:     JSR lcd_command
+00:83BE A90F            	   383:     LDA #LCD_DISPLAY 
+00:83C0 201084          	   384:     JSR lcd_command
+00:83C3 A906            	   385:     LDA #LCD_ENTRY
+00:83C5 201084          	   386:     JSR lcd_command
+00:83C8 20E483          	   387:     JSR lcd_clear
+00:83CB 20F283          	   388:     JSR lcd_clear_buffers      
+                        	   389:     ;; scroll up down - Initialize scroll buffer
+00:83CE 20D283          	   390:     JSR init_scroll_buffer
+00:83D1 60              	   391:     RTS
+                        	   392: 
+                        	   393: ;; scroll up down - Initialize scroll buffer variables
+                        	   394: init_scroll_buffer:
+00:83D2 A900            	   395:     LDA #0
+00:83D4 8D6002          	   396:     STA SCROLL_HEAD
+00:83D7 8D6102          	   397:     STA SCROLL_TAIL
+00:83DA 8D6202          	   398:     STA SCROLL_VIEW_TOP
+00:83DD 8D6302          	   399:     STA SCROLL_COUNT
+00:83E0 8D6402          	   400:     STA SCROLL_MODE
+00:83E3 60              	   401:     RTS
+                        	   402: 
+                        	   403: lcd_clear:
+00:83E4 A901            	   404:     LDA #LCD_CLEAR
+00:83E6 201084          	   405:     JSR lcd_command
+                        	   406:     ; Reset cursor position
+                        	   407: 
+                        	   408: 
+00:83E9 A900            	   409:     LDA #0
+00:83EB 8D3102          	   410:     STA LCD_CURRENT_COL
+00:83EE 8D3002          	   411:     STA LCD_CURRENT_ROW
+00:83F1 60              	   412:     RTS
+                        	   413: 
+                        	   414: lcd_clear_buffers:             
+                        	   415:     ; Clear both line buffers   
+00:83F2 A200            	   416:     LDX #0                     
+00:83F4 A920            	   417:     LDA #' '                   
+                        	   418: clear_buffers_loop:            
+00:83F6 9D4002          	   419:     STA LCD_LINE1_BUFFER,X     
+00:83F9 9D5002          	   420:     STA LCD_LINE2_BUFFER,X     
+00:83FC E8              	   421:     INX                        
+00:83FD E010            	   422:     CPX #LCD_COLS              
+00:83FF D0F5            	   423:     BNE clear_buffers_loop     
+00:8401 60              	   424:     RTS                        
+                        	   425: 
+                        	   426: lcd_home_cursor:
+00:8402 A900            	   427:     LDA #0
+00:8404 8D3102          	   428:     STA LCD_CURRENT_COL
+00:8407 8D3002          	   429:     STA LCD_CURRENT_ROW
+00:840A A902            	   430:     LDA #LCD_HOME
+00:840C 201084          	   431:     JSR lcd_command
+00:840F 60              	   432:     RTS
+                        	   433: 
+                        	   434: lcd_command:
+                        	   435:     ; Send command to LCD
+                        	   436:     ; For basic setup, we'll assume LCD_CMD register exists
+                        	   437:     ; If not available, this would need timing loops
+00:8410 8D0160          	   438:     STA LCD_CMD
+00:8413 207485          	   439:     JSR lcd_delay
+00:8416 60              	   440:     RTS
+                        	   441: 
+                        	   442: print_char:
+                        	   443: ; summer_break:
+00:8417 8621            	   444:     STX X_SCRATCH      ; 
+00:8419 8422            	   445:     STY Y_SCRATCH      ; bug_report at 4426a08, Y is the pointer used in print_name in ls_util, but also used in print_
+                        	   446:     ;CMP #$0A
+                        	   447:     ;BEQ do_newline           ; emulator sends \r for enter key so this routine is not used
+                        	   448: ; 
+                        	   449: ; bug_report : \r should not be printed
+                        	   450:     ; CMP #$0D
+                        	   451:     ; BEQ do_carriage
+                        	   452: 
+00:841B AE3102          	   453:     LDX LCD_CURRENT_COL
+00:841E E010            	   454:     CPX #LCD_COLS            ; end of column, wrap
+00:8420 B021            	   455:     BCS do_wrap_and_print
+                        	   456: 
+                        	   457: do_normal: ; fallthrough normal write
+00:8422 8D0060          	   458:     STA LCD_DATA
+00:8425 207485          	   459:     JSR lcd_delay
+00:8428 20AE84          	   460:     JSR lcd_store_char_in_buffer   
+00:842B EE3102          	   461:     INC LCD_CURRENT_COL
+                        	   462:  
+00:842E A422            	   463:     LDY Y_SCRATCH      ; bug_report at 4426a08
+00:8430 A621            	   464:     LDX X_SCRATCH      ; 
+00:8432 60              	   465:     RTS
+                        	   466: 
+                        	   467: ;do_newline:   ; emulator sends \r for enter key so this routine is not used
+                        	   468: ;    JSR clear_newline_and_move
+                        	   469: ;    RTS
+                        	   470: 
+                        	   471: do_carriage:
+                        	   472:     ;; scroll up down - Add current screen to scroll buffer before carriage
+00:8433 203E83          	   473:     JSR add_line_to_scroll_buffer
+                        	   474:     
+00:8436 AD3002          	   475:     LDA LCD_CURRENT_ROW        
+00:8439 F004            	   476:     BEQ carriage_line1         
+                        	   477:     ; On line 2, need to scroll 
+00:843B 205784          	   478:     JSR lcd_scroll_up          
+00:843E 60              	   479:     RTS                        
+                        	   480: carriage_line1:                
+00:843F 20BE84          	   481:     JSR clear_newline_and_move ; lcd_carriage_return
+00:8442 60              	   482:     RTS
+                        	   483: 
+                        	   484: do_wrap_and_print:
+00:8443 48              	   485:     PHA
+00:8444 AD3002          	   486:     LDA LCD_CURRENT_ROW        
+00:8447 F007            	   487:     BEQ wrap_to_line2          
+                        	   488:     ; On line 2, need to scroll before printing 
+00:8449 205784          	   489:     JSR lcd_scroll_up          
+00:844C 68              	   490:     PLA                        
+00:844D 4C2284          	   491:     JMP do_normal              
+                        	   492: wrap_to_line2:                 
+00:8450 20BE84          	   493:     JSR clear_newline_and_move  ; clear new line, put curtor at the head 
+00:8453 68              	   494:     PLA
+00:8454 4C2284          	   495:     JMP do_normal   ; print the char
+                        	   496: 
+                        	   497: lcd_scroll_up:                 
+                        	   498:     ; Copy line 2 to line 1     
+00:8457 A200            	   499:     LDX #0                     
+                        	   500: scroll_copy_loop:              
+00:8459 BD5002          	   501:     LDA LCD_LINE2_BUFFER,X     
+00:845C 9D4002          	   502:     STA LCD_LINE1_BUFFER,X     
+00:845F E8              	   503:     INX                        
+00:8460 E010            	   504:     CPX #LCD_COLS              
+00:8462 D0F5            	   505:     BNE scroll_copy_loop       
+                        	   506:                                
+                        	   507:     ; Clear line 2 buffer       
+00:8464 A200            	   508:     LDX #0                     
+00:8466 A920            	   509:     LDA #' '                   
+                        	   510: scroll_clear_loop:             
+00:8468 9D5002          	   511:     STA LCD_LINE2_BUFFER,X     
+00:846B E8              	   512:     INX                        
+00:846C E010            	   513:     CPX #LCD_COLS              
+00:846E D0F8            	   514:     BNE scroll_clear_loop      
+                        	   515:                                
+                        	   516:     ; Refresh LCD display       
+00:8470 208384          	   517:     JSR lcd_refresh_display    
+                        	   518:                                
+                        	   519:     ; Position cursor at start of line 2 
+00:8473 A901            	   520:     LDA #1                     
+00:8475 8D3002          	   521:     STA LCD_CURRENT_ROW        
+00:8478 A900            	   522:     LDA #0                     
+00:847A 8D3102          	   523:     STA LCD_CURRENT_COL        
+00:847D A9C0            	   524:     LDA #LCD_ROW1_COL0_ADDR    
+00:847F 201084          	   525:     JSR lcd_command            
+00:8482 60              	   526:     RTS                        
+                        	   527: 
+                        	   528: lcd_refresh_display:           
+                        	   529:     ; Display line 1            
+00:8483 A980            	   530:     LDA #LCD_ROW0_COL0_ADDR    
+00:8485 201084          	   531:     JSR lcd_command            
+00:8488 A200            	   532:     LDX #0                     
+                        	   533: refresh_line1_loop:            
+00:848A BD4002          	   534:     LDA LCD_LINE1_BUFFER,X     
+00:848D 8D0060          	   535:     STA LCD_DATA               
+00:8490 207485          	   536:     JSR lcd_delay              
+00:8493 E8              	   537:     INX                        
+00:8494 E010            	   538:     CPX #LCD_COLS              
+00:8496 D0F2            	   539:     BNE refresh_line1_loop     
+                        	   540:                                
+                        	   541:     ; Display line 2            
+00:8498 A9C0            	   542:     LDA #LCD_ROW1_COL0_ADDR    
+00:849A 201084          	   543:     JSR lcd_command            
+00:849D A200            	   544:     LDX #0                     
+                        	   545: refresh_line2_loop:            
+00:849F BD5002          	   546:     LDA LCD_LINE2_BUFFER,X     
+00:84A2 8D0060          	   547:     STA LCD_DATA               
+00:84A5 207485          	   548:     JSR lcd_delay              
+00:84A8 E8              	   549:     INX                        
+00:84A9 E010            	   550:     CPX #LCD_COLS              
+00:84AB D0F2            	   551:     BNE refresh_line2_loop     
+00:84AD 60              	   552:     RTS                        
+                        	   553: 
+                        	   554: lcd_store_char_in_buffer:      
+                        	   555:     ; Store character in appropriate line buffer 
+00:84AE AE3102          	   556:     LDX LCD_CURRENT_COL        
+00:84B1 AC3002          	   557:     LDY LCD_CURRENT_ROW        
+00:84B4 F004            	   558:     BEQ store_in_line1         
+                        	   559:     ; Store in line 2           
+00:84B6 9D5002          	   560:     STA LCD_LINE2_BUFFER,X     
+00:84B9 60              	   561:     RTS                        
+                        	   562: store_in_line1:                
+00:84BA 9D4002          	   563:     STA LCD_LINE1_BUFFER,X     
+00:84BD 60              	   564:     RTS                        
+                        	   565: 
+                        	   566: clear_newline_and_move: ; Move to start of next line
+                        	   567:     ;PHA     
+00:84BE AD3002          	   568:     LDA LCD_CURRENT_ROW
+00:84C1 C900            	   569:     CMP #0
+00:84C3 F014            	   570:     BEQ move_to_line2
+                        	   571:     
+                        	   572:     ; Currently on line 2, clear and go to line 1
+00:84C5 205885          	   573:     JSR lcd_clear_line
+00:84C8 20EF84          	   574:     JSR lcd_clear_line_buffer  
+00:84CB A900            	   575:     LDA #0
+00:84CD 8D3002          	   576:     STA LCD_CURRENT_ROW
+00:84D0 8D3102          	   577:     STA LCD_CURRENT_COL
+00:84D3 A980            	   578:     LDA #LCD_ROW0_COL0_ADDR
+00:84D5 201084          	   579:     JSR lcd_command
+                        	   580:     ;PLA 
+00:84D8 60              	   581:     RTS
+                        	   582: 
+                        	   583: move_to_line2:
+                        	   584:     ; Currently on line 1, clear line 2 and move there
+00:84D9 205885          	   585:     JSR lcd_clear_line
+00:84DC 20EF84          	   586:     JSR lcd_clear_line_buffer  
+00:84DF A901            	   587:     LDA #1
+00:84E1 8D3002          	   588:     STA LCD_CURRENT_ROW
+00:84E4 A900            	   589:     LDA #0
+00:84E6 8D3102          	   590:     STA LCD_CURRENT_COL
+00:84E9 A9C0            	   591:     LDA #LCD_ROW1_COL0_ADDR
+00:84EB 201084          	   592:     JSR lcd_command
+00:84EE 60              	   593:     RTS
+                        	   594: 
+                        	   595: lcd_clear_line_buffer:         
+                        	   596:     ; Clear the buffer for current line 
+00:84EF AD3002          	   597:     LDA LCD_CURRENT_ROW        
+00:84F2 F00D            	   598:     BEQ clear_line1_buffer     
+                        	   599:     ; Clear line 2 buffer       
+00:84F4 A200            	   600:     LDX #0                     
+00:84F6 A920            	   601:     LDA #' '                   
+                        	   602: clear_line2_buf_loop:          
+00:84F8 9D5002          	   603:     STA LCD_LINE2_BUFFER,X     
+00:84FB E8              	   604:     INX                        
+00:84FC E010            	   605:     CPX #LCD_COLS              
+00:84FE D0F8            	   606:     BNE clear_line2_buf_loop   
+00:8500 60              	   607:     RTS                        
+                        	   608: clear_line1_buffer:            
+00:8501 A200            	   609:     LDX #0                     
+00:8503 A920            	   610:     LDA #' '                   
+                        	   611: clear_line1_buf_loop:          
+00:8505 9D4002          	   612:     STA LCD_LINE1_BUFFER,X     
+00:8508 E8              	   613:     INX                        
+00:8509 E010            	   614:     CPX #LCD_COLS              
+00:850B D0F8            	   615:     BNE clear_line1_buf_loop   
+00:850D 60              	   616:     RTS                        
+                        	   617: 
+                        	   618: lcd_carriage_return:
+                        	   619:     ; Move to start of current line
+00:850E A900            	   620:     LDA #0
+00:8510 8D3102          	   621:     STA LCD_CURRENT_COL
+00:8513 AD3002          	   622:     LDA LCD_CURRENT_ROW
+00:8516 F006            	   623:     BEQ set_line1_pos
+00:8518 A9C0            	   624:     LDA #LCD_ROW1_COL0_ADDR
+00:851A 201084          	   625:     JSR lcd_command
+00:851D 60              	   626:     RTS
+                        	   627: set_line1_pos:
+00:851E A980            	   628:     LDA #LCD_ROW0_COL0_ADDR
+00:8520 201084          	   629:     JSR lcd_command
+00:8523 60              	   630:     RTS
+                        	   631: 
+                        	   632: lcd_backspace:
+                        	   633:     ; Move cursor back one position
+00:8524 AD3102          	   634:     LDA LCD_CURRENT_COL
+00:8527 F015            	   635:     BEQ backspace_prev_line
+                        	   636:     
+                        	   637:     ; Same line backspace
+00:8529 CE3102          	   638:     DEC LCD_CURRENT_COL
+00:852C 203F85          	   639:     JSR lcd_update_cursor
+                        	   640:     
+                        	   641:     ; Clear character at current position
+00:852F A920            	   642:     LDA #' '
+00:8531 8D0060          	   643:     STA LCD_DATA
+00:8534 207485          	   644:     JSR lcd_delay
+00:8537 20AE84          	   645:     JSR lcd_store_char_in_buffer   
+                        	   646:     
+                        	   647:     ; Move cursor back again
+00:853A 203F85          	   648:     JSR lcd_update_cursor
+00:853D 60              	   649:     RTS
+                        	   650: 
+                        	   651: backspace_prev_line:
+                        	   652:     ; At start of line, can't backspace further
+                        	   653:     ; (Could implement wrap to previous line if desired)
+00:853E 60              	   654:     RTS
+                        	   655: 
+                        	   656: lcd_update_cursor:
+                        	   657:     ; Set cursor position based on LCD_CURRENT_ROW and LCD_CURRENT_COL
+00:853F AD3002          	   658:     LDA LCD_CURRENT_ROW
+00:8542 F00A            	   659:     BEQ update_line1
+                        	   660:     
+                        	   661:     ; Line 2
+00:8544 A9C0            	   662:     LDA #LCD_ROW1_COL0_ADDR
+00:8546 18              	   663:     CLC
+00:8547 6D3102          	   664:     ADC LCD_CURRENT_COL
+00:854A 201084          	   665:     JSR lcd_command
+00:854D 60              	   666:     RTS
+                        	   667: 
+                        	   668: update_line1:
+                        	   669:     ; Line 1  
+00:854E A980            	   670:     LDA #LCD_ROW0_COL0_ADDR
+00:8550 18              	   671:     CLC
+00:8551 6D3102          	   672:     ADC LCD_CURRENT_COL
+00:8554 201084          	   673:     JSR lcd_command
+00:8557 60              	   674:     RTS
+                        	   675: 
+                        	   676: ; ====================================================================
+                        	   677: ; Combined LCD Clear Line Routine (Input in A)
+                        	   678: ; Input: A = 0 to clear line 2
+                        	   679: ;        A = 1 to clear line 1
+                        	   680: ; ====================================================================
+                        	   681: lcd_clear_line:
+00:8558 AA              	   682:     TAX                     ; Save the input value of A into X for comparison
+00:8559 A9C0            	   683:     LDA #$C0                ; Start with the base command for line 2
+00:855B E001            	   684:     CPX #1                  ; Check if the input is 1
+00:855D D002            	   685:     BNE set_cursor          ; If X is not 1, skip the EOR
+                        	   686:     ; If X is 1, change the command to line 1
+00:855F 4940            	   687:     EOR #$40                ; Flip bit 6 to change 0xC0 to 0x80
+                        	   688: 
+                        	   689: set_cursor:
+00:8561 201084          	   690:     JSR lcd_command         ; Send the command
+00:8564 A000            	   691:     LDY #0                  ; Use Y as a counter
+00:8566 A920            	   692:     LDA #' '                ; The space character to write
+                        	   693:     
+                        	   694: clear_loop:
+00:8568 8D0060          	   695:     STA LCD_DATA            ; Write the space
+00:856B 207485          	   696:     JSR lcd_delay
+00:856E C8              	   697:     INY
+00:856F C010            	   698:     CPY #LCD_COLS           ; Assumes LCD_COLS is the width of the display
+00:8571 D0F5            	   699:     BNE clear_loop
+                        	   700:     
+00:8573 60              	   701:     RTS
+                        	   702: 
+                        	   703: lcd_delay:
+                        	   704:     ; Simple delay for LCD timing
+                        	   705:     ; Adjust based on your system clock
+00:8574 48              	   706:     PHA
+                        	   707:     ;LDA #$FF  ; long delay
+00:8575 A903            	   708:     LDA #$03
+                        	   709: delay_loop:
+00:8577 EA              	   710:     NOP
+00:8578 EA              	   711:     NOP
+00:8579 E901            	   712:     SBC #1
+00:857B D0FA            	   713:     BNE delay_loop
+00:857D 68              	   714:     PLA
+00:857E 60              	   715:     RTS
+                        	   716: 
+                        	   717: ; === Original Shell Routines (Modified) ===
+                        	   718: 
+                        	   719: poll_keyboard:
+00:857F AD0003          	   720:     LDA KEY_INPUT
+00:8582 C900            	   721:     CMP #$00
+00:8584 F002            	   722:     BEQ no_key
+00:8586 38              	   723:     SEC
+00:8587 60              	   724:     RTS
+                        	   725: no_key:
+00:8588 18              	   726:     CLC
+00:8589 60              	   727:     RTS
+                        	   728: 
+                        	   729: store_char:
+                        	   730:     ; Input: A = character
+00:858A AEB885          	   731:     LDX CMD_INDEX
+00:858D 9D0004          	   732:     STA CMD_BUFFER,X
+00:8590 E8              	   733:     INX
+00:8591 8EB885          	   734:     STX CMD_INDEX
+00:8594 A900            	   735:     LDA #$00        ; clear key buffer
+00:8596 8D0003          	   736:     STA KEY_INPUT
+00:8599 60              	   737:     RTS
+                        	   738: 
+                        	   739: print_prompt:
+00:859A A000            	   740:     LDY #0
+                        	   741: print_prompt_loop:
+00:859C B9B985          	   742:     LDA prompt_msg,Y
+00:859F F007            	   743:     BEQ done_prompt
+00:85A1 201784          	   744:     JSR print_char
+00:85A4 C8              	   745:     INY
+00:85A5 4C9C85          	   746:     JMP print_prompt_loop
+                        	   747: done_prompt:
+00:85A8 60              	   748:     RTS
+                        	   749: 
+                        	   750: print_unknown:
+00:85A9 A000            	   751:     LDY #0
+                        	   752: print_unk_loop:
+00:85AB B9BC85          	   753:     LDA unk_msg,Y
+00:85AE F007            	   754:     BEQ done_unk
+00:85B0 201784          	   755:     JSR print_char
+00:85B3 C8              	   756:     INY
+00:85B4 4CAB85          	   757:     JMP print_unk_loop
+                        	   758: done_unk:
+00:85B7 60              	   759:     RTS
+                        	   760: 
+                        	   761: 
+                        	   762: ; === Data ===
+                        	   763: 
+00:85B8 00              	   764: CMD_INDEX:      .byte 0
+00:85B9 3E20            	   765: prompt_msg:     .byte "> ", 0
+00:85BB 00
+00:85BC 556E6B6E6F776E20	   766: unk_msg:        .byte "Unknown command", 0
+00:85C4 636F6D6D616E64
+00:85CB 00
+                        	   767: ; LCD State Variables
+                        	   768: ;LCD_CURRENT_COL:     .byte 0        ; Current column (0-15)
+                        	   769: ;LCD_CURRENT_ROW:     .byte 0        ; Current row (0-1)
+                        	   770: 
+                        	   771: 
+                        	   772: ; # Scroll Buffer Visual Explanation
+                        	   773: 
+                        	   774: ; ## Buffer Structure
+                        	   775: ; The scroll buffer is a **circular buffer** that holds 16 lines, each 16 characters wide:
+                        	   776: 
+                        	   777: ; ```
+                        	   778: ; SCROLL_BUFFER (256 bytes total):
+                        	   779: ; ┌─────────────────┐
+                        	   780: ; │ Line 0 (16 ch)  │  ← Index 0  (bytes 0-15)
+                        	   781: ; │ Line 1 (16 ch)  │  ← Index 1  (bytes 16-31)
+                        	   782: ; │ Line 2 (16 ch)  │  ← Index 2  (bytes 32-47)
+                        	   783: ; │      ...        │
+                        	   784: ; │ Line 15 (16 ch) │  ← Index 15 (bytes 240-255)
+                        	   785: ; └─────────────────┘
+                        	   786: ; ```
+                        	   787: 
+                        	   788: ; ## Key Variables
+                        	   789: ; - **SCROLL_HEAD**: Points to the newest line (last written)
+                        	   790: ; - **SCROLL_TAIL**: Points to the oldest line (first to be overwritten)
+                        	   791: ; - **SCROLL_COUNT**: Number of lines currently stored (0-16)
+                        	   792: ; - **SCROLL_VIEW_TOP**: Which line is shown at top of LCD when scrolling
+                        	   793: 
+                        	   794: ; ## How Lines Are Added
+                        	   795: 
+                        	   796: ; ### Initial State (Empty Buffer)
+                        	   797: ; ```
+                        	   798: ; HEAD=0, TAIL=0, COUNT=0
+                        	   799: ; ┌─────────────────┐
+                        	   800: ; │ Line 0 [empty]  │  ← HEAD, TAIL
+                        	   801: ; │ Line 1 [empty]  │
+                        	   802: ; │ Line 2 [empty]  │
+                        	   803: ; │      ...        │
+                        	   804: ; │ Line 15 [empty] │
+                        	   805: ; └─────────────────┘
+                        	   806: ; ```
+                        	   807: 
+                        	   808: ; ### Step 1: First Carriage Return (adds 2 lines)
+                        	   809: ; When user presses Enter, `do_carriage` → `add_line_to_scroll_buffer`:
+                        	   810: 
+                        	   811: ; 1. **Add LINE1_BUFFER**:
+                        	   812: ;    ```
+                        	   813: ;    HEAD moves: 0 → 1, COUNT: 0 → 1
+                        	   814: ;    ┌─────────────────┐
+                        	   815: ;    │ Line 0 [empty]  │  ← TAIL
+                        	   816: ;    │ Line 1 [LINE1]  │  ← HEAD (just written)
+                        	   817: ;    │ Line 2 [empty]  │
+                        	   818: ;    │      ...        │
+                        	   819: ;    └─────────────────┘
+                        	   820: ;    ```
+                        	   821: 
+                        	   822: ; 2. **Add LINE2_BUFFER**:
+                        	   823: ;    ```
+                        	   824: ;    HEAD moves: 1 → 2, COUNT: 1 → 2
+                        	   825: ;    ┌─────────────────┐
+                        	   826: ;    │ Line 0 [empty]  │  ← TAIL
+                        	   827: ;    │ Line 1 [LINE1]  │
+                        	   828: ;    │ Line 2 [LINE2]  │  ← HEAD (just written)
+                        	   829: ;    │ Line 3 [empty]  │
+                        	   830: ;    │      ...        │
+                        	   831: ;    └─────────────────┘
+                        	   832: ;    ```
+                        	   833: 
+                        	   834: ; ### Step 2: After Several Carriage Returns
+                        	   835: ; ```
+                        	   836: ; HEAD=8, TAIL=0, COUNT=8
+                        	   837: ; ┌─────────────────┐
+                        	   838: ; │ Line 0 [empty]  │  ← TAIL
+                        	   839: ; │ Line 1 [LINE1]  │  ← oldest data
+                        	   840: ; │ Line 2 [LINE2]  │
+                        	   841: ; │ Line 3 [LINE3]  │
+                        	   842: ; │ Line 4 [LINE4]  │
+                        	   843: ; │ Line 5 [LINE5]  │
+                        	   844: ; │ Line 6 [LINE6]  │
+                        	   845: ; │ Line 7 [LINE7]  │
+                        	   846: ; │ Line 8 [LINE8]  │  ← HEAD (newest)
+                        	   847: ; │ Line 9 [empty]  │
+                        	   848: ; │      ...        │
+                        	   849: ; └─────────────────┘
+                        	   850: ; ```
+                        	   851: 
+                        	   852: ; ### Step 3: Buffer Full (16 lines)
+                        	   853: ; ```
+                        	   854: ; HEAD=0, TAIL=1, COUNT=16 (wraps around)
+                        	   855: ; ┌─────────────────┐
+                        	   856: ; │ Line 0 [LINE16] │  ← HEAD (newest, wrapped)
+                        	   857: ; │ Line 1 [LINE1]  │  ← TAIL (oldest)
+                        	   858: ; │ Line 2 [LINE2]  │
+                        	   859: ; │      ...        │
+                        	   860: ; │ Line 15[LINE15] │
+                        	   861: ; └─────────────────┘
+                        	   862: ; ```
+                        	   863: 
+                        	   864: ; ### Step 4: Overwriting Old Data
+                        	   865: ; When buffer is full and we add new lines:
+                        	   866: ; ```
+                        	   867: ; Before: HEAD=0, TAIL=1
+                        	   868: ; After adding 2 new lines: HEAD=2, TAIL=3
+                        	   869: 
+                        	   870: ; ┌─────────────────┐
+                        	   871: ; │ Line 0 [LINE16] │  (old)
+                        	   872: ; │ Line 1 [NEW1]   │  ← HEAD moved here
+                        	   873: ; │ Line 2 [NEW2]   │  ← HEAD moved here  
+                        	   874: ; │ Line 3 [LINE2]  │  ← TAIL moved here (LINE1 overwritten)
+                        	   875: ; │      ...        │
+                        	   876: ; └─────────────────┘
+                        	   877: ; ```
+                        	   878: 
+                        	   879: ; ## Scrolling View
+                        	   880: 
+                        	   881: ; ### Normal Display
+                        	   882: ; LCD shows the current LINE1_BUFFER and LINE2_BUFFER:
+                        	   883: ; ```
+                        	   884: ; LCD Display:
+                        	   885: ; ┌─────────────────┐
+                        	   886: ; │ Current Line 1  │  ← What user is typing
+                        	   887: ; │ Current Line 2  │  ← Current cursor position
+                        	   888: ; └─────────────────┘
+                        	   889: ; ```
+                        	   890: 
+                        	   891: ; ### Scroll Mode Activated
+                        	   892: ; When user presses UP arrow:
+                        	   893: ; - SCROLL_VIEW_TOP = SCROLL_HEAD (start at newest)
+                        	   894: ; - Display shows 2 consecutive lines from scroll buffer
+                        	   895: 
+                        	   896: ; ```
+                        	   897: ; Example: HEAD=8, user presses UP
+                        	   898: ; SCROLL_VIEW_TOP = 8
+                        	   899: 
+                        	   900: ; LCD Display:
+                        	   901: ; ┌─────────────────┐
+                        	   902: ; │ Line 8 content  │  ← SCROLL_VIEW_TOP
+                        	   903: ; │ Line 9 content  │  ← SCROLL_VIEW_TOP + 1
+                        	   904: ; └─────────────────┘
+                        	   905: ; ```
+                        	   906: ; 
+                        	   907: ; bug_report : 
+                        	   908: ; if HEAD = 8, it means the latest line stored to the scroll buffer is line 8. 
+                        	   909: ; When user presses UP, the screen should show line 7 and 8 at 
+                        	   910: ; the top and bottom of LCD, respectively. 
+                        	   911: ; For this, SCROLL_VIEW_TOP should be 7 not 8. What do you think ?
+                        	   912: 
+                        	   913: ; AI suggested before (b) and after (a) for the fix:
+                        	   914: ; scroll_up:
+                        	   915: ;     LDA SCROLL_MODE
+                        	   916: ;     BNE scroll_up_continue
+                        	   917: ;     ; Entering scroll mode for first time
+                        	   918: ;     LDA #1
+                        	   919: ;     STA SCROLL_MODE
+                        	   920: ;     LDA SCROLL_HEAD
+                        	   921: ; b   STA SCROLL_VIEW_TOP
+                        	   922: ; a   SEC                    ; scroll up fix - Set carry for subtraction
+                        	   923: ; a   SBC #1                 ; scroll up fix - SCROLL_VIEW_TOP = HEAD - 1
+                        	   924: ; a   BPL store_view_top     ; scroll up fix - If positive, store it
+                        	   925: ; a   LDA #SCROLL_BUFFER_SIZE-1  ; scroll up fix - If negative, wrap to 15
+                        	   926: ; astore_view_top:            ; scroll up fix
+                        	   927: ; a   STA SCROLL_VIEW_TOP    ; scroll up fix
+                        	   928:     
+                        	   929: ; scroll_up_continue:
+                        	   930: ;     ; Check if we can scroll up (view_top != tail)
+                        	   931: ;     LDA SCROLL_VIEW_TOP
+                        	   932: ;     CMP SCROLL_TAIL
+                        	   933: ;     BEQ scroll_up_done      ; Can't scroll up anymore
+                        	   934:     
+                        	   935: ;     ; Move view up one line
+                        	   936: ;     DEC SCROLL_VIEW_TOP
+                        	   937: ;     LDA SCROLL_VIEW_TOP
+                        	   938: ;     BPL scroll_up_refresh
+                        	   939: ;     LDA #SCROLL_BUFFER_SIZE-1  ; Wrap around
+                        	   940: ;     STA SCROLL_VIEW_TOP
+                        	   941: 
+                        	   942: 
+                        	   943: ; ### Scrolling Up Further
+                        	   944: ; User presses UP again:
+                        	   945: ; ```
+                        	   946: ; SCROLL_VIEW_TOP moves: 8 → 7
+                        	   947: 
+                        	   948: ; LCD Display:
+                        	   949: ; ┌─────────────────┐
+                        	   950: ; │ Line 7 content  │  ← SCROLL_VIEW_TOP
+                        	   951: ; │ Line 8 content  │  ← SCROLL_VIEW_TOP + 1
+                        	   952: ; └─────────────────┘
+                        	   953: ; ```
+                        	   954: 
+                        	   955: ; ### Scroll Limits
+                        	   956: ; - **Can't scroll up past TAIL**: `SCROLL_VIEW_TOP == SCROLL_TAIL` stops upward scrolling
+                        	   957: ; - **Can't scroll down past HEAD**: `SCROLL_VIEW_TOP == SCROLL_HEAD` stops downward scrolling
+                        	   958: 
+                        	   959: ; ## Key Algorithm: Circular Buffer Math
+                        	   960: 
+                        	   961: ; **Buffer Address Calculation**:
+                        	   962: ; ```assembly
+                        	   963: ; ; To get byte offset for line N:
+                        	   964: ; LDA line_index    ; 0-15
+                        	   965: ; ASL A             ; × 2
+                        	   966: ; ASL A             ; × 4  
+                        	   967: ; ASL A             ; × 8
+                        	   968: ; ASL A             ; × 16 = line_index * 16
+                        	   969: ; TAX               ; X = offset into SCROLL_BUFFER
+                        	   970: ; ```
+                        	   971: 
+                        	   972: ; **Wraparound Logic**:
+                        	   973: ; ```assembly
+                        	   974: ; ; Increment with wraparound
+                        	   975: ; INC HEAD
+                        	   976: ; LDA HEAD
+                        	   977: ; CMP #SCROLL_BUFFER_SIZE  ; 16
+                        	   978: ; BNE no_wrap
+                        	   979: ; LDA #0                   ; Wrap to 0
+                        	   980: ; STA HEAD
+                        	   981: ; ```
+                        	   982: 
+                        	   983: ; This design efficiently manages a rolling window of the last 16 lines displayed, 
+                        	   984: ; allowing users to scroll back through recent history without losing current typing position.
+
+Source: "./test.s"
+                        	   352:     .include "../shell/test.s"
+
+Source: "../shell/test.s"
+                        	     1: ; bug_report  bc59655 for the command parsing logic
+                        	     2: ;
+                        	     3: ; bug1 
+                        	     4: ; if command is cd2, it matches command cd and take 2 as a path
+                        	     5: ; if command is cd2 3, cd is recognized as cmd and '2 3' as a path
+                        	     6: ;
+                        	     7: ; bug2: 
+                        	     8: ; logic checks if cmd matches to cd\0
+                        	     9: ; if there is a command cwd, then c is matched to the c of cd
+                        	    10: ; then w does not match to the d, so it jumps to the next cmd , check_ls
+                        	    11: ; however, X and Y should be reset to zero so that it compares from the first character
+                        	    12: ; 
+                        	    13: ; otherwise an interesting case is this:
+                        	    14: ;  1, assume there are cmds cd, cwd, and pwd
+                        	    15: ;  2, cmd check cd, pwd, then cwd in that order
+                        	    16: ;  3, user type cwd
+                        	    17: ;  4, code check if cmd is cd first -- compares c in cd and c in cwd, ok
+                        	    18: ;  5, next, d and w does not match , so code check if cmd is pwd
+                        	    19: ;  6, X, Y are at w not at p
+                        	    20: ;  7, w in cwd and w in pwd matches 
+                        	    21: ;  8, d in cwd and d in pwd matches 
+                        	    22: ;  9, finally, code recognize it as pwd and runs pwd, not user typed cwd
+                        	    23: 
+                        	    24: 
+                        	    25: summer_break:
+                        	    26: process_shell_cmd:
+00:85CC AEB885          	    27:     LDX CMD_INDEX
+00:85CF A900            	    28:     LDA #$00
+00:85D1 9D0004          	    29:     STA CMD_BUFFER,X        ; Null-terminate
+                        	    30: 
+                        	    31:     ; Reset CMD_INDEX for next command
+00:85D4 A200            	    32:     LDX #0
+00:85D6 8EB885          	    33:     STX CMD_INDEX
+                        	    34: 
+                        	    35:     ; Move to next line
+                        	    36:     ;JSR clear_newline_and_move
+                        	    37: 
+                        	    38:     ; Parse command - currently supports "ls"
+00:85D9 A200            	    39:     LDX #0
+00:85DB A000            	    40:     LDY #0
+                        	    41: 
+                        	    42: check_cd:                               ; cd util
+00:85DD BD0004          	    43:     LDA CMD_BUFFER,X                    ; cd util
+00:85E0 D96E86          	    44:     CMP cd_cmd,Y                        ; cd util
+00:85E3 D02F            	    45:     BNE check_pwd                        ; cd util - Not cd, try pwd
+00:85E5 F000            	    46:     BEQ cd_match_check                  ; cd util
+                        	    47: cd_match_check:                         ; cd util
+00:85E7 E8              	    48:     INX                                 ; cd util
+00:85E8 C8              	    49:     INY                                 ; cd util
+00:85E9 B96E86          	    50:     LDA cd_cmd,Y                        ; cd util
+00:85EC C900            	    51:     CMP #0                              ; cd util
+00:85EE D0ED            	    52:     BNE check_cd                        ; cd util
+                        	    53: 
+                        	    54:     ; Matched "cd", skip spaces         ; cd util
+                        	    55: cd_skip_space:                          ; cd util
+00:85F0 BD0004          	    56:     LDA CMD_BUFFER,X                    ; cd util
+00:85F3 C920            	    57:     CMP #' '                            ; cd util
+00:85F5 D004            	    58:     BNE cd_got_path                     ; cd util
+00:85F7 E8              	    59:     INX                                 ; cd util
+00:85F8 4CF085          	    60:     JMP cd_skip_space                   ; cd util
+                        	    61: 
+                        	    62: cd_got_path:                            ; cd util
+00:85FB A000            	    63:     LDY #0                              ; cd util
+                        	    64: cd_copy_path:                           ; cd util
+00:85FD BD0004          	    65:     LDA CMD_BUFFER,X                    ; cd util
+00:8600 990004          	    66:     STA PATH_INPUT,Y                    ; cd util
+00:8603 F006            	    67:     BEQ call_cd                         ; cd util
+00:8605 E8              	    68:     INX                                 ; cd util
+00:8606 C8              	    69:     INY                                 ; cd util
+00:8607 C040            	    70:     CPY #CMD_MAX                        ; cd util
+00:8609 D0F2            	    71:     BNE cd_copy_path                    ; cd util
+                        	    72: 
+                        	    73: call_cd:                                ; cd util
+00:860B 204988          	    74:     JSR start_cd                        ; cd util - jump to cd util
+00:860E A900            	    75:     LDA #0                              ; cd util
+00:8610 8D0003          	    76:     STA KEY_INPUT                       ; cd util
+00:8613 60              	    77:     RTS                     ; cd util
+                        	    78:     
+                        	    79: ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                        	    80: 
+                        	    81: check_pwd:                              ; pwd util
+00:8614 BD0004          	    82:     LDA CMD_BUFFER,X                    ; pwd util
+00:8617 D97186          	    83:     CMP pwd_cmd,Y                       ; pwd util
+00:861A D014            	    84:     BNE check_ls                        ; pwd util - Not pwd, try ls
+00:861C F000            	    85:     BEQ pwd_match_check                 ; pwd util
+                        	    86: pwd_match_check:                        ; pwd util
+00:861E E8              	    87:     INX                                 ; pwd util
+00:861F C8              	    88:     INY                                 ; pwd util
+00:8620 B97186          	    89:     LDA pwd_cmd,Y                       ; pwd util
+00:8623 C900            	    90:     CMP #0                              ; pwd util
+00:8625 D0ED            	    91:     BNE check_pwd                       ; pwd util
+                        	    92: 
+                        	    93:     ; Matched "pwd",                    ; pwd util
+                        	    94: call_pwd:                               ; pwd util
+00:8627 20D388          	    95:     JSR start_pwd                       ; pwd util - jump to pwd util
+00:862A A900            	    96:     LDA #0                              ; pwd util
+00:862C 8D0003          	    97:     STA KEY_INPUT                       ; pwd util
+00:862F 60              	    98:     RTS                     ; pwd util
+                        	    99: 
+                        	   100: ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                        	   101: 
+                        	   102: check_ls:
+00:8630 BD0004          	   103:     LDA CMD_BUFFER,X
+00:8633 D96B86          	   104:     CMP ls_cmd,Y
+00:8636 D02F            	   105:     BNE unknown_cmd
+00:8638 F000            	   106:     BEQ match_check
+                        	   107: match_check:
+00:863A E8              	   108:     INX
+00:863B C8              	   109:     INY
+00:863C B96B86          	   110:     LDA ls_cmd,Y
+00:863F C900            	   111:     CMP #0
+00:8641 D0ED            	   112:     BNE check_ls
+                        	   113: 
+                        	   114:     ; Matched "ls", skip spaces
+                        	   115: skip_space:
+00:8643 BD0004          	   116:     LDA CMD_BUFFER,X
+00:8646 C920            	   117:     CMP #' '
+00:8648 D004            	   118:     BNE got_path
+00:864A E8              	   119:     INX
+00:864B 4C4386          	   120:     JMP skip_space
+                        	   121: 
+                        	   122: got_path:
+00:864E A000            	   123:     LDY #0
+                        	   124: copy_path:
+00:8650 BD0004          	   125:     LDA CMD_BUFFER,X
+00:8653 990004          	   126:     STA PATH_INPUT,Y
+00:8656 F006            	   127:     BEQ call_ls
+00:8658 E8              	   128:     INX
+00:8659 C8              	   129:     INY
+00:865A C040            	   130:     CPY #CMD_MAX
+00:865C D0F2            	   131:     BNE copy_path
+                        	   132: 
+                        	   133: call_ls:
+00:865E 208D86          	   134:     JSR start_ls     ; jump to ls util
+                        	   135:     ; *** CLEAR KEY BUFFER HERE! ***
+                        	   136: 
+                        	   137:     ; JSR newline
+00:8661 A900            	   138:     LDA #0
+00:8663 8D0003          	   139:     STA KEY_INPUT
+00:8666 60              	   140:     RTS
+                        	   141: 
+                        	   142: unknown_cmd:
+00:8667 20A985          	   143:     JSR print_unknown
+00:866A 60              	   144:     RTS
+                        	   145: 
+                        	   146: 
+                        	   147: 
+00:866B 6C73            	   148: ls_cmd:         .byte "ls", 0
+00:866D 00
+00:866E 6364            	   149: cd_cmd:         .byte "cd", 0           ; cd util
+00:8670 00
+00:8671 707764          	   150: pwd_cmd:        .byte "pwd", 0           ; pwd util
+00:8674 00
+                        	   151: 
+
+Source: "./test.s"
+                        	   353:     .include "../ls_util/test.s"
+
+Source: "../ls_util/test.s"
+                        	     1: ; ---------------------------------------------
+                        	     2: ; 6502 RAM File System LS Utility
+                        	     3: ; Author: ChatGPT (based on your FS design)
+                        	     4: ; ---------------------------------------------
+                        	     5: 
+                        	     6: ; === Memory Layout Symbols ===
+                        	     7: ; Zero Page Usage
+                        	     8: PATH_PTR_LO     = $10           ; Low byte of path string pointer
+                        	     9: PATH_PTR_HI     = $11           ; High byte of path string pointer
+                        	    10: ; Note: INODE_BASE_HI = $12 and BLOCK_BASE_HI = $13 defined in rom_fs.s
+                        	    11: 
+                        	    12: ; Scratch Memory
+                        	    13: TOKEN_BUFFER    = $0200         ; $0200-$020F: path token buffer (16 bytes)
+                        	    14: CURRENT_INODE   = $0210         ; Current inode number during traversal
+                        	    15: TEMP_BLOCK_NUM  = $0211         ; Temporary block number storage
+                        	    16: TEMP_INODE_NUM  = $0212         ; Temporary inode number storage
+                        	    17: 
+                        	    18: ; Working Pointers (used by various routines)
+                        	    19: WORK_PTR_LO     = $00           ; General purpose pointer low byte
+                        	    20: WORK_PTR_HI     = $01           ; General purpose pointer high byte
+                        	    21: BLOCK_PTR_LO    = $02           ; Block pointer low byte
+                        	    22: BLOCK_PTR_HI    = $03           ; Block pointer high byte
+                        	    23: DIR_PTR_LO      = $04           ; Directory scanning pointer low
+                        	    24: DIR_PTR_HI      = $05           ; Directory scanning pointer high
+                        	    25: SCAN_PTR_LO     = $06           ; Scan block pointer low byte
+                        	    26: SCAN_PTR_HI     = $07           ; Scan block pointer high byte
+                        	    27: 
+                        	    28: ; Input/Output
+                        	    29: PATH_INPUT      = $0400         ; Input path string buffer
+                        	    30: 
+                        	    31: ; File System Constants
+                        	    32: MAX_INODES      = 64            ; Maximum number of inodes
+                        	    33: MAX_DATABLOCK   = 64            ; Maximum number of inodes
+                        	    34: INODE_SIZE      = 16            ; Size of each inode in bytes
+                        	    35: DIR_ENTRY_SIZE  = 16            ; Size of directory entry
+                        	    36: BLOCK_SIZE      = 256           ; Size of data block
+                        	    37: 
+                        	    38: ; Inode Structure Offsets
+                        	    39: I_MODE          = 0             ; File type and permissions
+                        	    40: I_UID           = 1             ; User ID
+                        	    41: I_SIZE_LO       = 2             ; File size low byte
+                        	    42: I_SIZE_HI       = 3             ; File size high byte
+                        	    43: I_BLOCK0        = 6             ; Direct block 0
+                        	    44: I_BLOCK1        = 7             ; Direct block 1  
+                        	    45: I_BLOCK2        = 8             ; Indirect block
+                        	    46: 
+                        	    47: ; Directory Entry Structure Offsets
+                        	    48: DE_INODE        = 0             ; Inode number
+                        	    49: DE_TYPE         = 1             ; Type
+                        	    50: DE_NAME         = 2             ; Start of filename
+                        	    51: 
+                        	    52: ; File Type Masks
+                        	    53: FT_FILE         = %00000000     ; Regular file
+                        	    54: FT_DIR          = %00010000     ; Directory
+                        	    55: 
+                        	    56: ; ---------------------------------------------
+                        	    57: simulate_ls:
+00:8675 207F86          	    58:     JSR prepare_path
+00:8678 A9FF            	    59:     LDA #$FF
+00:867A 48              	    60:     PHA
+00:867B 48              	    61:     PHA
+00:867C 48              	    62:     PHA
+00:867D 00              	    63:     BRK                         ; Exit simulation
+00:867E 60              	    64:     RTS
+                        	    65: 
+                        	    66: ; --- Prepare Path String ---
+                        	    67: prepare_path:
+00:867F A200            	    68:     LDX #$00
+                        	    69: copyLoop:
+00:8681 BD3A88          	    70:     LDA rom_bin,X               ; Load byte from ROM string
+00:8684 9D0004          	    71:     STA PATH_INPUT,X            ; Store to RAM path buffer
+00:8687 F004            	    72:     BEQ start_ls                ; If null terminator, jump to ls
+00:8689 E8              	    73:     INX
+00:868A 4C8186          	    74:     JMP copyLoop
+                        	    75: 
+                        	    76: ; --- Entry Point ---
+                        	    77: start_ls:
+00:868D A900            	    78:     LDA #<PATH_INPUT
+00:868F 8510            	    79:     STA PATH_PTR_LO             ; zero-page low byte of path pointer
+00:8691 A904            	    80:     LDA #>PATH_INPUT
+00:8693 8511            	    81:     STA PATH_PTR_HI             ; zero-page high byte of path pointer
+                        	    82: 
+                        	    83:     ; CHANGE 1: Check if path is empty (ls with no arguments) ; pwd support
+00:8695 A000            	    84:     LDY #0
+00:8697 B110            	    85:     LDA (PATH_PTR_LO),Y
+00:8699 C900            	    86:     CMP #0
+00:869B F015            	    87:     BEQ ls_current_dir          ; Empty path = list current directory ; pwd support
+                        	    88: 
+                        	    89:     ; CHANGE 2: Check if path starts with '/' (absolute vs relative) ; pwd support
+00:869D C92F            	    90:     CMP #'/'
+00:869F F009            	    91:     BEQ absolute_path
+                        	    92:     
+                        	    93:     ; Relative path - start from current working directory ; pwd support
+00:86A1 AD1302          	    94:     LDA WORKING_DIR_INODE
+00:86A4 8D1002          	    95:     STA CURRENT_INODE
+00:86A7 4CBB86          	    96:     JMP resolve_path
+                        	    97: 
+                        	    98: absolute_path:
+                        	    99:     ; Absolute path - start from root ; pwd support
+00:86AA A900            	   100:     LDA #0
+00:86AC 8D1002          	   101:     STA CURRENT_INODE           ; Start from root inode 0
+00:86AF 4CBB86          	   102:     JMP resolve_path
+                        	   103: 
+                        	   104: ls_current_dir:
+                        	   105:     ; CHANGE 3: List current working directory ; pwd support
+00:86B2 AD1302          	   106:     LDA WORKING_DIR_INODE
+00:86B5 8D1002          	   107:     STA CURRENT_INODE
+00:86B8 4CDB86          	   108:     JMP done_resolving
+                        	   109: 
+                        	   110: resolve_path: ; pwd support
+                        	   111: next_token:
+00:86BB 20FC87          	   112:     JSR next_path_token         ; Extract next path component into TOKEN_BUFFER
+00:86BE F01B            	   113:     BEQ done_resolving          ; If empty, done traversing
+                        	   114: 
+00:86C0 AD1002          	   115:     LDA CURRENT_INODE
+00:86C3 20FC86          	   116:     JSR get_inode_ptr           ; Set pointer to inode address in WORK_PTR
+                        	   117: 
+                        	   118:     ; --- if current inode is file, do not search in its data block
+00:86C6 A000            	   119:     LDY #I_MODE
+00:86C8 B100            	   120:     LDA (WORK_PTR_LO),Y
+00:86CA 29F0            	   121:     AND #%11110000
+00:86CC C910            	   122:     CMP #FT_DIR
+00:86CE D02A            	   123:     BNE not_found
+                        	   124: 
+00:86D0 201687          	   125:     JSR find_in_dir_block             ; Look for token in this directory
+00:86D3 B025            	   126:     BCS not_found
+                        	   127: 
+00:86D5 8D1002          	   128:     STA CURRENT_INODE           ; Found! Update inode number
+00:86D8 4CBB86          	   129:     JMP next_token
+                        	   130: 
+                        	   131: done_resolving:
+00:86DB AD1002          	   132:     LDA CURRENT_INODE
+00:86DE 20FC86          	   133:     JSR get_inode_ptr
+                        	   134: 
+00:86E1 A000            	   135:     LDY #I_MODE
+00:86E3 B100            	   136:     LDA (WORK_PTR_LO),Y
+00:86E5 29F0            	   137:     AND #%11110000
+00:86E7 C910            	   138:     CMP #FT_DIR                 ; Directory?
+00:86E9 F007            	   139:     BEQ do_ls_dir
+                        	   140: 
+00:86EB C900            	   141:     CMP #FT_FILE                ; Regular file?
+00:86ED F007            	   142:     BEQ do_ls_file
+                        	   143: 
+00:86EF 4CFB86          	   144:     JMP unknown_type
+                        	   145: 
+                        	   146: do_ls_dir:
+                        	   147:     ;JSR clear_newline_and_move
+00:86F2 209C87          	   148:     JSR print_dir
+00:86F5 60              	   149:     RTS
+                        	   150: 
+                        	   151: do_ls_file:
+                        	   152:     ;JSR clear_newline_and_move
+00:86F6 20E087          	   153:     JSR print_file_info
+00:86F9 60              	   154:     RTS
+                        	   155: 
+                        	   156: not_found:
+                        	   157:     ; print "not found"
+00:86FA 60              	   158:     RTS
+                        	   159: 
+                        	   160: unknown_type:
+                        	   161:     ; print "unknown type"
+00:86FB 60              	   162:     RTS
+                        	   163: 
+                        	   164: ; ---------------------------------------------
+                        	   165: ; Set pointer to inode
+                        	   166: ; Input: A = inode number
+                        	   167: ; Output: WORK_PTR_LO/HI = address of inode
+                        	   168: get_inode_ptr:
+00:86FC C940            	   169:     CMP #MAX_INODES
+00:86FE B013            	   170:     BCS bad_inode               ; Bounds check
+00:8700 8D1202          	   171:     STA TEMP_INODE_NUM
+00:8703 AD1202          	   172:     LDA TEMP_INODE_NUM
+00:8706 0A              	   173:     ASL A
+00:8707 0A              	   174:     ASL A
+00:8708 0A              	   175:     ASL A
+00:8709 0A              	   176:     ASL A                       ; inode * 16
+00:870A 8500            	   177:     STA WORK_PTR_LO
+00:870C A512            	   178:     LDA INODE_BASE_HI           ; Read base from zero page
+00:870E 6900            	   179:     ADC #0                      ; add carry if any
+00:8710 8501            	   180:     STA WORK_PTR_HI
+00:8712 60              	   181:     RTS
+                        	   182: bad_inode:
+00:8713 4CFA86          	   183:     JMP not_found
+                        	   184: 
+                        	   185: ; ---------------------------------------------
+                        	   186: ; Find directory entry in inode and dir data block
+                        	   187: ; Input:
+                        	   188: ;   WORK_PTR_LO/HI = pointer to inode
+                        	   189: ;   TOKEN_BUFFER = search name (null-terminated)
+                        	   190: ; Output:
+                        	   191: ;   A = inode number
+                        	   192: ;   Carry = 0 if found, 1 if not
+                        	   193: find_in_dir_block:
+00:8716 A006            	   194:     LDY #I_BLOCK0
+00:8718 B100            	   195:     LDA (WORK_PTR_LO),Y         ; i_block[0]
+00:871A 205987          	   196:     JSR scan_block
+00:871D 9038            	   197:     BCC found_entry
+                        	   198: 
+00:871F C8              	   199:     INY
+00:8720 B100            	   200:     LDA (WORK_PTR_LO),Y         ; i_block[1]
+00:8722 205987          	   201:     JSR scan_block
+00:8725 9030            	   202:     BCC found_entry
+                        	   203: 
+00:8727 C8              	   204:     INY
+00:8728 B100            	   205:     LDA (WORK_PTR_LO),Y         ; i_block[2] = indirect block
+00:872A F0CE            	   206:     BEQ not_found
+00:872C 8D1102          	   207:     STA TEMP_BLOCK_NUM          ; Save indirect block number
+00:872F C940            	   208:     CMP #MAX_INODES
+00:8731 B0C7            	   209:     BCS not_found
+                        	   210: 
+00:8733 AD1102          	   211:     LDA TEMP_BLOCK_NUM
+00:8736 0A              	   212:     ASL A
+00:8737 2603            	   213:     ROL BLOCK_PTR_HI
+00:8739 0A              	   214:     ASL A
+00:873A 2603            	   215:     ROL BLOCK_PTR_HI
+00:873C 8502            	   216:     STA BLOCK_PTR_LO
+00:873E A503            	   217:     LDA BLOCK_PTR_HI
+00:8740 0513            	   218:     ORA BLOCK_BASE_HI           ; Read base from zero page
+00:8742 8503            	   219:     STA BLOCK_PTR_HI
+                        	   220: 
+00:8744 A000            	   221:     LDY #0
+                        	   222: next_indirect:
+00:8746 B102            	   223:     LDA (BLOCK_PTR_LO),Y
+00:8748 F005            	   224:     BEQ skip_indirect
+00:874A 205987          	   225:     JSR scan_block
+00:874D 9008            	   226:     BCC found_entry
+                        	   227: skip_indirect:
+00:874F C8              	   228:     INY
+00:8750 C000            	   229:     CPY #$00
+00:8752 D0F2            	   230:     BNE next_indirect
+                        	   231: 
+00:8754 4CFA86          	   232:     JMP not_found
+                        	   233: 
+                        	   234: found_entry:
+00:8757 18              	   235:     CLC
+00:8758 60              	   236:     RTS
+                        	   237: 
+                        	   238: ; ------------------------------------------------
+                        	   239: ; scan_block
+                        	   240: ; Scan a single directory data block for name match
+                        	   241: ;
+                        	   242: ; Input:
+                        	   243: ;   A    = block number (0..63)
+                        	   244: ;   TOKEN_BUFFER = null-terminated string to match
+                        	   245: ;
+                        	   246: ; Output:
+                        	   247: ;   A    = inode number of matching entry (if found)
+                        	   248: ;   Carry = Clear if found, Set if not found
+                        	   249: ;
+                        	   250: ; Scratch:
+                        	   251: ;   SCAN_PTR_LO/HI = address of current directory block
+                        	   252: ;   TEMP_INODE_NUM = inode number of candidate
+                        	   253: ;
+                        	   254: scan_block:
+00:8759 C940            	   255:     CMP #MAX_INODES
+00:875B B038            	   256:     BCS not_found_scan          ; Block number out of range
+                        	   257: 
+00:875D AA              	   258:     TAX                         ; Save block number in X
+00:875E A900            	   259:     LDA #$00
+00:8760 8506            	   260:     STA SCAN_PTR_LO             ; Low byte = 0
+00:8762 8A              	   261:     TXA
+00:8763 18              	   262:     CLC
+00:8764 6513            	   263:     ADC BLOCK_BASE_HI           ; Read base from zero page
+00:8766 8507            	   264:     STA SCAN_PTR_HI             ; SCAN_PTR = address of block
+                        	   265: 
+00:8768 A000            	   266:     LDY #0                      ; Offset into block
+                        	   267: 
+                        	   268: scan_loop:
+00:876A B106            	   269:     LDA (SCAN_PTR_LO),Y         ; Load first byte of entry (inode)
+00:876C C900            	   270:     CMP #$00
+00:876E F01C            	   271:     BEQ skip_entry              ; If 0, skip invalid entry
+                        	   272: 
+00:8770 8D1202          	   273:     STA TEMP_INODE_NUM          ; Save inode number
+                        	   274: 
+                        	   275:     ; Move Y to name field (offset 2)
+00:8773 98              	   276:     TYA
+00:8774 18              	   277:     CLC
+00:8775 6902            	   278:     ADC #DE_NAME
+00:8777 A8              	   279:     TAY
+                        	   280:     ; init X to 0
+00:8778 A200            	   281:     LDX #0
+                        	   282:     ; Compare entry name (null-terminated string)
+                        	   283: cmp_loop:
+00:877A B106            	   284:     LDA (SCAN_PTR_LO),Y
+00:877C DD0002          	   285:     CMP TOKEN_BUFFER,X          ; Compare with input string
+00:877F D00B            	   286:     BNE skip_entry
+                        	   287: 
+00:8781 F000            	   288:     BEQ check_null
+                        	   289: check_null:
+00:8783 C900            	   290:     CMP #$00
+00:8785 F010            	   291:     BEQ found_match             ; Null terminator and matched
+                        	   292: 
+00:8787 E8              	   293:     INX
+00:8788 C8              	   294:     INY
+00:8789 4C7A87          	   295:     JMP cmp_loop
+                        	   296: 
+                        	   297: skip_entry:
+                        	   298:     ; Round Y down to start of current entry
+00:878C 98              	   299:     TYA
+00:878D 29F0            	   300:     AND #$F0                    ; Mask out low bits to get base of 16-byte entry
+00:878F 18              	   301:     CLC
+00:8790 6910            	   302:     ADC #DIR_ENTRY_SIZE         ; Move to next entry
+00:8792 A8              	   303:     TAY
+00:8793 D0D5            	   304:     BNE scan_loop               ; Repeat until wrap (end of block)
+                        	   305: 
+                        	   306: not_found_scan:
+00:8795 38              	   307:     SEC
+00:8796 60              	   308:     RTS
+                        	   309: 
+                        	   310: found_match:
+00:8797 AD1202          	   311:     LDA TEMP_INODE_NUM          ; Load inode number
+00:879A 18              	   312:     CLC
+00:879B 60              	   313:     RTS
+                        	   314: 
+                        	   315: ; ---------------------------------------------
+                        	   316: ; Print directory contents
+                        	   317: print_dir:
+00:879C A006            	   318:     LDY #I_BLOCK0
+00:879E B100            	   319:     LDA (WORK_PTR_LO),Y
+00:87A0 20AB87          	   320:     JSR print_block             ; direct block 1
+00:87A3 A007            	   321:     LDY #I_BLOCK1
+00:87A5 B100            	   322:     LDA (WORK_PTR_LO),Y
+00:87A7 20AB87          	   323:     JSR print_block             ; direct block 2
+00:87AA 60              	   324:     RTS
+                        	   325: 
+                        	   326: 
+                        	   327: print_block:
+00:87AB C940            	   328:     CMP #MAX_DATABLOCK
+00:87AD B030            	   329:     BCS skip_block
+00:87AF AA              	   330:     TAX                         ; Save block number in X
+00:87B0 A900            	   331:     LDA #$00
+00:87B2 8504            	   332:     STA DIR_PTR_LO 
+00:87B4 8A              	   333:     TXA
+00:87B5 18              	   334:     CLC
+00:87B6 6513            	   335:     ADC BLOCK_BASE_HI           ; Read base from zero page
+00:87B8 8505            	   336:     STA DIR_PTR_HI              ; DIR_PTR = address of block
+                        	   337: 
+00:87BA A000            	   338:     LDY #0
+                        	   339: print_loop:
+00:87BC B104            	   340:     LDA (DIR_PTR_LO),Y          ; inode number
+00:87BE C900            	   341:     CMP #INVALID_INODE
+00:87C0 F012            	   342:     BEQ print_next              ; invalid or empty inode, skip to next entry
+                        	   343: 
+00:87C2 203388          	   344:     JSR separator                 ; space between names
+                        	   345:     ; Move Y to name field (offset 2)
+00:87C5 98              	   346:     TYA
+00:87C6 18              	   347:     CLC
+00:87C7 6902            	   348:     ADC #DE_NAME
+00:87C9 A8              	   349:     TAY
+                        	   350:     
+                        	   351: 
+                        	   352: print_name:
+00:87CA B104            	   353:     LDA (DIR_PTR_LO),Y          ; name string , null ending
+00:87CC F006            	   354:     BEQ print_next              ; null -> next entry
+00:87CE 201784          	   355:     JSR print_char
+00:87D1 C8              	   356:     INY
+00:87D2 D0F6            	   357:     BNE print_name
+                        	   358: 
+                        	   359: print_next:
+                        	   360:     ; JSR separator
+                        	   361:     ; Round Y down to start of current entry
+00:87D4 98              	   362:     TYA
+00:87D5 29F0            	   363:     AND #$F0                    ; Mask out low bits to get base of 16-byte entry
+00:87D7 18              	   364:     CLC
+00:87D8 6910            	   365:     ADC #DIR_ENTRY_SIZE         ; Move to next entry
+00:87DA A8              	   366:     TAY
+00:87DB C000            	   367:     CPY #$00                    ; check all 16 entries are printed
+00:87DD D0DD            	   368:     BNE print_loop
+                        	   369: skip_block:
+00:87DF 60              	   370:     RTS
+                        	   371: 
+                        	   372: ; ---------------------------------------------
+                        	   373: ; Print file info
+                        	   374: print_file_info:
+                        	   375:     ; For now, just print "FILE"
+00:87E0 A200            	   376:     LDX #0
+00:87E2 A000            	   377:     LDY #$00
+00:87E4 A946            	   378:     LDA #'F'
+00:87E6 201784          	   379:     JSR print_char
+00:87E9 A949            	   380:     LDA #'I'
+00:87EB 201784          	   381:     JSR print_char
+00:87EE A94C            	   382:     LDA #'L'
+00:87F0 201784          	   383:     JSR print_char
+00:87F3 A945            	   384:     LDA #'E'
+00:87F5 201784          	   385:     JSR print_char
+00:87F8 203388          	   386:     JSR separator
+00:87FB 60              	   387:     RTS
+                        	   388: 
+                        	   389: ; ---------------------------------------------
+                        	   390: ; Tokenize next path component
+                        	   391: ; Input: PATH_PTR_LO/HI = pointer to current path position
+                        	   392: ; Output: TOKEN_BUFFER = next token (null-terminated)
+                        	   393: ;         returns with Z = 1 if no more tokens
+                        	   394: next_path_token:
+00:87FC A000            	   395:     LDY #0
+                        	   396: skip_slash:
+00:87FE B110            	   397:     LDA (PATH_PTR_LO),Y
+00:8800 C92F            	   398:     CMP #'/'
+00:8802 D004            	   399:     BNE parse_token
+00:8804 C8              	   400:     INY
+00:8805 4CFE87          	   401:     JMP skip_slash
+                        	   402: 
+                        	   403: parse_token:
+00:8808 A200            	   404:     LDX #0
+                        	   405: next_char:
+00:880A B110            	   406:     LDA (PATH_PTR_LO),Y
+00:880C C92F            	   407:     CMP #'/'
+00:880E F00C            	   408:     BEQ end_token
+00:8810 C900            	   409:     CMP #$00
+00:8812 F008            	   410:     BEQ end_token
+00:8814 9D0002          	   411:     STA TOKEN_BUFFER,X
+00:8817 C8              	   412:     INY
+00:8818 E8              	   413:     INX
+00:8819 4C0A88          	   414:     JMP next_char
+                        	   415: 
+                        	   416: end_token:
+00:881C A900            	   417:     LDA #0
+00:881E 9D0002          	   418:     STA TOKEN_BUFFER,X
+00:8821 98              	   419:     TYA
+00:8822 18              	   420:     CLC
+00:8823 6510            	   421:     ADC PATH_PTR_LO
+00:8825 8510            	   422:     STA PATH_PTR_LO             ; update pointer low byte
+00:8827 A511            	   423:     LDA PATH_PTR_HI
+00:8829 6900            	   424:     ADC #0                      ; propagate carry
+00:882B 8511            	   425:     STA PATH_PTR_HI             ; update pointer high byte
+                        	   426: 
+00:882D AD0002          	   427:     LDA TOKEN_BUFFER            ; check if token is empty
+00:8830 C900            	   428:     CMP #0
+00:8832 60              	   429:     RTS
+                        	   430: 
+                        	   431: separator:
+00:8833 A920            	   432:     LDA #$20 ; #$5F underscore #$20 is space , #$0A = Line Feed
+00:8835 201784          	   433:     JSR print_char
+00:8838 60              	   434:     RTS
+                        	   435: 
+                        	   436: compare_names:
+                        	   437:     ; compare null-terminated TOKEN_BUFFER and Y offset in memory
+                        	   438:     ; (not used in final version)
+00:8839 60              	   439:     RTS
+                        	   440: 
+                        	   441: ; --- ROM String ---
+                        	   442: rom_bin:
+00:883A 2F726F6D        	   443:     .byte "/rom", 0
+00:883E 00
+                        	   444: ;    .byte "/rom/bin", 0
+                        	   445: ;    .byte "/", 0 ; 
+                        	   446: ;    ls / works -- because next_path_token returns null, and jumps to done_resolving and CURRENT_INODE still holds 0, w
+
+Source: "./test.s"
+                        	   354:     .include "../cd_util/test.s"
+
+Source: "../cd_util/test.s"
+                        	     1: ; ---------------------------------------------
+                        	     2: ; 6502 RAM File System CD Utility (Minimal Version)
+                        	     3: ; Author: Based on ls_util design
+                        	     4: ; Assumes ls_util is included before this code
+                        	     5: ; All common functions and variables are defined in ls_util
+                        	     6: ; ---------------------------------------------
+                        	     7: 
+                        	     8: ; ---------------------------------------------
+                        	     9: ; CD Utility Entry Point
+                        	    10: ; ---------------------------------------------
+                        	    11: simulate_cd:
+00:883F 207F86          	    12:     JSR prepare_path
+00:8842 A9FF            	    13:     LDA #$FF
+00:8844 48              	    14:     PHA
+00:8845 48              	    15:     PHA
+00:8846 48              	    16:     PHA
+00:8847 00              	    17:     BRK                         ; Exit simulation
+00:8848 60              	    18:     RTS
+                        	    19: 
+                        	    20: ; bug_report -- cd .. and cd . has not been fully debugged
+                        	    21: ; at rom/bin cd .. bring pwd to rom
+                        	    22: ; at rom cd .. say not found but bring pwd to rom/bin  -- very funny
+                        	    23: 
+                        	    24: ; ; --- Prepare Path String (reused from ls_util pattern) ---
+                        	    25: ; prepare_path:
+                        	    26: ;     LDX #$00
+                        	    27: ; copyLoop:
+                        	    28: ;     LDA rom_bin_cd,X            ; Load byte from ROM string  
+                        	    29: ;     STA PATH_INPUT,X            ; Store to RAM path buffer
+                        	    30: ;     BEQ start_cd                ; If null terminator, jump to cd
+                        	    31: ;     INX
+                        	    32: ;     JMP copyLoop
+                        	    33: 
+                        	    34: ; --- CD Entry Point ---
+                        	    35: start_cd:
+00:8849 A900            	    36:     LDA #<PATH_INPUT
+00:884B 8510            	    37:     STA PATH_PTR_LO             ; zero-page low byte of path pointer
+00:884D A904            	    38:     LDA #>PATH_INPUT
+00:884F 8511            	    39:     STA PATH_PTR_HI             ; zero-page high byte of path pointer
+                        	    40: 
+                        	    41:     ; Check if path starts with '/' (absolute path)
+00:8851 A000            	    42:     LDY #0
+00:8853 B110            	    43:     LDA (PATH_PTR_LO),Y
+00:8855 C92F            	    44:     CMP #'/'
+00:8857 F009            	    45:     BEQ absolute_path_cd
+                        	    46:     
+                        	    47:     ; Relative path - start from current working directory
+00:8859 AD1302          	    48:     LDA WORKING_DIR_INODE
+00:885C 8D1002          	    49:     STA CURRENT_INODE
+00:885F 4C6788          	    50:     JMP resolve_path_cd
+                        	    51: 
+                        	    52: absolute_path_cd:
+                        	    53:     ; Absolute path - start from root
+00:8862 A900            	    54:     LDA #0
+00:8864 8D1002          	    55:     STA CURRENT_INODE           ; Start from root inode 0
+                        	    56: 
+                        	    57: resolve_path_cd:
+                        	    58: next_token_cd:
+00:8867 20FC87          	    59:     JSR next_path_token         ; Extract next path component into TOKEN_BUFFER
+00:886A F01E            	    60:     BEQ done_resolving_cd          ; If empty, done traversing
+                        	    61: 
+                        	    62:     ; ; Check for special directories
+                        	    63:     ; JSR check_dot_dirs
+                        	    64:     ; BCC handle_special          ; Carry clear means special directory handled
+                        	    65:     
+00:886C AD1002          	    66:     LDA CURRENT_INODE
+00:886F 20FC86          	    67:     JSR get_inode_ptr           ; Set pointer to inode address in WORK_PTR
+                        	    68: 
+                        	    69:     ; --- if current inode is file, cannot cd into it
+00:8872 A000            	    70:     LDY #I_MODE
+00:8874 B100            	    71:     LDA (WORK_PTR_LO),Y
+00:8876 29F0            	    72:     AND #%11110000
+00:8878 C910            	    73:     CMP #FT_DIR
+00:887A D037            	    74:     BNE path_not_found
+                        	    75: 
+00:887C 201687          	    76:     JSR find_in_dir_block       ; Look for token in this directory
+00:887F B032            	    77:     BCS path_not_found
+                        	    78: 
+00:8881 8D1002          	    79:     STA CURRENT_INODE           ; Found! Update inode number
+00:8884 4C6788          	    80:     JMP next_token_cd
+                        	    81: 
+                        	    82: handle_special:
+                        	    83:     ; CURRENT_INODE already updated by check_dot_dirs
+00:8887 4C6788          	    84:     JMP next_token_cd
+                        	    85: 
+                        	    86: done_resolving_cd:
+                        	    87:     ; Verify final target is a directory
+00:888A AD1002          	    88:     LDA CURRENT_INODE
+00:888D 20FC86          	    89:     JSR get_inode_ptr
+                        	    90: 
+00:8890 A000            	    91:     LDY #I_MODE
+00:8892 B100            	    92:     LDA (WORK_PTR_LO),Y
+00:8894 29F0            	    93:     AND #%11110000
+00:8896 C910            	    94:     CMP #FT_DIR                 ; Directory?
+00:8898 D019            	    95:     BNE path_not_found
+                        	    96: 
+                        	    97:     ; Success! Update working directory
+00:889A 20A488          	    98:     JSR cd_ok_print
+00:889D AD1002          	    99:     LDA CURRENT_INODE
+00:88A0 8D1302          	   100:     STA WORKING_DIR_INODE
+00:88A3 60              	   101:     RTS
+                        	   102: 
+                        	   103: cd_ok_print:
+00:88A4 A200            	   104:     LDX #0
+                        	   105: cd_ok_loop:
+00:88A6 BDC688          	   106:     LDA cd_ok_msg, X
+00:88A9 F007            	   107:     BEQ cd_ok_done
+00:88AB 201784          	   108:     JSR print_char
+00:88AE E8              	   109:     INX
+00:88AF 4CA688          	   110:     JMP cd_ok_loop
+                        	   111: cd_ok_done:
+00:88B2 60              	   112:     RTS
+                        	   113: 
+                        	   114: path_not_found:
+00:88B3 A200            	   115:     LDX #0
+                        	   116: path_not_found_loop:
+00:88B5 BDCA88          	   117:     LDA path_not_found_msg,X
+00:88B8 F007            	   118:     BEQ path_not_found_done
+00:88BA 201784          	   119:     JSR print_char
+00:88BD E8              	   120:     INX
+00:88BE 4CB588          	   121:     JMP path_not_found_loop
+                        	   122: path_not_found_done:
+00:88C1 60              	   123:     RTS
+                        	   124: 
+                        	   125: 
+                        	   126: 
+                        	   127: ; ---------------------------------------------
+                        	   128: ; Get current working directory inode
+                        	   129: ; Output: A = current working directory inode number
+                        	   130: get_working_dir:
+00:88C2 AD1302          	   131:     LDA WORKING_DIR_INODE
+00:88C5 60              	   132:     RTS
+                        	   133: 
+                        	   134: ; --- Messages ---
+                        	   135: cd_ok_msg:
+00:88C6 206F6B          	   136:     .byte " ok", 0
+00:88C9 00
+                        	   137: path_not_found_msg:
+00:88CA 2063645F6661696C	   138:     .byte " cd_fail", 0
+00:88D2 00
+                        	   139: 
+                        	   140: ; --- ROM String for testing ---
+                        	   141: ; rom_bin_cd:
+                        	   142: ;     .byte "/rom/bin", 0         ; Test path
+                        	   143: ;    .byte "..", 0              ; Test parent directory
+                        	   144: ;    .byte "bin", 0             ; Test relative path
+
+Source: "./test.s"
+                        	   355:     .include "../pwd_util/test.s"
+
+Source: "../pwd_util/test.s"
+                        	     1: ; ---------------------------------------------
+                        	     2: ; 6502 RAM File System PWD Utility 
+                        	     3: ; Author: Based on cd_util and ls_util design
+                        	     4: ; Assumes ls_util is included before this code
+                        	     5: ; All common functions and variables are defined in ls_util
+                        	     6: ; ---------------------------------------------
+                        	     7: 
+                        	     8: ; Additional variables for PWD (reusing existing ls_util variables where possible)
+                        	     9: PWD_STACK_PTR = $0214          ; Stack pointer for path reconstruction (after WORKING_DIR_INODE)
+                        	    10: PWD_TEMP_INODE = $0215         ; Temporary inode storage
+                        	    11: PWD_PARENT_INODE = $0216       ; Parent inode storage
+                        	    12: 
+                        	    13: ; Path reconstruction buffer and stack
+                        	    14: PWD_BUFFER = $0300             ; 256 bytes for path buffer (before TOKEN_BUFFER)
+                        	    15: PWD_STACK = $0500              ; 256 bytes for inode stack
+                        	    16: 
+                        	    17: ; ---------------------------------------------
+                        	    18: ; PWD Utility Entry Point
+                        	    19: ; ---------------------------------------------
+                        	    20: ; simulate_pwd:
+                        	    21: ;     JSR start_pwd
+                        	    22: ;     LDA #$FF
+                        	    23: ;     PHA
+                        	    24: ;     PHA  
+                        	    25: ;     PHA
+                        	    26: ;     BRK                         ; Exit simulation
+                        	    27: ;     RTS
+                        	    28: 
+                        	    29: ; --- PWD Entry Point ---
+                        	    30: ; temporary implementation of returning inode 
+                        	    31: ; no need to print full path for now
+                        	    32: start_pwd:
+00:88D3 A920            	    33:     LDA #' ' 
+00:88D5 201784          	    34:     JSR print_char
+00:88D8 AD1302          	    35:     LDA WORKING_DIR_INODE
+00:88DB 18              	    36:     CLC                 ; Clear the Carry flag
+00:88DC 6930            	    37:     ADC #'0'            ; Add the ASCII value of '0' (e.g., $05 + $30 = $35, which is ASCII for '5')
+00:88DE 201784          	    38:     JSR print_char
+                        	    39: ; bug_report -- pwd print inode
+                        	    40: ; uncomment the below RTS and return the pwd after priting the inode
+                        	    41: ; , not trying to form the full path
+00:88E1 60              	    42:     RTS
+                        	    43:     
+                        	    44: ; bug_report --  the below pwd code has not been debugged
+                        	    45: ; it supposed to terverse .. to root and stack the directory name
+                        	    46: ; when it reaches the root, pop them to form the full path
+                        	    47: ; but it print /? where ? is a garbage
+                        	    48: 
+                        	    49: ; bug_report -- pwd changes WORKING_DIR_INODE (it should not)
+                        	    50: ; repeated pwd will change the currently working directory --- funny but why?
+                        	    51: 
+00:88E2 AD1302          	    52:     LDA WORKING_DIR_INODE
+00:88E5 F058            	    53:     BEQ print_root_path         ; If inode 0, just print "/"
+                        	    54:     
+                        	    55:     ; Initialize stack pointer and reconstruct path
+00:88E7 A900            	    56:     LDA #0
+00:88E9 8D1402          	    57:     STA PWD_STACK_PTR
+                        	    58:     
+                        	    59:     ; Start with current working directory
+00:88EC AD1302          	    60:     LDA WORKING_DIR_INODE
+00:88EF 8D1502          	    61:     STA PWD_TEMP_INODE
+                        	    62:     
+                        	    63:     ; Traverse up the directory tree, pushing inodes onto stack
+                        	    64: traverse_up:
+00:88F2 AD1502          	    65:     LDA PWD_TEMP_INODE
+00:88F5 F012            	    66:     BEQ reconstruct_path        ; If we reach root (inode 0), start reconstruction
+                        	    67:     
+                        	    68:     ; Push current inode onto stack
+00:88F7 AC1402          	    69:     LDY PWD_STACK_PTR
+00:88FA 990005          	    70:     STA PWD_STACK,Y
+00:88FD EE1402          	    71:     INC PWD_STACK_PTR
+                        	    72:     
+                        	    73:     ; Get parent inode by looking up ".." entry
+00:8900 205E89          	    74:     JSR find_parent_inode
+00:8903 8D1502          	    75:     STA PWD_TEMP_INODE
+00:8906 4CF288          	    76:     JMP traverse_up
+                        	    77: 
+                        	    78: reconstruct_path:
+                        	    79:     ; Start building path from root
+00:8909 A92F            	    80:     LDA #'/'
+00:890B 8D0003          	    81:     STA PWD_BUFFER
+00:890E A900            	    82:     LDA #0
+00:8910 8D0103          	    83:     STA PWD_BUFFER+1            ; Initialize with just "/" and null terminator
+                        	    84:     
+                        	    85:     ; Check if stack is empty (we're at root)
+00:8913 AD1402          	    86:     LDA PWD_STACK_PTR
+00:8916 F032            	    87:     BEQ print_pwd_result
+                        	    88:     
+                        	    89:     ; Pop inodes from stack and find their names
+00:8918 A201            	    90:     LDX #1                      ; Start at position 1 in buffer (after initial "/")
+                        	    91:     
+                        	    92: build_path_loop:
+00:891A AD1402          	    93:     LDA PWD_STACK_PTR
+00:891D F02B            	    94:     BEQ print_pwd_result        ; Stack empty, done
+                        	    95:     
+00:891F CE1402          	    96:     DEC PWD_STACK_PTR
+00:8922 AC1402          	    97:     LDY PWD_STACK_PTR
+00:8925 B90005          	    98:     LDA PWD_STACK,Y             ; Get inode from stack
+00:8928 8D1502          	    99:     STA PWD_TEMP_INODE
+                        	   100:     
+                        	   101:     ; Find this inode's name in its parent directory
+00:892B 207C89          	   102:     JSR find_inode_name
+                        	   103:     
+                        	   104:     ; Copy name to buffer
+00:892E 20C889          	   105:     JSR copy_name_to_buffer
+                        	   106:     
+                        	   107:     ; Add trailing slash if not last component
+00:8931 AD1402          	   108:     LDA PWD_STACK_PTR
+00:8934 F0E4            	   109:     BEQ build_path_loop         ; Don't add slash after last component
+                        	   110:     
+00:8936 A92F            	   111:     LDA #'/'
+00:8938 9D0003          	   112:     STA PWD_BUFFER,X
+00:893B E8              	   113:     INX
+                        	   114:     
+00:893C 4C1A89          	   115:     JMP build_path_loop
+                        	   116: 
+                        	   117: print_root_path:
+                        	   118:     ; Just print "/" for root directory
+00:893F A92F            	   119:     LDA #'/'
+00:8941 201784          	   120:     JSR print_char
+00:8944 A90A            	   121:     LDA #$0A                    ; newline
+00:8946 201784          	   122:     JSR print_char
+00:8949 60              	   123:     RTS
+                        	   124: 
+                        	   125: print_pwd_result:
+                        	   126:     ; Print the reconstructed path
+00:894A A200            	   127:     LDX #0
+                        	   128: print_pwd_loop:
+00:894C BD0003          	   129:     LDA PWD_BUFFER,X
+00:894F F007            	   130:     BEQ print_pwd_newline
+00:8951 201784          	   131:     JSR print_char
+00:8954 E8              	   132:     INX
+00:8955 4C4C89          	   133:     JMP print_pwd_loop
+                        	   134:     
+                        	   135: print_pwd_newline:
+00:8958 A90A            	   136:     LDA #$0A                    ; newline
+00:895A 201784          	   137:     JSR print_char
+00:895D 60              	   138:     RTS
+                        	   139: 
+                        	   140: ; --- Find Parent Inode ---
+                        	   141: ; Input: PWD_TEMP_INODE = current inode
+                        	   142: ; Output: A = parent inode number
+                        	   143: ; Uses ls_util's get_inode_ptr and reuses WORK_PTR variables
+                        	   144: find_parent_inode:
+00:895E AD1502          	   145:     LDA PWD_TEMP_INODE
+00:8961 20FC86          	   146:     JSR get_inode_ptr           ; Set pointer to inode in WORK_PTR (from ls_util)
+                        	   147:     
+                        	   148:     ; Get first data block of directory
+00:8964 A006            	   149:     LDY #I_BLOCK0
+00:8966 B100            	   150:     LDA (WORK_PTR_LO),Y
+00:8968 8D1102          	   151:     STA TEMP_BLOCK_NUM          ; Reuse ls_util variable
+                        	   152:     
+                        	   153:     ; Convert block number to address (similar to scan_block in ls_util)
+00:896B A900            	   154:     LDA #$00
+00:896D 8506            	   155:     STA SCAN_PTR_LO             ; Low byte = 0 (reuse ls_util variable)
+00:896F AD1102          	   156:     LDA TEMP_BLOCK_NUM
+00:8972 18              	   157:     CLC
+00:8973 6513            	   158:     ADC BLOCK_BASE_HI           ; Read base from zero page (ls_util)
+00:8975 8507            	   159:     STA SCAN_PTR_HI             ; SCAN_PTR = address of block
+                        	   160:     
+                        	   161:     ; Look for ".." entry (should be second entry at offset $10)
+00:8977 A010            	   162:     LDY #$10                    ; Offset to second directory entry
+00:8979 B106            	   163:     LDA (SCAN_PTR_LO),Y         ; Get inode number from ".." entry
+00:897B 60              	   164:     RTS
+                        	   165: 
+                        	   166: ; --- Find Inode Name in Parent Directory ---
+                        	   167: ; Input: PWD_TEMP_INODE = inode to find name for
+                        	   168: ; Result: Name stored in TOKEN_BUFFER (reusing ls_util buffer)
+                        	   169: ; Uses ls_util functions and variables
+                        	   170: find_inode_name:
+                        	   171:     ; First get the parent inode
+00:897C AD1502          	   172:     LDA PWD_TEMP_INODE
+00:897F 48              	   173:     PHA                         ; Save target inode
+                        	   174:     
+00:8980 205E89          	   175:     JSR find_parent_inode       ; Get parent inode in A
+00:8983 20FC86          	   176:     JSR get_inode_ptr           ; Set pointer to parent inode (ls_util)
+                        	   177:     
+                        	   178:     ; Get first data block of parent directory  
+00:8986 A006            	   179:     LDY #I_BLOCK0
+00:8988 B100            	   180:     LDA (WORK_PTR_LO),Y
+00:898A 8D1102          	   181:     STA TEMP_BLOCK_NUM          ; Reuse ls_util variable
+                        	   182:     
+                        	   183:     ; Convert block number to address (similar to scan_block)
+00:898D A900            	   184:     LDA #$00
+00:898F 8506            	   185:     STA SCAN_PTR_LO             ; Low byte = 0
+00:8991 AD1102          	   186:     LDA TEMP_BLOCK_NUM
+00:8994 18              	   187:     CLC
+00:8995 6513            	   188:     ADC BLOCK_BASE_HI           ; Read base from zero page
+00:8997 8507            	   189:     STA SCAN_PTR_HI             ; SCAN_PTR = address of block
+                        	   190:     
+00:8999 68              	   191:     PLA                         ; Restore target inode
+00:899A 8D1502          	   192:     STA PWD_TEMP_INODE
+                        	   193:     
+                        	   194:     ; Search directory entries for matching inode (similar to scan_block logic)
+00:899D A000            	   195:     LDY #0                      ; Start at first entry
+                        	   196:     
+                        	   197: search_dir_entries:
+00:899F B106            	   198:     LDA (SCAN_PTR_LO),Y         ; Get inode number from entry
+00:89A1 CD1502          	   199:     CMP PWD_TEMP_INODE
+00:89A4 F008            	   200:     BEQ found_entry_pwd             ; Found matching inode
+                        	   201:     
+                        	   202:     ; Skip to next entry (16 bytes each, like ls_util DIR_ENTRY_SIZE)
+00:89A6 98              	   203:     TYA
+00:89A7 18              	   204:     CLC
+00:89A8 6910            	   205:     ADC #DIR_ENTRY_SIZE         ; Use ls_util constant
+00:89AA A8              	   206:     TAY
+00:89AB D0F2            	   207:     BNE search_dir_entries      ; Continue if not wrapped around
+                        	   208:     
+                        	   209:     ; Entry not found - shouldn't happen in valid filesystem
+00:89AD 60              	   210:     RTS
+                        	   211: 
+                        	   212: found_entry_pwd:
+                        	   213:     ; Copy name from directory entry to TOKEN_BUFFER (reuse ls_util buffer)
+00:89AE 98              	   214:     TYA
+00:89AF 18              	   215:     CLC
+00:89B0 6902            	   216:     ADC #DE_NAME                ; Skip to name field (ls_util constant)
+00:89B2 A8              	   217:     TAY
+                        	   218:     
+00:89B3 A200            	   219:     LDX #0
+                        	   220: copy_name_loop:
+00:89B5 B106            	   221:     LDA (SCAN_PTR_LO),Y
+00:89B7 F009            	   222:     BEQ name_copied
+00:89B9 9D0002          	   223:     STA TOKEN_BUFFER,X          ; Reuse ls_util buffer
+00:89BC C8              	   224:     INY
+00:89BD E8              	   225:     INX
+00:89BE E00E            	   226:     CPX #14                     ; Max name length
+00:89C0 D0F3            	   227:     BNE copy_name_loop
+                        	   228:     
+                        	   229: name_copied:
+00:89C2 A900            	   230:     LDA #0
+00:89C4 9D0002          	   231:     STA TOKEN_BUFFER,X          ; Null terminate
+00:89C7 60              	   232:     RTS
+                        	   233: 
+                        	   234: ; --- Copy Name to PWD Buffer ---
+                        	   235: ; Input: X = current position in PWD_BUFFER
+                        	   236: ; Uses: TOKEN_BUFFER contains name to copy (ls_util buffer)
+                        	   237: ; Output: X = updated position in PWD_BUFFER
+                        	   238: copy_name_to_buffer:
+00:89C8 A000            	   239:     LDY #0
+                        	   240: copy_to_buffer_loop:
+00:89CA B90002          	   241:     LDA TOKEN_BUFFER,Y          ; Read from ls_util buffer
+00:89CD F008            	   242:     BEQ copy_to_buffer_done
+00:89CF 9D0003          	   243:     STA PWD_BUFFER,X
+00:89D2 C8              	   244:     INY
+00:89D3 E8              	   245:     INX
+00:89D4 4CCA89          	   246:     JMP copy_to_buffer_loop
+                        	   247:     
+                        	   248: copy_to_buffer_done:
+00:89D7 A900            	   249:     LDA #0
+00:89D9 9D0003          	   250:     STA PWD_BUFFER,X            ; Null terminate
+00:89DC 60              	   251:     RTS
+
+Source: "./test.s"
+                        	   356: 
+                        	   357:     .org $CF60
+                        	   358: ; === File/Dir Names (14B) ===
+01:CF60 7777777777777777	   359: token2:       .byte "wwwwwwwwwwwwwwww"
+01:CF68 7777777777777777
+                        	   360: ; Special directory entries ; dot, dot_dot entries
+01:CF70 2E              	   361: DOT_name:     .byte ".", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ; dot, dot_dot entries
+01:CF71 00
+01:CF72 00
+01:CF73 00
+01:CF74 00
+01:CF75 00
+01:CF76 00
+01:CF77 00
+01:CF78 00
+01:CF79 00
+01:CF7A 00
+01:CF7B 00
+01:CF7C 00
+01:CF7D 00
+01:CF7E 2E2E            	   362: DOTDOT_name:  .byte "..", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ; dot, dot_dot entries
+01:CF80 00
+01:CF81 00
+01:CF82 00
+01:CF83 00
+01:CF84 00
+01:CF85 00
+01:CF86 00
+01:CF87 00
+01:CF88 00
+01:CF89 00
+01:CF8A 00
+01:CF8B 00
+                        	   363: ; Regular entries
+01:CF8C 526561646D652E74	   364: README_name:  .byte "Readme.txt", 0, 0, 0
+01:CF94 7874
+01:CF96 00
+01:CF97 00
+01:CF98 00
+01:CF99 72616D          	   365: RAM_name:     .byte "ram", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+01:CF9C 00
+01:CF9D 00
+01:CF9E 00
+01:CF9F 00
+01:CFA0 00
+01:CFA1 00
+01:CFA2 00
+01:CFA3 00
+01:CFA4 00
+01:CFA5 00
+01:CFA6 00
+01:CFA7 726F6D          	   366: ROM_name:     .byte "rom", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+01:CFAA 00
+01:CFAB 00
+01:CFAC 00
+01:CFAD 00
+01:CFAE 00
+01:CFAF 00
+01:CFB0 00
+01:CFB1 00
+01:CFB2 00
+01:CFB3 00
+01:CFB4 00
+01:CFB5 726F6D66732E7478	   367: ROMFS_name:   .byte "romfs.txt", 0, 0, 0, 0
+01:CFBD 74
+01:CFBE 00
+01:CFBF 00
+01:CFC0 00
+01:CFC1 00
+01:CFC2 62696E          	   368: BIN_name:     .byte "bin", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+01:CFC5 00
+01:CFC6 00
+01:CFC7 00
+01:CFC8 00
+01:CFC9 00
+01:CFCA 00
+01:CFCB 00
+01:CFCC 00
+01:CFCD 00
+01:CFCE 00
+01:CFCF 00
+                        	   369: 
+                        	   370: ; Updated directory structure:
+                        	   371: ; .
+                        	   372: ; ├── . (inode 0)
+                        	   373: ; ├── .. (inode 0)
+                        	   374: ; ├── Readme.txt (inode 1)
+                        	   375: ; ├── /ram (inode 2)
+                        	   376: ; │   ├── . (inode 2)
+                        	   377: ; │   └── .. (inode 0)
+                        	   378: ; └── /rom (inode 3)
+                        	   379: ;     ├── . (inode 3)
+                        	   380: ;     ├── .. (inode 0)
+                        	   381: ;     ├── romFS.txt (inode 4)
+                        	   382: ;     └── /bin (inode 5)
+                        	   383: ;         ├── . (inode 5)
+                        	   384: ;         └── .. (inode 3)
+
+
+Symbols by name:
+BIN_name                         A:CFC2
+BITMAP_BASE                      E:BB00
+BLOCK_BASE                       E:C000
+BLOCK_BASE_HI                    E:0013
+BLOCK_BITMAP                     E:BB10
+BLOCK_PTR_HI                     E:0003
+BLOCK_PTR_LO                     E:0002
+CMD_BUFFER                       E:0400
+CMD_INDEX                        A:85B8
+CMD_MAX                          E:0040
+CURRENT_INODE                    E:0210
+DE_NAME                          E:0002
+DIR_ENTRY_SIZE                   E:0010
+DIR_PTR_HI                       E:0005
+DIR_PTR_LO                       E:0004
+DOTDOT_name                      A:CF7E
+DOT_name                         A:CF70
+FT_DIR                           E:0010
+FT_FILE                          E:0000
+INODE_BASE                       E:BC00
+INODE_BASE_HI                    E:0012
+INODE_BITMAP                     E:BB00
+INVALID_DATABLOCK                E:00FF
+INVALID_INODE                    E:0000
+I_BLOCK0                         E:0006
+I_BLOCK1                         E:0007
+I_MODE                           E:0000
+InitBaseAddresses                A:8000
+KEY_DOWN                         E:005D
+KEY_INPUT                        E:0300
+KEY_UP                           E:005B
+LCD_CLEAR                        E:0001
+LCD_CMD                          E:6001
+LCD_COLS                         E:0010
+LCD_CURRENT_COL                  E:0231
+LCD_CURRENT_ROW                  E:0230
+LCD_DATA                         E:6000
+LCD_DISPLAY                      E:000F
+LCD_ENTRY                        E:0006
+LCD_FUNCTION                     E:0038
+LCD_HOME                         E:0002
+LCD_LINE1_BUFFER                 E:0240
+LCD_LINE2_BUFFER                 E:0250
+LCD_ROW0_COL0_ADDR               E:0080
+LCD_ROW1_COL0_ADDR               E:00C0
+Loop_BIN_DOT                     A:81F3
+Loop_BIN_DOTDOT                  A:820A
+Loop_DOT                         A:80F6
+Loop_DOTDOT                      A:810D
+Loop_RAM                         A:813B
+Loop_RAM_DOT                     A:8169
+Loop_RAM_DOTDOT                  A:8180
+Loop_README                      A:8124
+Loop_ROM                         A:8152
+Loop_ROM_DOT                     A:8197
+Loop_ROM_DOTDOT                  A:81AE
+Loop_bin                         A:81DC
+Loop_romFS                       A:81C5
+MAX_DATABLOCK                    E:0040
+MAX_INODES                       E:0040
+PATH_INPUT                       E:0400
+PATH_PTR_HI                      E:0011
+PATH_PTR_LO                      E:0010
+PWD_BUFFER                       E:0300
+PWD_STACK                        E:0500
+PWD_STACK_PTR                    E:0214
+PWD_TEMP_INODE                   E:0215
+RAM_name                         A:CF99
+README_name                      A:CF8C
+ROMFS_name                       A:CFB5
+ROM_name                         A:CFA7
+SCAN_PTR_HI                      E:0007
+SCAN_PTR_LO                      E:0006
+SCROLL_BUFFER                    E:0500
+SCROLL_BUFFER_SIZE               E:0010
+SCROLL_COUNT                     E:0263
+SCROLL_HEAD                      E:0260
+SCROLL_MODE                      E:0264
+SCROLL_TAIL                      E:0261
+SCROLL_VIEW_TOP                  E:0262
+SetBitmaps                       A:8008
+TEMP_BLOCK_NUM                   E:0211
+TEMP_INODE_NUM                   E:0212
+TOKEN_BUFFER                     E:0200
+WORKING_DIR_INODE                E:0213
+WORK_PTR_HI                      E:0001
+WORK_PTR_LO                      E:0000
+X_SCRATCH                        E:0021
+Y_SCRATCH                        E:0022
+absolute_path                    A:86AA
+absolute_path_cd                 A:8862
+add_line2                        A:837C
+add_line_to_scroll_buffer        A:833E
+backspace_prev_line              A:853E
+bad_inode                        A:8713
+build_path_loop                  A:891A
+calc_second_line                 A:8322
+call_cd                          A:860B
+call_ls                          A:865E
+call_pwd                         A:8627
+carriage_line1                   A:843F
+cd_cmd                           A:866E
+cd_copy_path                     A:85FD
+cd_got_path                      A:85FB
+cd_match_check                   A:85E7
+cd_ok_done                       A:88B2
+cd_ok_loop                       A:88A6
+cd_ok_msg                        A:88C6
+cd_ok_print                      A:88A4
+cd_skip_space                    A:85F0
+check_cd                         A:85DD
+check_ls                         A:8630
+check_null                       A:8783
+check_pwd                        A:8614
+clear_buffers_loop               A:83F6
+clear_line1_buf_loop             A:8505
+clear_line1_buffer               A:8501
+clear_line2_buf_loop             A:84F8
+clear_loop                       A:8568
+clear_newline_and_move           A:84BE
+cmp_loop                         A:877A
+compare_names                    A:8839
+copyLoop                         A:8681
+copy_line1                       A:8354
+copy_line2                       A:8392
+copy_name_loop                   A:89B5
+copy_name_to_buffer              A:89C8
+copy_path                        A:8650
+copy_to_buffer_done              A:89D7
+copy_to_buffer_loop              A:89CA
+delay_loop                       A:8577
+do_carriage                      A:8433
+do_ls_dir                        A:86F2
+do_ls_file                       A:86F6
+do_normal                        A:8422
+do_wrap_and_print                A:8443
+done_add_line                    A:83B8
+done_prompt                      A:85A8
+done_resolving                   A:86DB
+done_resolving_cd                A:888A
+done_unk                         A:85B7
+end_token                        A:881C
+exit_scroll_mode                 A:82EC
+find_in_dir_block                A:8716
+find_inode_name                  A:897C
+find_parent_inode                A:895E
+found_entry                      A:8757
+found_entry_pwd                  A:89AE
+found_match                      A:8797
+get_inode_ptr                    A:86FC
+get_working_dir                  A:88C2
+got_path                         A:864E
+handle_backspace                 A:8277
+handle_enter                     A:828B
+handle_key_down                  A:826C
+handle_key_up                    A:8261
+handle_special                   A:8887
+init_scroll_buffer               A:83D2
+init_working_dir                 A:822D
+keyinput_loop                    A:8232
+lcd_backspace                    A:8524
+lcd_carriage_return              A:850E
+lcd_clear                        A:83E4
+lcd_clear_buffers                A:83F2
+lcd_clear_line                   A:8558
+lcd_clear_line_buffer            A:84EF
+lcd_command                      A:8410
+lcd_delay                        A:8574
+lcd_home_cursor                  A:8402
+lcd_init                         A:83B9
+lcd_refresh_display              A:8483
+lcd_scroll_up                    A:8457
+lcd_store_char_in_buffer         A:84AE
+lcd_update_cursor                A:853F
+ls_cmd                           A:866B
+ls_current_dir                   A:86B2
+match_check                      A:863A
+move_to_line2                    A:84D9
+name_copied                      A:89C2
+next_char                        A:880A
+next_indirect                    A:8746
+next_path_token                  A:87FC
+next_token                       A:86BB
+next_token_cd                    A:8867
+no_key                           A:8588
+normal_key_processing_restore    A:8248
+not_found                        A:86FA
+not_found_scan                   A:8795
+parse_token                      A:8808
+path_not_found                   A:88B3
+path_not_found_done              A:88C1
+path_not_found_loop              A:88B5
+path_not_found_msg               A:88CA
+poll_keyboard                    A:857F
+prepare_path                     A:867F
+print_block                      A:87AB
+print_char                       A:8417
+print_dir                        A:879C
+print_file_info                  A:87E0
+print_loop                       A:87BC
+print_name                       A:87CA
+print_next                       A:87D4
+print_prompt                     A:859A
+print_prompt_loop                A:859C
+print_pwd_loop                   A:894C
+print_pwd_newline                A:8958
+print_pwd_result                 A:894A
+print_root_path                  A:893F
+print_unk_loop                   A:85AB
+print_unknown                    A:85A9
+process_shell_cmd                A:85CC
+prompt_msg                       A:85B9
+pwd_cmd                          A:8671
+pwd_match_check                  A:861E
+reconstruct_path                 A:8909
+refresh_line1                    A:8307
+refresh_line1_loop               A:848A
+refresh_line2                    A:832E
+refresh_line2_loop               A:849F
+refresh_scroll_display           A:82F8
+reset_shell                      A:828E
+resolve_path                     A:86BB
+resolve_path_cd                  A:8867
+rom_bin                          A:883A
+scan_block                       A:8759
+scan_loop                        A:876A
+scroll_clear_loop                A:8468
+scroll_copy_loop                 A:8459
+scroll_down                      A:82CC
+scroll_down_done                 A:82EB
+scroll_down_refresh              A:82E8
+scroll_up                        A:829C
+scroll_up_continue               A:82B3
+scroll_up_done                   A:82CB
+scroll_up_refresh                A:82C8
+search_dir_entries               A:899F
+separator                        A:8833
+set_cursor                       A:8561
+set_line1_pos                    A:851E
+simulate_cd                      A:883F
+simulate_ls                      A:8675
+skip_block                       A:87DF
+skip_entry                       A:878C
+skip_indirect                    A:874F
+skip_slash                       A:87FE
+skip_space                       A:8643
+start_cd                         A:8849
+start_lcd                        A:821F
+start_ls                         A:868D
+start_pwd                        A:88D3
+store_char                       A:858A
+store_head1                      A:834A
+store_head2                      A:8388
+store_in_line1                   A:84BA
+store_view_top                   A:82B0
+summer_break                     A:85CC
+token2                           A:CF60
+traverse_up                      A:88F2
+unk_msg                          A:85BC
+unknown_cmd                      A:8667
+unknown_type                     A:86FB
+update_line1                     A:854E
+update_tail1                     A:836D
+update_tail2                     A:83A9
+wrap_to_line2                    A:8450
+
+Symbols by value:
+0000 FT_FILE
+0000 INVALID_INODE
+0000 I_MODE
+0000 WORK_PTR_LO
+0001 LCD_CLEAR
+0001 WORK_PTR_HI
+0002 BLOCK_PTR_LO
+0002 DE_NAME
+0002 LCD_HOME
+0003 BLOCK_PTR_HI
+0004 DIR_PTR_LO
+0005 DIR_PTR_HI
+0006 I_BLOCK0
+0006 LCD_ENTRY
+0006 SCAN_PTR_LO
+0007 I_BLOCK1
+0007 SCAN_PTR_HI
+000F LCD_DISPLAY
+0010 DIR_ENTRY_SIZE
+0010 FT_DIR
+0010 LCD_COLS
+0010 PATH_PTR_LO
+0010 SCROLL_BUFFER_SIZE
+0011 PATH_PTR_HI
+0012 INODE_BASE_HI
+0013 BLOCK_BASE_HI
+0021 X_SCRATCH
+0022 Y_SCRATCH
+0038 LCD_FUNCTION
+0040 CMD_MAX
+0040 MAX_DATABLOCK
+0040 MAX_INODES
+005B KEY_UP
+005D KEY_DOWN
+0080 LCD_ROW0_COL0_ADDR
+00C0 LCD_ROW1_COL0_ADDR
+00FF INVALID_DATABLOCK
+0200 TOKEN_BUFFER
+0210 CURRENT_INODE
+0211 TEMP_BLOCK_NUM
+0212 TEMP_INODE_NUM
+0213 WORKING_DIR_INODE
+0214 PWD_STACK_PTR
+0215 PWD_TEMP_INODE
+0230 LCD_CURRENT_ROW
+0231 LCD_CURRENT_COL
+0240 LCD_LINE1_BUFFER
+0250 LCD_LINE2_BUFFER
+0260 SCROLL_HEAD
+0261 SCROLL_TAIL
+0262 SCROLL_VIEW_TOP
+0263 SCROLL_COUNT
+0264 SCROLL_MODE
+0300 KEY_INPUT
+0300 PWD_BUFFER
+0400 CMD_BUFFER
+0400 PATH_INPUT
+0500 PWD_STACK
+0500 SCROLL_BUFFER
+6000 LCD_DATA
+6001 LCD_CMD
+8000 InitBaseAddresses
+8008 SetBitmaps
+80F6 Loop_DOT
+810D Loop_DOTDOT
+8124 Loop_README
+813B Loop_RAM
+8152 Loop_ROM
+8169 Loop_RAM_DOT
+8180 Loop_RAM_DOTDOT
+8197 Loop_ROM_DOT
+81AE Loop_ROM_DOTDOT
+81C5 Loop_romFS
+81DC Loop_bin
+81F3 Loop_BIN_DOT
+820A Loop_BIN_DOTDOT
+821F start_lcd
+822D init_working_dir
+8232 keyinput_loop
+8248 normal_key_processing_restore
+8261 handle_key_up
+826C handle_key_down
+8277 handle_backspace
+828B handle_enter
+828E reset_shell
+829C scroll_up
+82B0 store_view_top
+82B3 scroll_up_continue
+82C8 scroll_up_refresh
+82CB scroll_up_done
+82CC scroll_down
+82E8 scroll_down_refresh
+82EB scroll_down_done
+82EC exit_scroll_mode
+82F8 refresh_scroll_display
+8307 refresh_line1
+8322 calc_second_line
+832E refresh_line2
+833E add_line_to_scroll_buffer
+834A store_head1
+8354 copy_line1
+836D update_tail1
+837C add_line2
+8388 store_head2
+8392 copy_line2
+83A9 update_tail2
+83B8 done_add_line
+83B9 lcd_init
+83D2 init_scroll_buffer
+83E4 lcd_clear
+83F2 lcd_clear_buffers
+83F6 clear_buffers_loop
+8402 lcd_home_cursor
+8410 lcd_command
+8417 print_char
+8422 do_normal
+8433 do_carriage
+843F carriage_line1
+8443 do_wrap_and_print
+8450 wrap_to_line2
+8457 lcd_scroll_up
+8459 scroll_copy_loop
+8468 scroll_clear_loop
+8483 lcd_refresh_display
+848A refresh_line1_loop
+849F refresh_line2_loop
+84AE lcd_store_char_in_buffer
+84BA store_in_line1
+84BE clear_newline_and_move
+84D9 move_to_line2
+84EF lcd_clear_line_buffer
+84F8 clear_line2_buf_loop
+8501 clear_line1_buffer
+8505 clear_line1_buf_loop
+850E lcd_carriage_return
+851E set_line1_pos
+8524 lcd_backspace
+853E backspace_prev_line
+853F lcd_update_cursor
+854E update_line1
+8558 lcd_clear_line
+8561 set_cursor
+8568 clear_loop
+8574 lcd_delay
+8577 delay_loop
+857F poll_keyboard
+8588 no_key
+858A store_char
+859A print_prompt
+859C print_prompt_loop
+85A8 done_prompt
+85A9 print_unknown
+85AB print_unk_loop
+85B7 done_unk
+85B8 CMD_INDEX
+85B9 prompt_msg
+85BC unk_msg
+85CC process_shell_cmd
+85CC summer_break
+85DD check_cd
+85E7 cd_match_check
+85F0 cd_skip_space
+85FB cd_got_path
+85FD cd_copy_path
+860B call_cd
+8614 check_pwd
+861E pwd_match_check
+8627 call_pwd
+8630 check_ls
+863A match_check
+8643 skip_space
+864E got_path
+8650 copy_path
+865E call_ls
+8667 unknown_cmd
+866B ls_cmd
+866E cd_cmd
+8671 pwd_cmd
+8675 simulate_ls
+867F prepare_path
+8681 copyLoop
+868D start_ls
+86AA absolute_path
+86B2 ls_current_dir
+86BB next_token
+86BB resolve_path
+86DB done_resolving
+86F2 do_ls_dir
+86F6 do_ls_file
+86FA not_found
+86FB unknown_type
+86FC get_inode_ptr
+8713 bad_inode
+8716 find_in_dir_block
+8746 next_indirect
+874F skip_indirect
+8757 found_entry
+8759 scan_block
+876A scan_loop
+877A cmp_loop
+8783 check_null
+878C skip_entry
+8795 not_found_scan
+8797 found_match
+879C print_dir
+87AB print_block
+87BC print_loop
+87CA print_name
+87D4 print_next
+87DF skip_block
+87E0 print_file_info
+87FC next_path_token
+87FE skip_slash
+8808 parse_token
+880A next_char
+881C end_token
+8833 separator
+8839 compare_names
+883A rom_bin
+883F simulate_cd
+8849 start_cd
+8862 absolute_path_cd
+8867 next_token_cd
+8867 resolve_path_cd
+8887 handle_special
+888A done_resolving_cd
+88A4 cd_ok_print
+88A6 cd_ok_loop
+88B2 cd_ok_done
+88B3 path_not_found
+88B5 path_not_found_loop
+88C1 path_not_found_done
+88C2 get_working_dir
+88C6 cd_ok_msg
+88CA path_not_found_msg
+88D3 start_pwd
+88F2 traverse_up
+8909 reconstruct_path
+891A build_path_loop
+893F print_root_path
+894A print_pwd_result
+894C print_pwd_loop
+8958 print_pwd_newline
+895E find_parent_inode
+897C find_inode_name
+899F search_dir_entries
+89AE found_entry_pwd
+89B5 copy_name_loop
+89C2 name_copied
+89C8 copy_name_to_buffer
+89CA copy_to_buffer_loop
+89D7 copy_to_buffer_done
+BB00 BITMAP_BASE
+BB00 INODE_BITMAP
+BB10 BLOCK_BITMAP
+BC00 INODE_BASE
+C000 BLOCK_BASE
+CF60 token2
+CF70 DOT_name
+CF7E DOTDOT_name
+CF8C README_name
+CF99 RAM_name
+CFA7 ROM_name
+CFB5 ROMFS_name
+CFC2 BIN_name
