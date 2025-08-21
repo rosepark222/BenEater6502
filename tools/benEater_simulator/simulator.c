@@ -1174,20 +1174,17 @@ char* my_strdup(const char* s) {
 
 // --- Function to Create and Populate the symbol_list ---
 SymbolEntry* create_symbol_dictionary(const char* filepath) {
-            printf("Symbol %s  11.\n", filepath); 
     FILE *file = fopen(filepath, "r");
     if (!file) {
         perror("Failed to open list file");
         return NULL;
     }
-            printf("Symbol %s  12.\n", filepath); 
 
     SymbolEntry *head = NULL;
     char line[256];
     char name_buffer[100];
     char type_char;
     unsigned int address;
-            printf("Symbol %s  13.\n", filepath); 
 
     // Skip header lines
     // The format seems to start after "Symbols by name:"
@@ -1196,21 +1193,17 @@ SymbolEntry* create_symbol_dictionary(const char* filepath) {
             break;
         }
     }
-            printf("Symbol %s  14.\n", filepath); 
 
     printf("create_symbol_dictionary: started"  );
 
-            printf("Symbol %s  15.\n", filepath); 
 
     // Read and parse symbol entries
     while (fgets(line, sizeof(line), file)) {
-                    printf("Symbol %s  16.\n", line); 
 
         // Use sscanf to parse the symbol name, type, and address
         // The format specifier handles spaces between the symbol name and the type.
         // It also handles a colon and a hex value.
         int result = sscanf(line, "%s %c:%x", name_buffer, &type_char, &address);
-                            printf("Symbol %s  17.\n", line); 
 
         if (result == 3) {
             // Found a valid symbol entry
@@ -1220,7 +1213,6 @@ SymbolEntry* create_symbol_dictionary(const char* filepath) {
                 fclose(file);
                 return head; // Return what we have so far
             }
-                    printf("Symbol %s  18.\n", line); 
 
             // Copy the symbol name
             //new_entry->symbol_name = strdup(name_buffer);
@@ -1231,11 +1223,10 @@ SymbolEntry* create_symbol_dictionary(const char* filepath) {
                 fclose(file);
                 return head;
             }
-                    printf("Symbol %s  19.\n", new_entry->symbol_name); 
 
             new_entry->address = address;
             
-            printf("create_symbol_dictionary: %s  %x", new_entry->symbol_name, new_entry->address);
+            //printf("create_symbol_dictionary: %s  %x", new_entry->symbol_name, new_entry->address);
 
             // Add the new entry to the front of the list
             new_entry->next = head;
@@ -1477,6 +1468,52 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
 }
 
 
+// --- Function to handle symbol list creation and breakpoint lookup ---
+int handle_symbol_lookup(const char* list_file_path, const char* break_symbol_name) {
+    if (list_file_path == NULL) {
+        // No list file was specified, so no symbols can be loaded.
+        // This is not an error if a breakpoint wasn't requested.
+        return 0; 
+    }
+
+    // Create the symbol_list from the list file
+    symbol_list = create_symbol_dictionary(list_file_path);
+
+    if (!symbol_list) {
+        fprintf(stderr, "Error: Could not create symbol dictionary from file: %s\n", list_file_path);
+        return -1; // Indicate failure
+    }
+
+    // --- Example of searching for a symbol ---
+    SymbolEntry *current = symbol_list;
+    //while (current) {
+    //    printf("Symbol: %-25s Address: 0x%04X\n", current->symbol_name, current->address);
+    //    current = current->next;
+    // }
+
+    if (break_symbol_name) {
+        current = symbol_list;
+        int found = 0;
+        while (current) {
+            if (strcmp(current->symbol_name, break_symbol_name) == 0) {
+                printf("Found breakpoint symbol '%s' at address 0x%04X\n", break_symbol_name, current->address);
+                found = 1;
+                add_breakpoint(current->address, break_symbol_name);
+                break;
+            }
+            current = current->next;
+        }
+
+        if (!found) {
+            printf("Symbol '%s' not found.\n", break_symbol_name);
+        } else {
+            printf("Symbol '%s' found and breakpoint added.\n", break_symbol_name);
+        }
+    }
+
+    return 0; // Indicate success
+}
+
 
 // --- Main Function ---
 int main(int argc, char *argv[]) {
@@ -1528,37 +1565,10 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // Create the symbol_list from the list file
-    symbol_list = create_symbol_dictionary(list_file_path);
-
-    if (!symbol_list) {
+    // Call the new function to handle symbol-related logic
+    if (handle_symbol_lookup(list_file_path, break_symbol_name) != 0) {
         return EXIT_FAILURE;
     }
-     // --- Example of searching for a symbol ---
-    SymbolEntry *current = symbol_list;
-    while (current) {
-        printf("Symbol: %-25s Address: 0x%04X\n", current->symbol_name, current->address);
-        current = current->next;
-    }
-
-    current = symbol_list;
-    int found = 0;
-    while (current) {
-        if (strcmp(current->symbol_name, break_symbol_name) == 0) {
-            printf("Found %s at address 0x%04X\n", break_symbol_name, current->address);
-            found = 1;
-            //break_address = current->address;
-            add_breakpoint(current->address, break_symbol_name);
-            break;
-        }
-        current = current->next;
-    }
-    if (!found) {
-        printf("Symbol %s not found.\n", break_symbol_name);
-    } else {
-        printf("Symbol %s  found.\n", break_symbol_name); 
-    }
- 
 
     // const char *hex_file_path = argv[1];
     uint16_t program_start_address = 0x8000;
