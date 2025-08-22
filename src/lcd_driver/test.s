@@ -12,61 +12,15 @@
 ; can you modify the code so that it can function like tty on  16x2 LCD ?
 
 
-; === LCD and Shell Configuration ===
-KEY_INPUT    = $0300        ; Key byte buffer
-LCD_DATA     = $6000        ; LCD data register
-LCD_CMD      = $6001        ; LCD command register (if available)
-CMD_BUFFER   = $0400        ; Command string buffer
-CMD_MAX      = 64           ; Max command length
-
-; HD44780 LCD Commands 
-LCD_CLEAR    = $01          ; Clear display
-LCD_HOME     = $02          ; Return home
-LCD_ENTRY    = $06          ; Entry mode set
-; LCD_DISPLAY  = $0C          ; Display on, cursor off
-LCD_DISPLAY  = $0F          ; Display on, cursor on, Blinking on
-LCD_FUNCTION = $38          ; Function set: 8-bit, 2-line, 5x8 dots
-LCD_CGRAM    = $40          ; Set CGRAM address
-LCD_DDRAM    = $80          ; Set DDRAM address
-
-; LCD Position Constants
-LCD_ROW0_COL0_ADDR      = $80          ; DDRAM address for line 1, column 0
-LCD_ROW1_COL0_ADDR      = $C0          ; DDRAM address for line 2, column 0
-LCD_COLS                = 16           ; Number of columns
-LCD_ROWS                = 2            ; Number of rows
-
-LCD_CURRENT_ROW  = $0230         ; current row
-LCD_CURRENT_COL  = $0231         ; current col
-
-; Buffer for line content (32 bytes: 16 for each line) 
-LCD_LINE1_BUFFER = $0240         ; First line buffer 
-LCD_LINE2_BUFFER = $0250         ; Second line buffer 
-
-;; scroll up down - Scrollable buffer variables
-SCROLL_BUFFER_SIZE = 16          ; 16 lines in circular buffer
-SCROLL_LINE_SIZE   = 16          ; 16 characters per line
-SCROLL_BUFFER      = $0500       ; Start of 16-line buffer (16*16 = 256 bytes)
-SCROLL_HEAD        = $0260       ; Index of newest line (0-15)
-SCROLL_TAIL        = $0261       ; Index of oldest line (0-15)  
-SCROLL_VIEW_TOP    = $0262       ; Index of top line currently displayed (0-15)
-SCROLL_COUNT       = $0263       ; Number of lines in buffer (0-16)
-SCROLL_MODE        = $0264       ; 0=normal mode, 1=scroll mode
-
-;; scroll up down - Key codes for arrow keys
-KEY_UP             = $5B ;  '['  Up scroll key
-KEY_DOWN           = $5D ;  ']'  Down scroll key
-
-WORKING_DIR_INODE  = $0213       ; Current working directory inode number (ADDED) ; pwd support
-
-; ---------------------------------------------
-; Initialize working directory (call this at system startup)
-;     RTS
-
+; bug_report : 
+; if HEAD = 8, it means the latest line stored to the scroll buffer is line 8. 
+; When user presses UP, the screen should show line 7 and 8 at 
+; the top and bottom of LCD, respectively. 
+; For this, SCROLL_VIEW_TOP should be 7 not 8. What do you think ?
 
 
 start_lcd:
 
-;    JSR init_working_dir
     ; *** CLEAR KEY BUFFER HERE! ***
     LDA #0
     STA KEY_INPUT

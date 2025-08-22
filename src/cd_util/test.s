@@ -5,31 +5,11 @@
 ; All common functions and variables are defined in ls_util
 ; ---------------------------------------------
 
-; ---------------------------------------------
-; CD Utility Entry Point
-; ---------------------------------------------
-simulate_cd:
-    JSR prepare_path
-    LDA #$FF
-    PHA
-    PHA
-    PHA
-    BRK                         ; Exit simulation
-    RTS
 
 ; bug_report -- cd .. and cd . has not been fully debugged
 ; at rom/bin cd .. bring pwd to rom
 ; at rom cd .. say not found but bring pwd to rom/bin  -- very funny
 
-; ; --- Prepare Path String (reused from ls_util pattern) ---
-; prepare_path:
-;     LDX #$00
-; copyLoop:
-;     LDA rom_bin_cd,X            ; Load byte from ROM string  
-;     STA PATH_INPUT,X            ; Store to RAM path buffer
-;     BEQ start_cd                ; If null terminator, jump to cd
-;     INX
-;     JMP copyLoop
 
 ; --- CD Entry Point ---
 start_cd:

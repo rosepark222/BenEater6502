@@ -5,26 +5,6 @@
 ; All common functions and variables are defined in ls_util
 ; ---------------------------------------------
 
-; Additional variables for PWD (reusing existing ls_util variables where possible)
-PWD_STACK_PTR = $0214          ; Stack pointer for path reconstruction (after WORKING_DIR_INODE)
-PWD_TEMP_INODE = $0215         ; Temporary inode storage
-PWD_PARENT_INODE = $0216       ; Parent inode storage
-
-; Path reconstruction buffer and stack
-PWD_BUFFER = $0300             ; 256 bytes for path buffer (before TOKEN_BUFFER)
-PWD_STACK = $0500              ; 256 bytes for inode stack
-
-; ---------------------------------------------
-; PWD Utility Entry Point
-; ---------------------------------------------
-; simulate_pwd:
-;     JSR start_pwd
-;     LDA #$FF
-;     PHA
-;     PHA  
-;     PHA
-;     BRK                         ; Exit simulation
-;     RTS
 
 ; --- PWD Entry Point ---
 ; temporary implementation of returning inode 

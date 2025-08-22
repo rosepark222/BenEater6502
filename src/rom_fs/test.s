@@ -1,29 +1,7 @@
     .org $8000         ; Start of program
 
-; === Base Address Configuration ===
 
-; BITMAP_BASE   = $BB00      ; Base address for bitmaps
-; INODE_BASE    = $BC00      ; Base address for inodes
-; BLOCK_BASE    = $C000      ; Base address for data blocks
-
-BITMAP_BASE   = $1B00      ; Base address for bitmaps
-INODE_BASE    = $1C00      ; Base address for inodes
-BLOCK_BASE    = $2000      ; Base address for data blocks
-
-; Derived addresses
-BLOCK_BITMAP  = BITMAP_BASE + $10   ; Block bitmap at $BB10
-INODE_BITMAP  = BITMAP_BASE + $00   ; Inode bitmap at $BB00
-
-; Zero page addresses for ls_util compatibility
-INODE_BASE_HI = $12        ; High byte of inode base
-BLOCK_BASE_HI = $13        ; High byte of block base
-
-INVALID_DATABLOCK = $FF
-INVALID_INODE = $00
-
-A_SCRATCH  = $20
-X_SCRATCH  = $21
-Y_SCRATCH  = $22
+    .include "../../includes/defines.s"
 
 ; === Initialize base addresses for ls_util ===
 InitBaseAddresses:
@@ -348,8 +326,10 @@ Loop_BIN_DOTDOT:           ; dot, dot_dot entries
 ;BRK
 ;    .align 2 ; 2 byte alignment
 ;token1:       .byte "wwwwwwwwwwwwwwww"
-    .include "../lcd_driver/test.s"
-    .include "../shell/test.s"
+    .include "../lcd_driver/test.s"  ; load lcd driver as basic IO
+    .include "../shell/test.s"       ; start shell
+; you cannot place common_libs at the top because it has a code to execute
+; you don't want to run lib code by placing it on top of the lcd driver and shell
     .include "../common_libs/test.s"
     .include "../ls_util/test.s"
     .include "../cd_util/test.s"
