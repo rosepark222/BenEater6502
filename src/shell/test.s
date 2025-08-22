@@ -22,7 +22,7 @@
 ;  9, finally, code recognize it as pwd and runs pwd, not user typed cwd
 
 
-summer_break:
+;summer_break:
 process_shell_cmd:
     LDX CMD_INDEX
     LDA #$00

@@ -2,13 +2,13 @@
 
 ; === Base Address Configuration ===
 
-BITMAP_BASE   = $BB00      ; Base address for bitmaps
-INODE_BASE    = $BC00      ; Base address for inodes
-BLOCK_BASE    = $C000      ; Base address for data blocks
+; BITMAP_BASE   = $BB00      ; Base address for bitmaps
+; INODE_BASE    = $BC00      ; Base address for inodes
+; BLOCK_BASE    = $C000      ; Base address for data blocks
 
-;BITMAP_BASE   = $1B00      ; Base address for bitmaps
-;INODE_BASE    = $1C00      ; Base address for inodes
-;BLOCK_BASE    = $2000      ; Base address for data blocks
+BITMAP_BASE   = $1B00      ; Base address for bitmaps
+INODE_BASE    = $1C00      ; Base address for inodes
+BLOCK_BASE    = $2000      ; Base address for data blocks
 
 ; Derived addresses
 BLOCK_BITMAP  = BITMAP_BASE + $10   ; Block bitmap at $BB10
@@ -350,6 +350,7 @@ Loop_BIN_DOTDOT:           ; dot, dot_dot entries
 ;token1:       .byte "wwwwwwwwwwwwwwww"
     .include "../lcd_driver/test.s"
     .include "../shell/test.s"
+    .include "../common_libs/test.s"
     .include "../ls_util/test.s"
     .include "../cd_util/test.s"
     .include "../pwd_util/test.s"
