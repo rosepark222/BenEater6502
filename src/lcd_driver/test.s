@@ -19,6 +19,49 @@
 ; For this, SCROLL_VIEW_TOP should be 7 not 8. What do you think ?
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; commit: 06c86acdac30cf842b71b15243d1bda51720e0ba
+; Date:   Sun Aug 24 08:59:43 2025 -0700
+
+; proposal 1: major change in LCD
+; This is the behavior of the desired LCD driver.
+; assume row 1 is top and row 2 is bottom of LCD VIEW ( VIEW is what is currently shown in LCD).
+; 1, 
+; while print characters in row 2, if it reaches the end of the column, the row 2 should be copied over to row 1 (scroll up), while row 1 copied over to the scroll buffer (16 entries circular buffer).  
+; 2,
+; command can also print characters as the result of execution. It should be keeping the rule 1. At the end of printing, the LCD VIEW should scroll up and row 2 should be empty line with prompt ready to taking in future command
+; 3, 
+;  when the up button is pressed and scroll buffer got something to show, the first row is copied to the second row and the most recent entry of scroll buffer will be copied over to the first row to do the scrolling up . Up button should not do anything if row 1 displays the oldest entry in the scroll buffer
+; 4, 
+; when down button is pressed, the behavior is opposite to the behavior from the pressing up button 
+; 5, 
+; when normal key is pressed, LCD will show the VIEW users see before the scroll mode is activated.
+;
+; I have the attached lcd display driver implemented the above rules but want to simplify it by placing the cursor at the row 2 at the beginning. In this way, cursors are always in the row 2 and there is no need for checking if the current cursor is at row 1 or row 2. 
+; For easy comparison, any changed line should be marked with comment "; row 2 start "
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; flow chart can be compared before and after the logic simplication ( row 2 start )
+
+; before: row 1 start -- cursor at row 1 but always stay at row 2 once it reaches it
+; https://claude.ai/public/artifacts/f90189b5-9f6e-4f42-82e3-7e156b5e4806
+
+; after : row 2 start  -- cursor only stays at the row 2 , greatly simplifies the logic
+; https://claude.ai/public/artifacts/1a53db00-d52e-41ed-8619-df7306d1c4f2
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; propoal 2: a minor suggestion
+; The clear_newline_and_move logic seems unreachable, can you remove it and clean up the code?
+; Also,
+; 1,
+; do_carriage does not have to be a subroutine, because there is only one place calling it. remove subroutine by directly calling add_line_to_scroll_buffer and lcd_scroll_up.
+; 2, 
+; add_line_to_scroll_buffer should be called add_row1_to_scroll_buffer because it stores the row 1 to the scroll buffer, right? If you agree, change the code.
+
+
+
+
+
 start_lcd:
 
     ; *** CLEAR KEY BUFFER HERE! ***
@@ -105,8 +148,9 @@ reset_shell:
     ;LDX #-1
     LDX #0
     STX CMD_INDEX
-    ;JSR clear_newline_and_move ; do_wrap_and_print
-    JSR do_carriage
+    ; row 2 start - Inline do_carriage logic (add to scroll buffer and scroll up)
+    JSR add_row1_to_scroll_buffer
+    JSR lcd_scroll_up
     JSR print_prompt
 
     JMP keyinput_loop
@@ -251,7 +295,7 @@ refresh_line2:
     
     RTS
 
-add_line_to_scroll_buffer:
+add_row1_to_scroll_buffer:
     ; Add current LCD_LINE1_BUFFER and LCD_LINE2_BUFFER to scroll buffer
     
     ; First, add line 1 to buffer
@@ -367,9 +411,10 @@ lcd_clear:
     JSR lcd_command
     ; Reset cursor position
 
-
+    ; row 2 start - Always start cursor at row 2 (bottom row)
     LDA #0
     STA LCD_CURRENT_COL
+    LDA #1                      ; row 2 start - Set to row 2 (1) instead of row 1 (0)
     STA LCD_CURRENT_ROW
     RTS
 
@@ -386,10 +431,12 @@ clear_buffers_loop:
     RTS                        
 
 lcd_home_cursor:
+    ; row 2 start - Always position cursor at row 2 (bottom row)
     LDA #0
     STA LCD_CURRENT_COL
+    LDA #1                      ; row 2 start - Set to row 2 instead of row 1
     STA LCD_CURRENT_ROW
-    LDA #LCD_HOME
+    LDA #LCD_ROW1_COL0_ADDR     ; row 2 start - Position at row 2 address
     JSR lcd_command
     RTS
 
@@ -425,31 +472,12 @@ do_normal: ; fallthrough normal write
     LDX X_SCRATCH      ; 
     RTS
 
-do_carriage:
-    ;; scroll up down - Add current screen to scroll buffer before carriage
-    JSR add_line_to_scroll_buffer
-    
-    LDA LCD_CURRENT_ROW        
-    BEQ carriage_line1         
-    ; On line 2, need to scroll 
-    JSR lcd_scroll_up          
-    RTS                        
-carriage_line1:                
-    JSR clear_newline_and_move ; lcd_carriage_return
-    RTS
-
 do_wrap_and_print:
     PHA
-    LDA LCD_CURRENT_ROW        
-    BEQ wrap_to_line2          
-    ; On line 2, need to scroll before printing 
+    ; row 2 start - Since cursor is always on row 2, always scroll up when wrapping
     JSR lcd_scroll_up          
     PLA                        
     JMP do_normal              
-wrap_to_line2:                 
-    JSR clear_newline_and_move  ; clear new line, put curtor at the head 
-    PLA
-    JMP do_normal   ; print the char
 
 lcd_scroll_up:                 
     ; Copy line 2 to line 1     
@@ -473,7 +501,7 @@ scroll_clear_loop:
     ; Refresh LCD display       
     JSR lcd_refresh_display    
                                
-    ; Position cursor at start of line 2 
+    ; row 2 start - Cursor always stays at start of line 2
     LDA #1                     
     STA LCD_CURRENT_ROW        
     LDA #0                     
@@ -509,86 +537,27 @@ refresh_line2_loop:
     RTS                        
 
 lcd_store_char_in_buffer:      
-    ; Store character in appropriate line buffer 
+    ; row 2 start - Since cursor is always on row 2, always store in line 2 buffer
     LDX LCD_CURRENT_COL        
-    LDY LCD_CURRENT_ROW        
-    BEQ store_in_line1         
-    ; Store in line 2           
     STA LCD_LINE2_BUFFER,X     
     RTS                        
-store_in_line1:                
-    STA LCD_LINE1_BUFFER,X     
-    RTS                        
-
-;summer_break:
-clear_newline_and_move: ; Move to start of next line
-    ;PHA     
-    LDA LCD_CURRENT_ROW
-    CMP #0
-    BEQ move_to_line2
-    
-    ; Currently on line 2, clear and stay at line 2
-;    JSR lcd_clear_line
-;    JSR lcd_clear_line_buffer  
-    LDA #1
-    STA LCD_CURRENT_ROW
-    LDA #0
-    STA LCD_CURRENT_COL
-    LDA #LCD_ROW0_COL0_ADDR
-    JSR lcd_command
-    ;PLA 
-    RTS
-
-move_to_line2:
-    ; Currently on line 1, clear line 2 and move there
-; bug_report: no need to clear the line 2 when we move from 1 to 2
-; this is because it only happens at the beginning, when line 2 is already clean.
-; also clearing line buffer here is wrong because it 
-; clears the content of line 1 even before it has chance to be stored to the scroll buffer
-;    JSR lcd_clear_line
-;    JSR lcd_clear_line_buffer  
-    LDA #1
-    STA LCD_CURRENT_ROW
-    LDA #0
-    STA LCD_CURRENT_COL
-    LDA #LCD_ROW1_COL0_ADDR
-    JSR lcd_command
-    RTS
 
 lcd_clear_line_buffer:         
-    ; Clear the buffer for current line 
-    LDA LCD_CURRENT_ROW        
-    BEQ clear_line1_buffer     
-    ; Clear line 2 buffer       
+    ; row 2 start - Since cursor is always on row 2, only clear line 2 buffer
     LDX #0                     
     LDA #' '                   
-clear_line2_buf_loop:          
+clear_line2_buf_loop_2:        
     STA LCD_LINE2_BUFFER,X     
     INX                        
     CPX #LCD_COLS              
-    BNE clear_line2_buf_loop   
-    RTS                        
-clear_line1_buffer:            
-    LDX #0                     
-    LDA #' '                   
-clear_line1_buf_loop:          
-    STA LCD_LINE1_BUFFER,X     
-    INX                        
-    CPX #LCD_COLS              
-    BNE clear_line1_buf_loop   
+    BNE clear_line2_buf_loop_2   
     RTS                        
 
 lcd_carriage_return:
-    ; Move to start of current line
+    ; row 2 start - Since cursor is always on row 2, always position at start of row 2
     LDA #0
     STA LCD_CURRENT_COL
-    LDA LCD_CURRENT_ROW
-    BEQ set_line1_pos
-    LDA #LCD_ROW1_COL0_ADDR
-    JSR lcd_command
-    RTS
-set_line1_pos:
-    LDA #LCD_ROW0_COL0_ADDR
+    LDA #LCD_ROW1_COL0_ADDR    ; row 2 start - Always use row 2 address
     JSR lcd_command
     RTS
 
@@ -617,20 +586,8 @@ backspace_prev_line:
     RTS
 
 lcd_update_cursor:
-    ; Set cursor position based on LCD_CURRENT_ROW and LCD_CURRENT_COL
-    LDA LCD_CURRENT_ROW
-    BEQ update_line1
-    
-    ; Line 2
-    LDA #LCD_ROW1_COL0_ADDR
-    CLC
-    ADC LCD_CURRENT_COL
-    JSR lcd_command
-    RTS
-
-update_line1:
-    ; Line 1  
-    LDA #LCD_ROW0_COL0_ADDR
+    ; row 2 start - Since cursor is always on row 2, simplified cursor positioning
+    LDA #LCD_ROW1_COL0_ADDR    ; row 2 start - Always use row 2 base address
     CLC
     ADC LCD_CURRENT_COL
     JSR lcd_command
@@ -727,6 +684,8 @@ done_unk:
 CMD_INDEX:      .byte 0
 prompt_msg:     .byte "> ", 0
 unk_msg:        .byte "Unknown command", 0
+
+
 ; LCD State Variables
 ;LCD_CURRENT_COL:     .byte 0        ; Current column (0-15)
 ;LCD_CURRENT_ROW:     .byte 0        ; Current row (0-1)
