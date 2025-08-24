@@ -48,7 +48,6 @@ keyinput_loop:
     PHA                    ; Save the key value
     LDA SCROLL_MODE
     BEQ normal_key_processing_restore
-;summer_break:
     JSR exit_scroll_mode
 
 normal_key_processing_restore:
@@ -113,6 +112,7 @@ reset_shell:
     JMP keyinput_loop
 
 ;; scroll up down - Scroll buffer management routines
+;summer_break:
 scroll_up:
     LDA SCROLL_MODE
     BNE scroll_up_continue
@@ -120,8 +120,9 @@ scroll_up:
     LDA #1
     STA SCROLL_MODE
     LDA SCROLL_HEAD
-    ; bug_report : if HEAD = 8, it means the latest line stored to the scroll buffer is line 8. When user presses UP, the screen should show line 7 and 8 at the top and bottom of LCD, respectively. For this, SCROLL_VIEW_TOP should be 7 not 8. What do you think ?
-
+    ; bug_report_123 : if HEAD = 8, it means the latest line stored to the scroll buffer is line 8.
+    ; When user presses UP, the screen should show line 7 and 8 at the top and bottom of LCD, 
+    ; respectively. For this, SCROLL_VIEW_TOP should be 7 not 8. What do you think ?
 
     SEC                    ; scroll up fix - Set carry for subtraction
     SBC #1                 ; scroll up fix - SCROLL_VIEW_TOP = HEAD - 1
@@ -137,7 +138,14 @@ scroll_up_continue:
     BEQ scroll_up_done      ; Can't scroll up anymore
     
     ; Move view up one line
-    DEC SCROLL_VIEW_TOP
+
+    ; bug_report_202f8f4812c7b102582525428c0769f1cdab866d
+    ; Here no need to decrement the SCROLL_VIEW_TOP because 
+    ; it has been already decremented in scroll_up:  SEC; SBC #1
+    ; Thus, the meaning of SCROLL_VIEW_TOP is the index of buffer will show up as the result 
+    ; of the scrolling up
+    ; 
+    ; DEC SCROLL_VIEW_TOP
     LDA SCROLL_VIEW_TOP
     BPL scroll_up_refresh
     LDA #SCROLL_BUFFER_SIZE-1  ; Wrap around
@@ -208,7 +216,7 @@ refresh_scroll_display:
 refresh_line1:
     LDA SCROLL_BUFFER,X
     STA LCD_DATA
-    JSR lcd_delay
+    ;JSR lcd_delay
     INX
     INY
     CPY #LCD_COLS
@@ -235,7 +243,7 @@ calc_second_line:
 refresh_line2:
     LDA SCROLL_BUFFER,X
     STA LCD_DATA
-    JSR lcd_delay
+    ;JSR lcd_delay
     INX
     INY
     CPY #LCD_COLS
@@ -390,11 +398,10 @@ lcd_command:
     ; For basic setup, we'll assume LCD_CMD register exists
     ; If not available, this would need timing loops
     STA LCD_CMD
-    JSR lcd_delay
+;    JSR lcd_delay
     RTS
 
 print_char:
-; summer_break:
     STX X_SCRATCH      ; 
     STY Y_SCRATCH      ; bug_report at 4426a08, Y is the pointer used in print_name in ls_util, but also used in print_char and should be preserved
     ;CMP #$0A
@@ -410,17 +417,13 @@ print_char:
 
 do_normal: ; fallthrough normal write
     STA LCD_DATA
-    JSR lcd_delay
+    ;JSR lcd_delay
     JSR lcd_store_char_in_buffer   
     INC LCD_CURRENT_COL
  
     LDY Y_SCRATCH      ; bug_report at 4426a08
     LDX X_SCRATCH      ; 
     RTS
-
-;do_newline:   ; emulator sends \r for enter key so this routine is not used
-;    JSR clear_newline_and_move
-;    RTS
 
 do_carriage:
     ;; scroll up down - Add current screen to scroll buffer before carriage
@@ -487,7 +490,7 @@ lcd_refresh_display:
 refresh_line1_loop:            
     LDA LCD_LINE1_BUFFER,X     
     STA LCD_DATA               
-    JSR lcd_delay              
+    ;JSR lcd_delay              
     INX                        
     CPX #LCD_COLS              
     BNE refresh_line1_loop     
@@ -499,7 +502,7 @@ refresh_line1_loop:
 refresh_line2_loop:            
     LDA LCD_LINE2_BUFFER,X     
     STA LCD_DATA               
-    JSR lcd_delay              
+    ;JSR lcd_delay              
     INX                        
     CPX #LCD_COLS              
     BNE refresh_line2_loop     
@@ -517,17 +520,19 @@ store_in_line1:
     STA LCD_LINE1_BUFFER,X     
     RTS                        
 
+;summer_break:
 clear_newline_and_move: ; Move to start of next line
     ;PHA     
     LDA LCD_CURRENT_ROW
     CMP #0
     BEQ move_to_line2
     
-    ; Currently on line 2, clear and go to line 1
-    JSR lcd_clear_line
-    JSR lcd_clear_line_buffer  
-    LDA #0
+    ; Currently on line 2, clear and stay at line 2
+;    JSR lcd_clear_line
+;    JSR lcd_clear_line_buffer  
+    LDA #1
     STA LCD_CURRENT_ROW
+    LDA #0
     STA LCD_CURRENT_COL
     LDA #LCD_ROW0_COL0_ADDR
     JSR lcd_command
@@ -536,8 +541,12 @@ clear_newline_and_move: ; Move to start of next line
 
 move_to_line2:
     ; Currently on line 1, clear line 2 and move there
-    JSR lcd_clear_line
-    JSR lcd_clear_line_buffer  
+; bug_report: no need to clear the line 2 when we move from 1 to 2
+; this is because it only happens at the beginning, when line 2 is already clean.
+; also clearing line buffer here is wrong because it 
+; clears the content of line 1 even before it has chance to be stored to the scroll buffer
+;    JSR lcd_clear_line
+;    JSR lcd_clear_line_buffer  
     LDA #1
     STA LCD_CURRENT_ROW
     LDA #0
@@ -595,7 +604,7 @@ lcd_backspace:
     ; Clear character at current position
     LDA #' '
     STA LCD_DATA
-    JSR lcd_delay
+    ;JSR lcd_delay
     JSR lcd_store_char_in_buffer   
     
     ; Move cursor back again
@@ -647,7 +656,7 @@ set_cursor:
     
 clear_loop:
     STA LCD_DATA            ; Write the space
-    JSR lcd_delay
+    ;JSR lcd_delay
     INY
     CPY #LCD_COLS           ; Assumes LCD_COLS is the width of the display
     BNE clear_loop
