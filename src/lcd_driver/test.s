@@ -182,7 +182,7 @@ reset_shell:
     JMP keyinput_loop
 
 ;; scroll up down - Scroll buffer management routines
-;summer_break:
+summer_break:
 scroll_up:
     LDA SCROLL_MODE
     BNE scroll_up_continue
@@ -262,6 +262,63 @@ exit_scroll_mode:
     JSR lcd_update_cursor
     RTS
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; scroll buffer
+;  head-2
+;  head-1
+;  head
+
+; line buffer
+;  line1
+;  line2 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  on the first UP: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;  head-2
+;  head-1
+;  head     <- top
+
+;  head
+;  line1 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  on the second UP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;  head-2
+;  head-1   <- top
+;  head     
+
+;  head-1
+;  head
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  on DOWN
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;  head-2
+;  head-1
+;  head     <- top
+
+;  head
+;  line1 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; on another DOWN
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;  head-2
+;  head-1
+;  head     <- top
+
+;  line1
+;  line2 
+
+
+
+
 lcd_redraw_scroll_buffer:
     ; Display two lines starting from SCROLL_VIEW_TOP
     
@@ -340,55 +397,56 @@ copy_line1:
     CMP #SCROLL_BUFFER_SIZE
     BEQ update_tail1
     INC SCROLL_COUNT
-    JMP add_line2
+    JMP add_row1_done
 update_tail1:
     INC SCROLL_TAIL
     LDA SCROLL_TAIL
     CMP #SCROLL_BUFFER_SIZE
-    BNE add_line2
+    BNE add_row1_done
     LDA #0
     STA SCROLL_TAIL
     
-add_line2:
-    ; Add line 2 to buffer
-    LDA SCROLL_HEAD
-    CLC 
-    ADC #$01
-    CMP #SCROLL_BUFFER_SIZE
-    BNE store_head2
-    LDA #0
-store_head2:
-    STA SCROLL_HEAD
+add_row1_done:
+    RTS ; do not add line2 to buffer, no need for now
+;     ; Add line 2 to buffer
+;     LDA SCROLL_HEAD
+;     CLC 
+;     ADC #$01
+;     CMP #SCROLL_BUFFER_SIZE
+;     BNE store_head2
+;     LDA #0
+; store_head2:
+;     STA SCROLL_HEAD
     
-    ASL A
-    ASL A
-    ASL A
-    ASL A
-    TAX
+;     ASL A
+;     ASL A
+;     ASL A
+;     ASL A
+;     TAX
     
-    LDY #0
-copy_line2:
-    LDA LCD_LINE2_BUFFER,Y
-    STA SCROLL_BUFFER,X
-    INX
-    INY
-    CPY #LCD_COLS
-    BNE copy_line2
+;     LDY #0
+; copy_line2:
+;     LDA LCD_LINE2_BUFFER,Y
+;     STA SCROLL_BUFFER,X
+;     INX
+;     INY
+;     CPY #LCD_COLS
+;     BNE copy_line2
     
-    LDA SCROLL_COUNT
-    CMP #SCROLL_BUFFER_SIZE
-    BEQ update_tail2
-    INC SCROLL_COUNT
-    RTS
-update_tail2:
-    INC SCROLL_TAIL
-    LDA SCROLL_TAIL
-    CMP #SCROLL_BUFFER_SIZE
-    BNE done_add_line
-    LDA #0
-    STA SCROLL_TAIL
-done_add_line:
-    RTS
+;     LDA SCROLL_COUNT
+;     CMP #SCROLL_BUFFER_SIZE
+;     BEQ update_tail2
+;     INC SCROLL_COUNT
+;     RTS
+; update_tail2:
+;     INC SCROLL_TAIL
+;     LDA SCROLL_TAIL
+;     CMP #SCROLL_BUFFER_SIZE
+;     BNE done_add_line
+;     LDA #0
+;     STA SCROLL_TAIL
+; done_add_line:
+;     RTS
 
 ; lcd driver including line discipline and scroll
 
@@ -484,6 +542,7 @@ do_normal: ; fallthrough normal write
 
 do_wrap_and_print:
     PHA
+    JSR add_row1_to_scroll_buffer 
     ; row 2 start - Since cursor is always on row 2, always scroll up when wrapping
     JSR lcd_scroll_up          
     PLA                        
