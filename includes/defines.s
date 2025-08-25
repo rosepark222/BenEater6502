@@ -102,6 +102,16 @@ SCROLL_VIEW_TOP    = $0262       ; Index of top line currently displayed (0-15)
 SCROLL_COUNT       = $0263       ; Number of lines in buffer (0-16)
 SCROLL_MODE        = $0264       ; 0=normal mode, 1=scroll mode
 
+
+CMD_INDEX          = $0265
+
+; Zero page variables for display helpers
+LCD_SRC_LO      = $23       ; Low byte of source buffer address
+LCD_SRC_HI      = $24       ; High byte of source buffer address  
+LCD_TMP_ADDR_LO = $25       ; Temporary address calculation
+LCD_TMP_ADDR_HI = $26       ; Temporary address calculation
+
+
 ; HD44780 LCD Commands 
 LCD_CLEAR    = $01          ; Clear display
 LCD_HOME     = $02          ; Return home

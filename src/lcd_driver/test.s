@@ -60,6 +60,32 @@
 
 
 
+; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; further simplications:
+
+; case 1:
+; replace
+;     ; Display line 1 from buffer
+;     JSR display_line_from_buffer
+; with 
+;     LDA #LCD_ROW0_COL0_ADDR    
+;     JSR lcd_command
+;     JSR display_chars_from_offset
+
+; which removes display_line_from_buffer subroutine completely, because 
+; it is strange to see display_line_from_buffer is used for the line 1 and 
+; use display_chars_from_offset for the line 2
+; AI coding style is strange!!!
+
+; also 
+; case 2:
+; lcd_redraw_line_buffer 
+; does not use zero page LCD_SRC_LO/HI for source data
+; but rather directly drawing data from LCD_LINE1(2)_BUFFER
+; this is literally what lcd_redraw_line_buffer should do
+
+
+
 
 
 start_lcd:
@@ -196,7 +222,7 @@ scroll_up_continue:
     STA SCROLL_VIEW_TOP
     
 scroll_up_refresh:
-    JSR refresh_scroll_display
+    JSR lcd_redraw_scroll_buffer
     
 scroll_up_done:
     RTS
@@ -219,17 +245,11 @@ scroll_down:
     STA SCROLL_VIEW_TOP
     
 scroll_down_refresh:
-    JSR refresh_scroll_display
+    JSR lcd_redraw_scroll_buffer
     
 scroll_down_done:
     RTS
 
-; exit_scroll_mode:
-;     LDA #0
-;     STA SCROLL_MODE
-;     ; Refresh display to show current lines
-;     JSR lcd_refresh_display
-;     RTS
 
 ; The key addition is JSR lcd_update_cursor at the end of exit_scroll_mode. This ensures that after refreshing the display with the current line buffers, the LCD cursor is positioned correctly based on LCD_CURRENT_ROW and LCD_CURRENT_COL so that normal character input can continue from the right position.
 
@@ -237,15 +257,15 @@ exit_scroll_mode:
     LDA #0
     STA SCROLL_MODE
     ; Refresh display to show current lines
-    JSR lcd_refresh_display
+    JSR lcd_redraw_line_buffer
     ;; scroll up down - Restore cursor position after exiting scroll mode
     JSR lcd_update_cursor
     RTS
 
-refresh_scroll_display:
+lcd_redraw_scroll_buffer:
     ; Display two lines starting from SCROLL_VIEW_TOP
     
-    ; Calculate first line address
+    ; Calculate first line address in scroll buffer
     LDA SCROLL_VIEW_TOP
     ASL A                   ; Multiply by 16 (line size)
     ASL A
@@ -253,18 +273,16 @@ refresh_scroll_display:
     ASL A
     TAX                     ; X = line offset in buffer
     
-    ; Display first line
-    LDA #LCD_ROW0_COL0_ADDR
+    ; Set up for displaying from scroll buffer
+    LDA #<SCROLL_BUFFER     ; Low byte of scroll buffer address
+    STA LCD_SRC_LO
+    LDA #>SCROLL_BUFFER     ; High byte of scroll buffer address  
+    STA LCD_SRC_HI
+    
+    ; Display first line from scroll buffer
+    LDA #LCD_ROW0_COL0_ADDR    
     JSR lcd_command
-    LDY #0
-refresh_line1:
-    LDA SCROLL_BUFFER,X
-    STA LCD_DATA
-    ;JSR lcd_delay
-    INX
-    INY
-    CPY #LCD_COLS
-    BNE refresh_line1
+    JSR display_chars_from_offset
     
     ; Calculate second line (next line in circular buffer)
     LDA SCROLL_VIEW_TOP
@@ -280,18 +298,10 @@ calc_second_line:
     ASL A
     TAX
     
-    ; Display second line
+    ; Display second line from scroll buffer
     LDA #LCD_ROW1_COL0_ADDR
     JSR lcd_command
-    LDY #0
-refresh_line2:
-    LDA SCROLL_BUFFER,X
-    STA LCD_DATA
-    ;JSR lcd_delay
-    INX
-    INY
-    CPY #LCD_COLS
-    BNE refresh_line2
+    JSR display_chars_from_offset
     
     RTS
 
@@ -499,7 +509,7 @@ scroll_clear_loop:
     BNE scroll_clear_loop      
                                
     ; Refresh LCD display       
-    JSR lcd_refresh_display    
+    JSR lcd_redraw_line_buffer    
                                
     ; row 2 start - Cursor always stays at start of line 2
     LDA #1                     
@@ -510,30 +520,51 @@ scroll_clear_loop:
     JSR lcd_command            
     RTS                        
 
-lcd_refresh_display:           
+lcd_redraw_line_buffer:           
     ; Display line 1            
     LDA #LCD_ROW0_COL0_ADDR    
     JSR lcd_command            
     LDX #0                     
-refresh_line1_loop:            
+redraw_line1_loop:            
     LDA LCD_LINE1_BUFFER,X     
     STA LCD_DATA               
     ;JSR lcd_delay              
     INX                        
     CPX #LCD_COLS              
-    BNE refresh_line1_loop     
+    BNE redraw_line1_loop     
                                
     ; Display line 2            
     LDA #LCD_ROW1_COL0_ADDR    
     JSR lcd_command            
     LDX #0                     
-refresh_line2_loop:            
+redraw_line2_loop:            
     LDA LCD_LINE2_BUFFER,X     
     STA LCD_DATA               
     ;JSR lcd_delay              
     INX                        
     CPX #LCD_COLS              
-    BNE refresh_line2_loop     
+    BNE redraw_line2_loop     
+    RTS
+
+display_chars_from_offset:
+    ; Display LCD_COLS characters from (LCD_SRC_LO/HI + X)
+    ; Set up base address + offset
+    TXA                     ; Transfer X (offset) to A
+    CLC
+    ADC LCD_SRC_LO          ; Add to low byte
+    STA LCD_TMP_ADDR_LO     ; Store in temporary address
+    LDA LCD_SRC_HI          ; Load high byte
+    ADC #0                  ; Add carry to high byte
+    STA LCD_TMP_ADDR_HI     ; Store in temporary address
+    
+    LDY #0
+display_char_loop:
+    LDA (LCD_TMP_ADDR_LO),Y ; Load character using zero page indirect indexed addressing
+    STA LCD_DATA
+    ;JSR lcd_delay
+    INY
+    CPY #LCD_COLS
+    BNE display_char_loop
     RTS                        
 
 lcd_store_char_in_buffer:      
@@ -681,9 +712,9 @@ done_unk:
 
 ; === Data ===
 
-CMD_INDEX:      .byte 0
 prompt_msg:     .byte "> ", 0
 unk_msg:        .byte "Unknown command", 0
+
 
 
 ; LCD State Variables
