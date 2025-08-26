@@ -89,19 +89,27 @@ LCD_DATA     = $6000        ; LCD data register
 LCD_CMD      = $6001        ; LCD command register (if available)
 
 
-LCD_CURRENT_ROW  = $0230         ; current row
-LCD_CURRENT_COL  = $0231         ; current col
-; Buffer for line content (32 bytes: 16 for each line) 
-LCD_LINE1_BUFFER = $0240         ; First line buffer 
-LCD_LINE2_BUFFER = $0250         ; Second line buffer 
+; LCD_CURRENT_ROW  = $0230         ; current row
+; LCD_CURRENT_COL  = $0231         ; current col
+; ; Buffer for line content (32 bytes: 16 for each line) 
+; LCD_LINE1_BUFFER = $0240         ; First line buffer 
+; LCD_LINE2_BUFFER = $0250         ; Second line buffer 
 
-SCROLL_BUFFER      = $0500       ; Start of 16-line buffer (16*16 = 256 bytes)
-SCROLL_HEAD        = $0260       ; Index of newest line (0-15)
-SCROLL_TAIL        = $0261       ; Index of oldest line (0-15)  
-SCROLL_VIEW_TOP    = $0262       ; Index of top line currently displayed (0-15)
-SCROLL_COUNT       = $0263       ; Number of lines in buffer (0-16)
-SCROLL_MODE        = $0264       ; 0=normal mode, 1=scroll mode
 
+; SCROLL_BUFFER      = $0500       ; Start of 16-line buffer (16*16 = 256 bytes)
+; SCROLL_HEAD        = $0260       ; Index of newest line (0-15)
+; SCROLL_TAIL        = $0261       ; Index of oldest line (0-15)  
+; SCROLL_VIEW_TOP    = $0262       ; Index of top line currently displayed (0-15)
+; SCROLL_COUNT       = $0263       ; Number of lines in buffer (0-16)
+; SCROLL_MODE        = $0264       ; 0=normal mode, 1=scroll mode
+
+UNIFIED_LCD_BUFFER   = $0500     ; 256 bytes (16 lines × 16 chars)
+UNIFIED_CURRENT_LINE = $0230     ; 1 byte (0-15, current line being written to)
+UNIFIED_OLDEST_LINE  = $0231     ; 1 byte (0-15, oldest line in buffer)
+UNIFIED_CURRENT_COL  = $0232     ; 1 byte (0-15, current column in current line)
+UNIFIED_VIEW_TOP     = $0233     ; 1 byte (0-15, top line currently displayed)
+SCROLL_MODE          = $0234     ; 1 byte (0=normal, 1=scrolling)
+UNIFIED_BUFFER_LINES = 16        ; Total lines in buffer
 
 CMD_INDEX          = $0265
 
@@ -129,9 +137,9 @@ LCD_ROW1_COL0_ADDR      = $C0          ; DDRAM address for line 2, column 0
 LCD_COLS                = 16           ; Number of columns
 LCD_ROWS                = 2            ; Number of rows
 
-;; scroll up down - Scrollable buffer variables
-SCROLL_BUFFER_SIZE = 16          ; 16 lines in circular buffer
-SCROLL_LINE_SIZE   = 16          ; 16 characters per line
+; ;; scroll up down - Scrollable buffer variables
+; SCROLL_BUFFER_SIZE = 16          ; 16 lines in circular buffer
+; SCROLL_LINE_SIZE   = 16          ; 16 characters per line
 
 ;; scroll up down - Key codes for arrow keys
 KEY_UP             = $5B ;  '['  Up scroll key

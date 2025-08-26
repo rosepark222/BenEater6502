@@ -82,7 +82,7 @@ def find_pc_in_trace(trace_file):
     pc_pattern = re.compile(r'CPU State: PC:([0-9A-Fa-f]{4})')
     last_pc = None
     
-    with open(trace_file, 'r') as f:
+    with open(trace_file, 'r', encoding='latin-1') as f:
         for line in f:
             match = pc_pattern.search(line)
             if match:
@@ -93,7 +93,7 @@ def find_pc_in_trace(trace_file):
     
     pc_pattern_alt = re.compile(r'^([0-9A-Fa-f]{4}):')
     
-    with open(trace_file, 'r') as f:
+    with open(trace_file, 'r',  encoding='latin-1') as f:
         for line in reversed(list(f)):
             match = pc_pattern_alt.match(line)
             if match:
@@ -107,7 +107,7 @@ def find_line_by_pc(list_file, pc_value):
     """
     line_pattern = re.compile(r'^[0-9A-Fa-f]{2}:' + pc_value)
     
-    with open(list_file, 'r') as f:
+    with open(list_file, 'r',  encoding='latin-1') as f:
         for i, line in enumerate(f, 1):
             if line_pattern.match(line):
                 return i
@@ -118,7 +118,7 @@ def display_centered_lines(list_file, start_line, num_lines):
     Prints a block of lines from a file, centered around a given line.
     """
     try:
-        with open(list_file, 'r') as f:
+        with open(list_file, 'r', encoding='latin-1') as f:
             lines = f.readlines()
     except FileNotFoundError:
         print(f"Error: {list_file} not found.")
