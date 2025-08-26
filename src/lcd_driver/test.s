@@ -1,5 +1,23 @@
 ; HD44780 LCD  
 
+; Three sources for display
+;1, user input       -- stdin, echoing to termimal
+;2, command results  -- stdout, priting to terminal from program output
+;3, scroll buffer    -- terminal buffer ( history of stdout )
+
+; 
+;that is a great way to conceptualize the three primary sources for what you see displayed in a terminal. Your breakdown is accurate.
+;
+;1. User Input (Echoing)
+;When you type characters on the keyboard, the terminal driver in the kernel immediately sends them back to the screen as part of an "echoing" process. This is not a direct path from stdin to stdout; the terminal driver handles it separately. It's an immediate visual confirmation of your input.
+;
+;2. Command Results (stdout)
+;This is the most common source of terminal output. When you run a command like ls or echo "Hello, World!", the program writes its results to the stdout stream. The terminal emulator receives this stream and prints it to the screen in real-time. This is the primary channel for a program to communicate its results to you.
+;
+;3. Scrollback Buffer (History)
+;The terminal emulator maintains a scrollback buffer to store a history of everything that has been printed to the screen. This includes both stdout and stderr from all programs. When you scroll up with your mouse or keyboard, you are viewing the contents of this buffer, which holds content that has already scrolled off the top of the active display area. This allows you to review past output without rerunning the commands.
+
+
 
 ; using the code in the previous commit,
 ; asked claude the below
