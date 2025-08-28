@@ -1,4 +1,8 @@
 ; HD44780 LCD  
+; the latest flow chart 
+; https://claude.ai/public/artifacts/f1068269-3e7d-45ec-bc43-ecac6d8b7160
+
+; which shows the below summary of function
 
 ; Three sources for display
 ;1, user input       -- stdin, echoing to termimal
@@ -111,6 +115,30 @@
 ; I think it is better to unify buffer which holds what are currently displayed and what scrolled out of LCD. In this way, scroll up and down is trivial -- choosing two lines from the unified buffer.
 ; Thus, I want you to  rewrite the code so that it combine line buffer and scroll buffer into a unified_lcd_buffer.
 
+; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; bug_report : de0b41462768a587546e378849e1e979cd83bc40
+;
+; I realized that the code uses "wrap" in two meanings -- 
+;   1) at the end of column, move to the next line, 
+;   2) at the end of scroll buffer, move to the index 0 of the buffer.
+; this is confusing. 
+
+; AI suggested:
+; do_wrap_and_print → do_lineWrap_and_print
+; no_wrap_check → no_buffer_wrap_check
+; no_line_wrap → no_line_buffer_wrap
+; no_oldest_wrap → no_oldest_buffer_wrap
+
+; But this still not clear because each "no_*_wrap" label is a jump destination that skips the wraparound handling code when it's not needed. 
+; They function as jump destination and extra words just confuse the reader. 
+
+; Finally, this is chosen names:
+; no_buffer_wrap_check  → no_bufferWrap_0  : Skip bufferWrap in scroll down check
+; no_line_buffer_wrap   → no_bufferWrap_1  : Skip bufferWrap when advancing current line
+; no_oldest_buffer_wrap → no_bufferWrap_2  : Skip bufferWrap when advancing oldest line
+; Now, the code is now much cleaner with the simplified jump labels:
+
+
 
 start_lcd:
     ; *** CLEAR KEY BUFFER HERE! ***
@@ -219,7 +247,7 @@ scroll_up:
     SBC #1                     ; View top = current line - 1
     BPL store_view_top
     CLC
-    ADC #UNIFIED_BUFFER_LINES  ; Wrap around
+    ADC #UNIFIED_BUFFER_LINES  ; bufferWrap around
 store_view_top:
     STA UNIFIED_VIEW_TOP
     
@@ -233,7 +261,7 @@ scroll_up_continue:
     DEC UNIFIED_VIEW_TOP
     LDA UNIFIED_VIEW_TOP
     BPL scroll_up_refresh
-    LDA #UNIFIED_BUFFER_LINES-1 ; Wrap around
+    LDA #UNIFIED_BUFFER_LINES-1 ; bufferWrap around
     STA UNIFIED_VIEW_TOP
     
 scroll_up_refresh:
@@ -251,9 +279,9 @@ scroll_down:
     CLC
     ADC #1                     ; Bottom of view = top + 1
     CMP #UNIFIED_BUFFER_LINES
-    BNE no_wrap_check
-    LDA #0                     ; Wrap around
-no_wrap_check:
+    BNE no_bufferWrap_0
+    LDA #0                     ; bufferWrap around
+no_bufferWrap_0:
     CMP UNIFIED_CURRENT_LINE
     BEQ scroll_down_done       ; Already showing current line
     
@@ -262,7 +290,7 @@ no_wrap_check:
     LDA UNIFIED_VIEW_TOP
     CMP #UNIFIED_BUFFER_LINES
     BNE scroll_down_refresh
-    LDA #0                     ; Wrap around
+    LDA #0                     ; bufferWrap around
     STA UNIFIED_VIEW_TOP
     
 scroll_down_refresh:
@@ -281,7 +309,7 @@ exit_scroll_mode:
     SBC #1                     ; Top line = current - 1
     BPL store_normal_view
     CLC
-    ADC #UNIFIED_BUFFER_LINES  ; Wrap around
+    ADC #UNIFIED_BUFFER_LINES  ; bufferWrap around
 store_normal_view:
     STA UNIFIED_VIEW_TOP
     
@@ -307,10 +335,10 @@ print_char:
     STX X_SCRATCH
     STY Y_SCRATCH
     
-    ; Check if we need to wrap to next line
+    ; Check if we need lineWrap to next line
     LDX UNIFIED_CURRENT_COL
     CPX #LCD_COLS
-    BCS do_wrap_and_print
+    BCS do_lineWrap_and_print
 
 do_normal:
     ; Store character in unified buffer
@@ -330,7 +358,7 @@ skip_direct_output:
     LDX X_SCRATCH
     RTS
 
-do_wrap_and_print:
+do_lineWrap_and_print:
     PHA
     JSR lcd_new_line
     PLA
@@ -341,10 +369,10 @@ lcd_new_line:
     INC UNIFIED_CURRENT_LINE
     LDA UNIFIED_CURRENT_LINE
     CMP #UNIFIED_BUFFER_LINES
-    BNE no_line_wrap
-    LDA #0                     ; Wrap around
+    BNE no_bufferWrap_1
+    LDA #0                     ; bufferWrap around
     STA UNIFIED_CURRENT_LINE
-no_line_wrap:
+no_bufferWrap_1:
     
     ; Update oldest line if buffer is full
     LDA UNIFIED_CURRENT_LINE
@@ -353,10 +381,10 @@ no_line_wrap:
     INC UNIFIED_OLDEST_LINE    ; Buffer is full, advance oldest
     LDA UNIFIED_OLDEST_LINE
     CMP #UNIFIED_BUFFER_LINES
-    BNE no_oldest_wrap
+    BNE no_bufferWrap_2
     LDA #0
     STA UNIFIED_OLDEST_LINE
-no_oldest_wrap:
+no_bufferWrap_2:
 no_oldest_update:
     
     ; Clear the new line
@@ -432,12 +460,12 @@ clear_line_loop:
     RTS
 
 
-; ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿
-; ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿
-; ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿
-; ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿
-; ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿
-; ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿ ̿̿’̿’\̵͇̿̿\=(•̪●)=/̵͇̿̿/’̿̿ ̿ ̿ ̿
+; ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿
+; ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿
+; ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿
+; ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿
+; ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿
+; ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿̿'̿'\̵͇̿̿\=(•̪●)=/̵͇̿̿/'̿̿ ̿ ̿ ̿
 
 
 
@@ -471,7 +499,7 @@ redraw_top_line:
     ADC #1
     CMP #UNIFIED_BUFFER_LINES
     BNE calc_bottom_line
-    LDA #0                     ; Wrap around
+    LDA #0                     ; bufferWrap around
 calc_bottom_line:
     ASL A                      ; Multiply by LCD_COLS (16)
     ASL A
@@ -638,4 +666,3 @@ done_unk:
 
 prompt_msg:     .byte "> ", 0
 unk_msg:        .byte "Unknown command", 0
-
