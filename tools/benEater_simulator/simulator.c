@@ -1146,7 +1146,7 @@ void handle_keyboard_event(SDL_Event *event, LCDSim *lcd, SDL_Window *window, lo
 
     if (!input) return;
 
-    printf("key pressed: %04X  at loop_cnt %04ld\n", input, loop_cnt);
+    printf("key pressed: %04X (%c) at loop_cnt %04ld\n", input, input, loop_cnt);
 
     write6502(KEY_INPUT, input); // put it to keyboard buffer
 
@@ -1419,9 +1419,23 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
         // It returns 1 if an event was processed and 0 if the queue was empty.
 
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) { break_loop = 1; break; }
+            if (event.type == SDL_QUIT) { 
+                if(step_enabled) {
+                    printf("SDL_QUIT when step_enabled should break the sim loop");
+                    break_loop = 1; break; 
+                } else {
+                    printf("SDL_QUIT when step_enabled is off turns on step_enabled");
+                    step_enabled = 1;
+                }
+            }
             else if (event.type == SDL_KEYDOWN) {
-                handle_keyboard_event(&event, lcd, window, loop_cnt);
+                // running this on wsl does not send SDL_QUIT, handle it under SDL_KEYDOWN code 
+                if (event.key.keysym.sym == SDLK_c && (event.key.keysym.mod & KMOD_CTRL)) {
+                    printf("Ctrl+C pressed via keydown event\n");
+                    step_enabled = 1;
+                } else {
+                    handle_keyboard_event(&event, lcd, window, loop_cnt);
+                }
             }
         }
 
