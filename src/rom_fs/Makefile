@@ -4,7 +4,9 @@ all: sim a.out.hex
 	./sim -h ./a.out.hex -l ./listFile -b  summer_break
 
 sim: $(BEN_HOME)/tools/benEater_simulator/simulator.c
-	cc -std=c99 -g -Os $(BEN_HOME)/tools/benEater_simulator/simulator.c $(BEN_HOME)/tools/LCDSim/lcdsim.c -I$(BEN_HOME)/tools/LCDSim  -DMAX_IRQ_INTERVAL -I$(BEN_HOME)/tools/fake6502/MyLittle6502 -o sim `sdl2-config --cflags --libs`
+	
+	cc -std=c99 -g -Os $(BEN_HOME)/tools/benEater_simulator/simulator.c $(BEN_HOME)/tools/LCDSim/lcdsim.c -I$(BEN_HOME)/tools/LCDSim  -DMAX_IRQ_INTERVAL -I$(BEN_HOME)/tools/fake6502/MyLittle6502 -o sim `sdl2-config --cflags --libs` -lSDL2_ttf
+	#cc -std=c99 -g -Os $(BEN_HOME)/tools/benEater_simulator/simulator.c $(BEN_HOME)/tools/LCDSim/lcdsim.c -I$(BEN_HOME)/tools/LCDSim  -DMAX_IRQ_INTERVAL -I$(BEN_HOME)/tools/fake6502/MyLittle6502 -o sim `sdl2-config --cflags --libs`
 	# cc -std=c99 -Os example.c $(BEN_HOME)/tools/LCDSim/lcdsim.c -I$(BEN_HOME)/tools/LCDSim -o example `sdl2-config --cflags --libs`
 a.out.hex: a.out
 	hexdump -v -e '"%07.7_ax: " 8/1 "%02x " "\n"' a.out > a.out.hex.raw

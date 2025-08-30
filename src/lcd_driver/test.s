@@ -329,7 +329,7 @@ store_normal_view:
 ;¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯
 
 
-
+summer_break:
 print_char:
     STA A_SCRATCH
     STX X_SCRATCH

@@ -106,6 +106,403 @@ typedef struct {
 static MonitorAddr monitor_addresses[MAX_MONITOR_ADDRESSES];
 static int monitor_count = 0;
 
+// ;¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯
+// ;¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯
+// ;¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯
+// ;¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯
+// ;¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯
+// ;¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯
+
+#include <SDL2/SDL_ttf.h>
+
+// tracer in SDL2 - Structure to hold tracer window data
+typedef struct {
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    TTF_Font *font;
+    char **lines;           // Array of strings for list file lines
+    int total_lines;        // Total number of lines in list file
+    int current_pc_line;    // Line number of current PC (1-based)
+    int display_start;      // First line to display (0-based)
+    int visible_lines;      // Number of lines that fit in window
+    int is_active;          // Whether tracer window is open
+} TracerWindow;
+
+// up/down key function + initial window + font increase - Structure to hold trace history
+typedef struct {
+    char instruction[128];
+    char cpu_state[256];
+    char ram_state[512];
+    uint16_t pc_value;
+} TraceEntry;
+
+static TraceEntry *trace_history = NULL;
+static int trace_history_size = 0;
+static int trace_history_capacity = 0;
+static int trace_scroll_index = -1;  // -1 means current (not scrolling)
+static int scroll_mode = 0;
+
+// tracer in SDL2 - Global tracer window instance
+static TracerWindow tracer = {0};
+
+// tracer in SDL2 - Load list file into memory
+int load_list_file(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Failed to open list file: %s\n", filename);
+        return 0;
+    }
+    
+    // Count lines first
+    tracer.total_lines = 0;
+    char buffer[512];
+    while (fgets(buffer, sizeof(buffer), file)) {
+        tracer.total_lines++;
+    }
+    
+    // Allocate memory for lines
+    tracer.lines = malloc(tracer.total_lines * sizeof(char*));
+    if (!tracer.lines) {
+        fclose(file);
+        return 0;
+    }
+    
+    // Read lines into memory
+    rewind(file);
+    int i = 0;
+    while (fgets(buffer, sizeof(buffer), file) && i < tracer.total_lines) {
+        // Remove newline
+        buffer[strcspn(buffer, "\r\n")] = 0;
+        tracer.lines[i] = malloc(strlen(buffer) + 1);
+        strcpy(tracer.lines[i], buffer);
+        i++;
+    }
+    
+    fclose(file);
+    printf("Loaded %d lines from list file\n", tracer.total_lines);
+    return 1;
+}
+
+// tracer in SDL2 - Find line number for given PC
+int find_pc_line(uint16_t pc_value) {
+    char pc_hex[5];
+    sprintf(pc_hex, "%04X", pc_value);
+    
+    for (int i = 0; i < tracer.total_lines; i++) {
+        // Look for pattern like "00:822D" at start of line
+        if (strlen(tracer.lines[i]) >= 7 && 
+            tracer.lines[i][2] == ':' && 
+            strncmp(tracer.lines[i] + 3, pc_hex, 4) == 0) {
+            return i + 1; // Return 1-based line number
+        }
+    }
+    return -1; // Not found
+}
+
+// tracer in SDL2 - Initialize tracer window
+int init_tracer_window(const char *list_filename) {
+    if (!load_list_file(list_filename)) {
+        return 0;
+    }
+    
+    // Initialize TTF
+    if (TTF_Init() == -1) {
+        printf("TTF_Init failed: %s\n", TTF_GetError());
+        return 0;
+    }
+    
+    // Create tracer window
+    tracer.window = SDL_CreateWindow(
+        "6502 Tracer - Assembly View",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        1200, 900,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
+    );
+    
+    if (!tracer.window) {
+        printf("Failed to create tracer window: %s\n", SDL_GetError());
+        TTF_Quit();
+        return 0;
+    }
+    
+    tracer.renderer = SDL_CreateRenderer(tracer.window, -1, SDL_RENDERER_ACCELERATED);
+    if (!tracer.renderer) {
+        printf("Failed to create tracer renderer: %s\n", SDL_GetError());
+        SDL_DestroyWindow(tracer.window);
+        TTF_Quit();
+        return 0;
+    }
+    
+    // up/down key function + initial window + font increase - Load font (try common system fonts) with increased size
+    const char* font_paths[] = {
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+        "/usr/share/fonts/TTF/DejaVuSansMono.ttf",
+        "/System/Library/Fonts/Monaco.ttf",
+        "C:\\Windows\\Fonts\\consola.ttf"
+    };
+    
+    tracer.font = NULL;
+    for (int i = 0; i < 4; i++) {
+        tracer.font = TTF_OpenFont(font_paths[i], 18);  // Increased from 12 to 18 (50% increase)
+        if (tracer.font) break;
+    }
+    
+    if (!tracer.font) {
+        printf("Failed to load font, tracer disabled\n");
+        SDL_DestroyRenderer(tracer.renderer);
+        SDL_DestroyWindow(tracer.window);
+        TTF_Quit();
+        return 0;
+    }
+    
+    tracer.visible_lines = 25; // Default, will be recalculated
+    tracer.is_active = 1;
+    tracer.current_pc_line = -1;
+    tracer.display_start = 0;
+    
+    // up/down key function + initial window + font increase - Initialize trace history
+    trace_history_capacity = 1000;  // Store last 1000 trace entries
+    trace_history = malloc(trace_history_capacity * sizeof(TraceEntry));
+    trace_history_size = 0;
+    trace_scroll_index = -1;
+    scroll_mode = 0;
+    
+    return 1;
+}
+
+// up/down key function + initial window + font increase - Add trace entry to history
+void add_trace_entry(const char* instruction, const char* cpu_state, const char* ram_state, uint16_t pc) {
+    if (!trace_history) return;
+    
+    // If at capacity, shift entries to make room
+    if (trace_history_size >= trace_history_capacity) {
+        memmove(trace_history, trace_history + 1, (trace_history_capacity - 1) * sizeof(TraceEntry));
+        trace_history_size = trace_history_capacity - 1;
+    }
+    
+    // Add new entry
+    TraceEntry *entry = &trace_history[trace_history_size];
+    strncpy(entry->instruction, instruction, sizeof(entry->instruction) - 1);
+    entry->instruction[sizeof(entry->instruction) - 1] = '\0';
+    strncpy(entry->cpu_state, cpu_state, sizeof(entry->cpu_state) - 1);
+    entry->cpu_state[sizeof(entry->cpu_state) - 1] = '\0';
+    strncpy(entry->ram_state, ram_state, sizeof(entry->ram_state) - 1);
+    entry->ram_state[sizeof(entry->ram_state) - 1] = '\0';
+    entry->pc_value = pc;
+    
+    trace_history_size++;
+}
+
+// up/down key function + initial window + font increase - Handle scroll up in trace history
+void handle_trace_scroll_up() {
+    if (!trace_history || trace_history_size == 0) return;
+    
+    scroll_mode = 1;
+    
+    if (trace_scroll_index == -1) {
+        // First time scrolling, start from last entry
+        trace_scroll_index = trace_history_size - 1;
+    } else if (trace_scroll_index > 0) {
+        trace_scroll_index--;
+    }
+    
+    if (trace_scroll_index >= 0 && trace_scroll_index < trace_history_size) {
+        TraceEntry *entry = &trace_history[trace_scroll_index];
+        printf("TRACE [%d/%d]: %s\n", trace_scroll_index + 1, trace_history_size, entry->instruction);
+        printf("%s\n", entry->cpu_state);
+        printf("%s\n", entry->ram_state);
+        
+        // fix up and down to apply in the tracer - Update and render tracer window immediately
+        if (tracer.is_active) {
+            update_tracer_display(entry->pc_value);
+            render_tracer_window();
+        }
+    }
+}
+
+// up/down key function + initial window + font increase - Handle scroll down in trace history
+int handle_trace_scroll_down() {
+    if (!trace_history || trace_history_size == 0 || trace_scroll_index == -1) {
+        // At current position or no history, exit scroll mode
+        scroll_mode = 0;
+        trace_scroll_index = -1;
+        printf("Exiting trace scroll mode\n");
+        return 1; // Signal to exit scroll mode
+    }
+    
+    if (trace_scroll_index < trace_history_size - 1) {
+        trace_scroll_index++;
+        TraceEntry *entry = &trace_history[trace_scroll_index];
+        printf("TRACE [%d/%d]: %s\n", trace_scroll_index + 1, trace_history_size, entry->instruction);
+        printf("%s\n", entry->cpu_state);
+        printf("%s\n", entry->ram_state);
+        
+        // fix up and down to apply in the tracer - Update and render tracer window immediately
+        if (tracer.is_active) {
+            update_tracer_display(entry->pc_value);
+            render_tracer_window();
+        }
+    } else {
+        // At the end, exit scroll mode
+        scroll_mode = 0;
+        trace_scroll_index = -1;
+        printf("Reached current state, exiting trace scroll mode\n");
+        return 1; // Signal to exit scroll mode
+    }
+    
+    return 0; // Continue in scroll mode
+}
+// tracer in SDL2 - Update tracer display
+void update_tracer_display(uint16_t current_pc) {
+    if (!tracer.is_active) return;
+    
+    // Find line for current PC
+    int pc_line = find_pc_line(current_pc);
+    if (pc_line != -1) {
+        tracer.current_pc_line = pc_line;
+        
+        // Center display around current PC
+        int half_visible = tracer.visible_lines / 2;
+        tracer.display_start = tracer.current_pc_line - 1 - half_visible;
+        if (tracer.display_start < 0) tracer.display_start = 0;
+        if (tracer.display_start + tracer.visible_lines > tracer.total_lines) {
+            tracer.display_start = tracer.total_lines - tracer.visible_lines;
+            if (tracer.display_start < 0) tracer.display_start = 0;
+        }
+    }
+}
+
+// tracer in SDL2 - Render tracer window
+void render_tracer_window() {
+    if (!tracer.is_active) return;
+    
+    // Clear background
+    // SDL_SetRenderDrawColor(tracer.renderer, 20, 20, 30, 255);
+    SDL_SetRenderDrawColor(tracer.renderer, 0, 0, 0, 255);
+    SDL_RenderClear(tracer.renderer);
+    
+    // Get window size to calculate visible lines
+    int window_width, window_height;
+    SDL_GetWindowSize(tracer.window, &window_width, &window_height);
+    
+    int line_height = 20;  // up/down key function + initial window + font increase - Increased line height for larger font
+    tracer.visible_lines = (window_height - 20) / line_height;
+    
+    // Render lines
+    SDL_Color white = {180, 180, 180, 255}; // {255, 255, 255, 255};
+    SDL_Color yellow = {180, 180, 180, 255}; // {255, 255, 0, 255};
+    SDL_Color gray = {180, 180, 180, 255};
+    
+    for (int i = 0; i < tracer.visible_lines && (tracer.display_start + i) < tracer.total_lines; i++) {
+        int line_index = tracer.display_start + i;
+        int line_number = line_index + 1;
+        
+        SDL_Color *color = &white;
+        char prefix[4] = "   ";
+        
+        // Highlight current PC line
+        if (line_number == tracer.current_pc_line) {
+            // Draw highlight background
+            SDL_SetRenderDrawColor(tracer.renderer, 80, 80, 0, 255);
+            SDL_Rect highlight_rect = {0, 10 + i * line_height, window_width, line_height};
+            SDL_RenderFillRect(tracer.renderer, &highlight_rect);
+            color = &yellow;
+            strcpy(prefix, "-> ");
+        } else if (strlen(tracer.lines[line_index]) > 0 && tracer.lines[line_index][0] != ' ') {
+            // Assembly line
+            color = &white;
+        } else {
+            // Comment or empty line
+            color = &gray;
+        }
+        
+        // Prepare text with prefix
+        char display_text[600];
+        snprintf(display_text, sizeof(display_text), "%s%s", prefix, tracer.lines[line_index]);
+        
+        // Render text
+        SDL_Surface *text_surface = TTF_RenderText_Solid(tracer.font, display_text, *color);
+        if (text_surface) {
+            SDL_Texture *text_texture = SDL_CreateTextureFromSurface(tracer.renderer, text_surface);
+            if (text_texture) {
+                SDL_Rect dest_rect = {5, 10 + i * line_height, text_surface->w, text_surface->h};
+                SDL_RenderCopy(tracer.renderer, text_texture, NULL, &dest_rect);
+                SDL_DestroyTexture(text_texture);
+            }
+            SDL_FreeSurface(text_surface);
+        }
+    }
+    
+    SDL_RenderPresent(tracer.renderer);
+}
+
+// tracer in SDL2 - Handle tracer window events
+void handle_tracer_events() {
+    if (!tracer.is_active) return;
+    
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            tracer.is_active = 0;
+        // fix up and down to apply in the tracer - Handle window resize event
+        } else if (event.type == SDL_WINDOWEVENT) {
+            if (event.window.event == SDL_WINDOWEVENT_RESIZED || 
+                event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                render_tracer_window();
+            }
+        } else if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+                case SDLK_UP:
+                    if (tracer.display_start > 0) tracer.display_start--;
+                    // fix up and down to apply in the tracer - Render immediately after scroll
+                    render_tracer_window();
+                    break;
+                case SDLK_DOWN:
+                    if (tracer.display_start < tracer.total_lines - tracer.visible_lines) 
+                        tracer.display_start++;
+                    // fix up and down to apply in the tracer - Render immediately after scroll
+                    render_tracer_window();
+                    break;
+                case SDLK_PAGEUP:
+                    tracer.display_start -= tracer.visible_lines;
+                    if (tracer.display_start < 0) tracer.display_start = 0;
+                    // fix up and down to apply in the tracer - Render immediately after scroll
+                    render_tracer_window();
+                    break;
+                case SDLK_PAGEDOWN:
+                    tracer.display_start += tracer.visible_lines;
+                    if (tracer.display_start > tracer.total_lines - tracer.visible_lines)
+                        tracer.display_start = tracer.total_lines - tracer.visible_lines;
+                    // fix up and down to apply in the tracer - Render immediately after scroll
+                    render_tracer_window();
+                    break;
+            }
+        }
+    }
+}
+
+// tracer in SDL2 - Cleanup tracer resources
+void cleanup_tracer() {
+    if (tracer.lines) {
+        for (int i = 0; i < tracer.total_lines; i++) {
+            free(tracer.lines[i]);
+        }
+        free(tracer.lines);
+    }
+    
+    // up/down key function + initial window + font increase - Cleanup trace history
+    if (trace_history) {
+        free(trace_history);
+        trace_history = NULL;
+    }
+    
+    if (tracer.font) TTF_CloseFont(tracer.font);
+    if (tracer.renderer) SDL_DestroyRenderer(tracer.renderer);
+    if (tracer.window) SDL_DestroyWindow(tracer.window);
+    TTF_Quit();
+    
+    memset(&tracer, 0, sizeof(tracer));
+}
 
 
     /*   opcode = RAM[pc];
@@ -860,6 +1257,10 @@ void print_gdb_help() {
     printf("m           :  print current monitoring address\n");
     printf("m addr      :  monitor address (4 byte default); it also remove it from monitor if exits \n");
     printf("m addr n    :  monitor address n byte\n");
+    printf("v           :  kills the tracer if already launched\n");
+    printf("v listFile  :  launch the tracer, if not launched\n");
+    printf("[           :  step backward in tracer; type enter to exit scroll mode\n");
+    printf("]           :  step forward  in tracer; type enter to exit scroll mode\n");
 }
 
 // Function to push subroutine call onto debug stack
@@ -1336,7 +1737,7 @@ void handle_memory_monitor_command(const char *input) {
     }
 }
 
-int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds) {
+int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, int duration_seconds, const char *list_file) {
     uint8_t opcode, op1, op2;
     long int loop_cnt = 0;
     unsigned int last_irq = 0, total_cycles = 0;
@@ -1350,6 +1751,9 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
     int step_enabled = 0;
     char input_buffer[60];
     uint8_t opcode_decoded;
+    
+    // enable tracer by default - Flag to track if we've automatically opened tracer
+    int auto_tracer_opened = 0;
 
     while (!break_loop && !quit_flag) {
     // while (time(NULL) - start_time < duration_seconds && !break_loop && !quit_flag) {
@@ -1362,6 +1766,19 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
         
         if (step_enabled) {
             duration_seconds = INT_MAX;
+            
+            // enable tracer by default - Auto-open tracer when first entering debug mode
+            if (!auto_tracer_opened && list_file && strlen(list_file) > 0) {
+                if (init_tracer_window(list_file)) {
+                    printf("Auto-opened tracer window with file: %s\n", list_file);
+                    update_tracer_display(pc);
+                    render_tracer_window();
+                    auto_tracer_opened = 1;
+                } else {
+                    printf("Failed to auto-open tracer window\n");
+                }
+            }
+            
             //printf("DEBUG [%04X]: ", pc);
             
             // Display current instruction
@@ -1379,6 +1796,16 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
             // https://claude.ai/public/artifacts/6c8eb142-6502-40ab-b77a-705c9245dd59
             if (strlen(input_buffer) == 0) {
                 // Enter pressed - step one instruction
+                // scroll from the last line - Reset scroll position when Enter is pressed in scroll mode
+                if (scroll_mode) {
+                    scroll_mode = 0;
+                    trace_scroll_index = -1;
+                    printf("Exiting trace scroll mode\n");
+                    if (tracer.is_active) {
+                        update_tracer_display(pc);
+                        render_tracer_window();
+                    }
+                }
                 // Continue to execute one instruction
             } else if (input_buffer[0] == 'h') {
                 print_gdb_help();
@@ -1407,8 +1834,43 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
             } else if (input_buffer[0] == 'm') {
                 handle_memory_monitor_command(input_buffer);
                 continue; // Don't execute instruction, stay in debug mode
+            // enable tracer by default - Modified tracer command to toggle/close tracer
+            } else if (input_buffer[0] == 'v') {
+                if (tracer.is_active) {
+                    // Close existing tracer
+                    cleanup_tracer();
+                    printf("Tracer window closed\n");
+                } else {
+                    // Open tracer with specified file
+                    if (strlen(input_buffer) > 2) {
+                        char *filename = input_buffer + 2; // Skip "v "
+                        if (init_tracer_window(filename)) {
+                            printf("Tracer window opened with file: %s\n", filename);
+                            update_tracer_display(pc);
+                            render_tracer_window();
+                        } else {
+                            printf("Failed to open tracer window\n");
+                        }
+                    } else {
+                        printf("Usage: v <list_file_path> (or 'v' to close active tracer)\n");
+                    }
+                }
+                continue;
+            // up/down key function + initial window + font increase - Add up/down scroll commands  
+            } else if (input_buffer[0] == '[') {
+                handle_trace_scroll_up();
+                continue;
+            } else if (input_buffer[0] == ']') {
+                if (handle_trace_scroll_down()) {
+                    // Exit scroll mode, update tracer with current PC
+                    if (tracer.is_active) {
+                        update_tracer_display(pc);
+                        render_tracer_window();
+                    }
+                }
+                continue;
             } else {
-                printf("Unknown command. Available: enter, c, r, w, u, t, b, s\n");
+                printf("Unknown command. Available: enter, c, r, w, u, t, b, s, v (toggle tracer), [, ]\n");
                 continue; // Don't execute instruction, stay in debug mode
             }
         }
@@ -1439,6 +1901,9 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
             }
         }
 
+        // tracer in SDL2 - Handle tracer window events
+        handle_tracer_events();
+
         if (step_enabled) disassemble_current_instruction(stdout, pc, RAM, false);
         opcode_decoded = disassemble_current_instruction(log_file, pc, RAM, false);
         if(opcode_decoded == magic_opcde) {
@@ -1456,6 +1921,32 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
 
         exec6502(1);
         total_cycles += clockticks6502;
+
+        // tracer in SDL2 - Update tracer display after instruction execution
+        if (tracer.is_active) {
+            update_tracer_display(pc);
+            render_tracer_window();
+        }
+
+        // up/down key function + initial window + font increase - Add current state to trace history
+        if (step_enabled || scroll_mode) {
+            char instruction_str[128];
+            char cpu_state_str[256];
+            char ram_state_str[512];
+            
+            // Format instruction (you might need to adjust this based on your disassemble function)
+            sprintf(instruction_str, "%04X: instruction", pc);
+            
+            // Format CPU state
+            sprintf(cpu_state_str, "CPU State: PC:%04X A:%02X X:%02X Y:%02X SP:%02X Status:%02X", 
+                    pc, a, x, y, sp, status);
+            
+            // Format RAM state (simplified, you can expand this)
+            sprintf(ram_state_str, "RAM State: $0000:%02X $0001:%02X $0002:%02X $0003:%02X", 
+                    RAM[0x00], RAM[0x01], RAM[0x02], RAM[0x03]);
+            
+            add_trace_entry(instruction_str, cpu_state_str, ram_state_str, pc);
+        }
 
         if (step_enabled) print_cpu_state_to_stream(stdout);
         print_cpu_state_to_stream(log_file);
@@ -1476,6 +1967,9 @@ int run_emulator_loop(LCDSim *lcd, SDL_Window *window, uint16_t irq_interval, in
     print_cpu_state_to_stream(stdout);
     fprintf(log_file, "Total Cycles: %u | IRQs: %d | $02 = %02X\n", total_cycles, irq_count, RAM[0x02]);
     fclose(log_file);
+
+    // tracer in SDL2 - Cleanup tracer on exit
+    cleanup_tracer();
 
     return 0;
 
@@ -1608,7 +2102,7 @@ int main(int argc, char *argv[]) {
     reset6502();
     signal(SIGINT, handle_sigint); // capture ctrl-c
 
-    run_emulator_loop(lcd, window, irq_cycle_interval, SIM_TIME_SECONDS);
+    run_emulator_loop(lcd, window, irq_cycle_interval, SIM_TIME_SECONDS, list_file_path);
 
     SDL_DestroyWindow(window);
     SDL_Quit();
