@@ -138,6 +138,22 @@
 ; no_oldest_buffer_wrap → no_bufferWrap_2  : Skip bufferWrap when advancing oldest line
 ; Now, the code is now much cleaner with the simplified jump labels:
 
+; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; bug_report : 55cdfecdeede0bc267b54025374c26e93cc7ceea  
+
+; I added DEC UNIFIED_CURRENT_COL to fix a cursor misalignment when backspacing.
+
+; Previously, the cursor was always one column too far to the right before trying to erase a character. This meant that backspace often replaced the wrong position with a space (overwriting nothing), so nothing appeared to happen. This happened because the LCD has a default behaivior that automatically moves the cursor one spot
+; to the right after writing a character (This behaivior is implemented so that when writing strings, the computers cursor is constantly behind the text for writing.). 
+; This can be solved by adding DEC UNIFIED_CURRENT_COL to counteract the default behaivior and move the cursor back. 
+
+; Example:
+; If the screen showed "< ls", it means the cursor is at column 4 (after 's'). To remove 's', do the following:
+; 1, move cursor to column 3 ( at s)
+; 2, write space --> this moves the cursor right of s
+; 3, move cursor to column 3 
+
+; see lcd_backspace:
 
 
 start_lcd:
@@ -329,7 +345,6 @@ store_normal_view:
 ;¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯¯\_(ツ)_/¯
 
 
-summer_break:
 print_char:
     STA A_SCRATCH
     STX X_SCRATCH
@@ -483,11 +498,11 @@ lcd_redraw_from_unified_buffer:
     
     ; Display top line (LCD row 0)
     LDA #LCD_ROW0_COL0_ADDR
-    JSR lcd_command
+    JSR lcd_command ; Andy -- move cursor to the position specified by A register
     LDY #0
 redraw_top_line:
     LDA UNIFIED_LCD_BUFFER,X
-    STA LCD_DATA
+    STA LCD_DATA ; Andy --     write register A to LCD on the current cursor and move cursor to the right
     INX
     INY
     CPY #LCD_COLS
@@ -522,10 +537,10 @@ redraw_bottom_line:
     RTS
 
 lcd_backspace:
+; summer_break:   
     ; Move cursor back one position
     LDA UNIFIED_CURRENT_COL
     BEQ backspace_done         ; At start of line, can't backspace
-    
     ; Move back one column
     DEC UNIFIED_CURRENT_COL
     
@@ -537,7 +552,8 @@ lcd_backspace:
     LDA SCROLL_MODE
     BNE backspace_done
     
-    ; Move cursor back and clear character on screen
+    ; Move cursor back because store_char_in_unified_buffer advanced it 
+    DEC UNIFIED_CURRENT_COL
     JSR lcd_update_cursor
     LDA #' '
     STA LCD_DATA
