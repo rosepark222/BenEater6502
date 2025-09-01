@@ -172,6 +172,34 @@
 ;
 ;The fix added, puts a value of 0 into the KEY_INPUT, reseting the pending strings inside KEY_INPUT.
 ;
+;commit 433554cde7c1da66c501cb3800e75ea1f86ffb24
+;Added 
+;LDA CMD_INDEX
+;BEQ reset_shell
+;
+;
+;The code would previously still print Unknown cmd even if
+;there was no cmd inserted into the lcd.
+;
+;This bug could be fixed by adding LDA CMD_INDEX and BEQ reset_shell
+;into handle_enter so that the code could branch to reset_shell as long as CMD_INDEX had
+;the value of "0" (Since CMD_INDEX keeps track of how many characters was typed, if CMD_INDEX
+;has a value of 0, basically nothing or enter was typed into the LCD) (BEQ also branches if the
+;last operation loaded was a 0. (Only LDA works like this as STA does not work as the registor values do not change))
+;
+;Now the LCD prints the prompt again "<" when nothing/enter was typed into the LCD. 
+;
+;
+;HOW TO CREATE THE PR
+; git checkout -b 'empty_cmd_fix'
+; git commit -am 'fixed the code so that when an empty cmd was inserted, Unknown cmd was not printed'
+; git push origin master
+; 
+;
+;
+;
+;
+;
 
 start_lcd:
     ; *** CLEAR KEY BUFFER HERE! ***
@@ -248,6 +276,8 @@ handle_backspace:
     JMP keyinput_loop
 
 handle_enter:
+    LDA CMD_INDEX
+    BEQ reset_shell
     JSR process_shell_cmd
 
 reset_shell:
@@ -702,4 +732,4 @@ done_unk:
 ; === Data ===
 
 prompt_msg:     .byte "> ", 0
-unk_msg:        .byte "Unknown command", 0
+unk_msg:        .byte " UK_CMD", 0
