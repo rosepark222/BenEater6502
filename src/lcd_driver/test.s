@@ -193,7 +193,7 @@
 ;HOW TO CREATE THE PR
 ; git checkout -b 'empty_cmd_fix'
 ; git commit -am 'fixed the code so that when an empty cmd was inserted, Unknown cmd was not printed'
-; git push origin master
+; git push --set-upstream origin empty_cmd_fix
 ; 
 ;
 ;
