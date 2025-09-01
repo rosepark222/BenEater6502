@@ -155,6 +155,23 @@
 
 ; see lcd_backspace:
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;commit 278353e824d5040f82e7740db04c2ac4c2ec76bc
+;added LDA #0
+;STA KEY_INPUT
+ 
+;The code would previously continuously print "unknown command" nonstop before, 
+;when it was supposed to only print it once.
+;This bug would happen because the code would see KEY_INPUT 
+;and print unknown command depending on if there were any pending strings inside of
+;KEY_INPUT. But inside of the reset shell (part of the code where the shell
+;prepares for the next command), there was no form of
+;reseting KEY_INPUT after it was printed onto the LCD, resulting
+;in the computer thinking it has still not been printed onto the LCD.
+;The computer would then attempt to print KEY_INPUT onto the LCD over and over.
+;
+;The fix added, puts a value of 0 into the KEY_INPUT, reseting the pending strings inside KEY_INPUT.
+;
 
 start_lcd:
     ; *** CLEAR KEY BUFFER HERE! ***
@@ -236,6 +253,10 @@ handle_enter:
 reset_shell:
     LDX #0
     STX CMD_INDEX
+    ;Reset KEY_INPUT
+    LDA #0
+    STA KEY_INPUT
+
     ; Move to next line in unified buffer
     JSR lcd_new_line
     JSR print_prompt
