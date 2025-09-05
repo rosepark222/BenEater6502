@@ -49,7 +49,7 @@ start_ls:
 
 absolute_path:
     ; Absolute path - start from root ; pwd support
-    LDA #0
+    LDA #1
     STA CURRENT_INODE           ; Start from root inode 0
     JMP resolve_path
 
