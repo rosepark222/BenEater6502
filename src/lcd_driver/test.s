@@ -196,6 +196,7 @@
 ; git push --set-upstream origin empty_cmd_fix
 ; 
 ;
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;commit afdf0d090aecc4452bbaf2c61ce5975bd864afd2 
 ;Fixed cd errors, like when inserting cd.. while in or trying to access the root directory,
@@ -213,6 +214,7 @@
 ;Tested cd by changing directory from root to rin
 ;Tested cd ..  by changing from rom to root directory
 ;Tested enter by pressing enter while in a empty cmd
+
 ;
 ;
 ;
