@@ -198,12 +198,21 @@
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;commit afdf0d090aecc4452bbaf2c61ce5975bd864afd2 
-;Fixed cd errors (like cd .. and cd rom not working)
+;Fixed cd errors, like when inserting cd.. while in or trying to access the root directory,
+;cd fail appearing.
 ;
 ;Shifted all inode numbers up by one so that inode 0 is never used.
 ;Inode 0 is reserved to show an invalid inode, so inode 0 should not be assigned to the root directory.
 ;The fix was to move the root to inode 1, and update the code so that any command 
 ;referring back to the root now loads inode 1 instead of 0.
+;
+;Tested by inserting cd.. while in and trying to access the root directory.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;Testing:
+;Tested backspace by deleting m from cd rom
+;Tested cd by changing directory from root to rin
+;Tested cd ..  by changing from rom to root directory
+;Tested enter by pressing enter while in a empty cmd
 ;
 ;
 ;
