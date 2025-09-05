@@ -196,7 +196,14 @@
 ; git push --set-upstream origin empty_cmd_fix
 ; 
 ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;commit afdf0d090aecc4452bbaf2c61ce5975bd864afd2 
+;Fixed cd errors (like cd .. and cd rom not working)
 ;
+;Shifted all inode numbers up by one so that inode 0 is never used.
+;Inode 0 is reserved to show an invalid inode, so inode 0 should not be assigned to the root directory.
+;The fix was to move the root to inode 1, and update the code so that any command 
+;referring back to the root now loads inode 1 instead of 0.
 ;
 ;
 ;
@@ -210,7 +217,7 @@ start_lcd:
     JSR print_prompt
 
 init_working_dir:
-     LDA #0                      ; Start at root directory
+     LDA #1                      ; Start at root directory
      STA WORKING_DIR_INODE
 
 keyinput_loop:

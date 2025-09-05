@@ -13,6 +13,7 @@
 
 ; --- CD Entry Point ---
 start_cd:
+;summer_break:
     LDA #<PATH_INPUT
     STA PATH_PTR_LO             ; zero-page low byte of path pointer
     LDA #>PATH_INPUT
@@ -31,7 +32,7 @@ start_cd:
 
 absolute_path_cd:
     ; Absolute path - start from root
-    LDA #0
+    LDA #1
     STA CURRENT_INODE           ; Start from root inode 0
 
 resolve_path_cd:

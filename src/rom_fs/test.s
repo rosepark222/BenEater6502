@@ -14,106 +14,118 @@ InitBaseAddresses:
 SetBitmaps:
     LDA #%01111111         ; Blocks 0-4 + 6 used
     STA BLOCK_BITMAP       ; Block bitmap
-    LDA #%00111111         ; Inodes 0-5 used
+    LDA #%01111111         ; Inodes 1-6 used (0 reserved for invalid) ;root directory inode fix
     STA INODE_BITMAP       ; Inode bitmap
 
-; === Inode 0: root directory ===
+; === Inode 0: reserved for invalid inodes ===  ;root directory inode fix
+    LDA #$00               ;root directory inode fix
+    STA INODE_BASE+$00     ;root directory inode fix
+    STA INODE_BASE+$01     ;root directory inode fix
+    STA INODE_BASE+$02     ;root directory inode fix
+    STA INODE_BASE+$03     ;root directory inode fix
+    STA INODE_BASE+$04     ;root directory inode fix
+    STA INODE_BASE+$05     ;root directory inode fix
+    STA INODE_BASE+$06     ;root directory inode fix
+    STA INODE_BASE+$07     ;root directory inode fix
+    STA INODE_BASE+$08     ;root directory inode fix
+
+; === Inode 1: root directory ===  ;root directory inode fix
     LDA #%00010001
-    STA INODE_BASE+$00     ; i_mode
+    STA INODE_BASE+$10     ; i_mode ;root directory inode fix
     LDA #$00
-    STA INODE_BASE+$01     ; uid
+    STA INODE_BASE+$11     ; uid ;root directory inode fix
     LDA #$50               ; size = 5 entries * 16 (added . and ..) ; dot, dot_dot entries
-    STA INODE_BASE+$02     ; 
+    STA INODE_BASE+$12     ; ;root directory inode fix
     LDA #$00
-    STA INODE_BASE+$03
-    STA INODE_BASE+$04
-    STA INODE_BASE+$05
+    STA INODE_BASE+$13     ;root directory inode fix
+    STA INODE_BASE+$14     ;root directory inode fix
+    STA INODE_BASE+$15     ;root directory inode fix
     LDA #$00
-    STA INODE_BASE+$06     ; block 0
+    STA INODE_BASE+$16     ; block 0 ;root directory inode fix
     LDA #INVALID_DATABLOCK
-    STA INODE_BASE+$07
-    STA INODE_BASE+$08
+    STA INODE_BASE+$17     ;root directory inode fix
+    STA INODE_BASE+$18     ;root directory inode fix
 
-; === Inode 1: README.txt ===
+; === Inode 2: README.txt ===  ;root directory inode fix
     LDA #%00000001
-    STA INODE_BASE+$10
-    STA INODE_BASE+$11
+    STA INODE_BASE+$20     ;root directory inode fix
+    STA INODE_BASE+$21     ;root directory inode fix
     LDA #$00
-    STA INODE_BASE+$12
+    STA INODE_BASE+$22     ;root directory inode fix
     LDA #$04
-    STA INODE_BASE+$13     ; size = 1024 bytes
-    STA INODE_BASE+$14
-    STA INODE_BASE+$15
+    STA INODE_BASE+$23     ; size = 1024 bytes ;root directory inode fix
+    STA INODE_BASE+$24     ;root directory inode fix
+    STA INODE_BASE+$25     ;root directory inode fix
     LDA #$01
-    STA INODE_BASE+$16     ; i_block[0] = block 1
+    STA INODE_BASE+$26     ; i_block[0] = block 1 ;root directory inode fix
     LDA #$02
-    STA INODE_BASE+$17     ; i_block[1] = block 2
+    STA INODE_BASE+$27     ; i_block[1] = block 2 ;root directory inode fix
     LDA #$07
-    STA INODE_BASE+$18     ; i_block[2] = block 6 (indirect)
+    STA INODE_BASE+$28     ; i_block[2] = block 6 (indirect) ;root directory inode fix
 
-; === Inode 2: /ram ===
+; === Inode 3: /ram ===  ;root directory inode fix
     LDA #%00010001
-    STA INODE_BASE+$20
-    STA INODE_BASE+$21
+    STA INODE_BASE+$30     ;root directory inode fix
+    STA INODE_BASE+$31     ;root directory inode fix
     LDA #$20               ; size = 2 entries * 16 (. and ..) ; dot, dot_dot entries
-    STA INODE_BASE+$22     ; dot, dot_dot entries
-    STA INODE_BASE+$23
-    STA INODE_BASE+$24
-    STA INODE_BASE+$25
+    STA INODE_BASE+$32     ; dot, dot_dot entries ;root directory inode fix
+    STA INODE_BASE+$33     ;root directory inode fix
+    STA INODE_BASE+$34     ;root directory inode fix
+    STA INODE_BASE+$35     ;root directory inode fix
     LDA #$05
-    STA INODE_BASE+$26     ; block 5
+    STA INODE_BASE+$36     ; block 5 ;root directory inode fix
     LDA #INVALID_DATABLOCK
-    STA INODE_BASE+$27
-    STA INODE_BASE+$28
+    STA INODE_BASE+$37     ;root directory inode fix
+    STA INODE_BASE+$38     ;root directory inode fix
 
-; === Inode 3: /rom ===
+; === Inode 4: /rom ===  ;root directory inode fix
     LDA #%00010001
-    STA INODE_BASE+$30
-    STA INODE_BASE+$31
+    STA INODE_BASE+$40     ;root directory inode fix
+    STA INODE_BASE+$41     ;root directory inode fix
     LDA #$40               ; size = 4 entries * 16 (., .., romfs.txt, bin) ; dot, dot_dot entries
-    STA INODE_BASE+$32     ; dot, dot_dot entries
-    STA INODE_BASE+$33
-    STA INODE_BASE+$34
-    STA INODE_BASE+$35
+    STA INODE_BASE+$42     ; dot, dot_dot entries ;root directory inode fix
+    STA INODE_BASE+$43     ;root directory inode fix
+    STA INODE_BASE+$44     ;root directory inode fix
+    STA INODE_BASE+$45     ;root directory inode fix
     LDA #$06
-    STA INODE_BASE+$36     ; block 6
+    STA INODE_BASE+$46     ; block 6 ;root directory inode fix
     LDA #INVALID_DATABLOCK
-    STA INODE_BASE+$37
-    STA INODE_BASE+$38
+    STA INODE_BASE+$47     ;root directory inode fix
+    STA INODE_BASE+$48     ;root directory inode fix
 
-; === Inode 4: romFS.txt ===
+; === Inode 5: romFS.txt ===  ;root directory inode fix
     LDA #%00000001
-    STA INODE_BASE+$40
-    STA INODE_BASE+$41
-    STA INODE_BASE+$42
-    STA INODE_BASE+$43
-    STA INODE_BASE+$44
-    STA INODE_BASE+$45
+    STA INODE_BASE+$50     ;root directory inode fix
+    STA INODE_BASE+$51     ;root directory inode fix
+    STA INODE_BASE+$52     ;root directory inode fix
+    STA INODE_BASE+$53     ;root directory inode fix
+    STA INODE_BASE+$54     ;root directory inode fix
+    STA INODE_BASE+$55     ;root directory inode fix
     LDA #$08
-    STA INODE_BASE+$46
+    STA INODE_BASE+$56     ;root directory inode fix
     LDA #INVALID_DATABLOCK
-    STA INODE_BASE+$47
-    STA INODE_BASE+$48
+    STA INODE_BASE+$57     ;root directory inode fix
+    STA INODE_BASE+$58     ;root directory inode fix
 
-; === Inode 5: /rom/bin ===
+; === Inode 6: /rom/bin ===  ;root directory inode fix
     LDA #%00010001
-    STA INODE_BASE+$50
-    STA INODE_BASE+$51
+    STA INODE_BASE+$60     ;root directory inode fix
+    STA INODE_BASE+$61     ;root directory inode fix
     LDA #$20               ; size = 2 entries * 16 (. and ..) ; dot, dot_dot entries
-    STA INODE_BASE+$52     ; dot, dot_dot entries
-    STA INODE_BASE+$53
-    STA INODE_BASE+$54
-    STA INODE_BASE+$55
+    STA INODE_BASE+$62     ; dot, dot_dot entries ;root directory inode fix
+    STA INODE_BASE+$63     ;root directory inode fix
+    STA INODE_BASE+$64     ;root directory inode fix
+    STA INODE_BASE+$65     ;root directory inode fix
     LDA #$09
-    STA INODE_BASE+$56     ; reused block 4 (for testing, update if needed)
+    STA INODE_BASE+$66     ; reused block 4 (for testing, update if needed) ;root directory inode fix
     LDA #INVALID_DATABLOCK
-    STA INODE_BASE+$57
-    STA INODE_BASE+$58
+    STA INODE_BASE+$67     ;root directory inode fix
+    STA INODE_BASE+$68     ;root directory inode fix
 
 ; === Root dir @ block 0 ===
-    ; Entry 1: . (current directory - points to inode 0) ; dot, dot_dot entries
-    LDA #$00               ; dot, dot_dot entries
-    STA BLOCK_BASE+$000    ; dot, dot_dot entries
+    ; Entry 1: . (current directory - points to inode 1) ; dot, dot_dot entries ;root directory inode fix
+    LDA #$01               ; dot, dot_dot entries ;root directory inode fix
+    STA BLOCK_BASE+$000    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01               ; dot, dot_dot entries
     STA BLOCK_BASE+$001    ; dot, dot_dot entries
     LDX #$00               ; dot, dot_dot entries
@@ -125,8 +137,8 @@ Loop_DOT:                  ; dot, dot_dot entries
     BNE Loop_DOT           ; dot, dot_dot entries
 
     ; Entry 2: .. (parent directory - root has no parent, points to itself) ; dot, dot_dot entries
-    LDA #$00               ; dot, dot_dot entries
-    STA BLOCK_BASE+$010    ; dot, dot_dot entries
+    LDA #$01               ; dot, dot_dot entries ;root directory inode fix
+    STA BLOCK_BASE+$010    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01               ; dot, dot_dot entries
     STA BLOCK_BASE+$011    ; dot, dot_dot entries
     LDX #$00               ; dot, dot_dot entries
@@ -138,8 +150,8 @@ Loop_DOTDOT:               ; dot, dot_dot entries
     BNE Loop_DOTDOT        ; dot, dot_dot entries
 
     ; Entry 3: README.txt ; dot, dot_dot entries
-    LDA #$01
-    STA BLOCK_BASE+$020    ; dot, dot_dot entries
+    LDA #$02               ;root directory inode fix
+    STA BLOCK_BASE+$020    ; dot, dot_dot entries ;root directory inode fix
     LDA #$00
     STA BLOCK_BASE+$021    ; dot, dot_dot entries
     LDX #$00
@@ -151,8 +163,8 @@ Loop_README:
     BNE Loop_README
 
     ; Entry 4: ram ; dot, dot_dot entries
-    LDA #$02
-    STA BLOCK_BASE+$030    ; dot, dot_dot entries
+    LDA #$03               ;root directory inode fix
+    STA BLOCK_BASE+$030    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01
     STA BLOCK_BASE+$031    ; dot, dot_dot entries
     LDX #$00
@@ -164,8 +176,8 @@ Loop_RAM:
     BNE Loop_RAM
 
     ; Entry 5: rom ; dot, dot_dot entries
-    LDA #$03
-    STA BLOCK_BASE+$040    ; dot, dot_dot entries
+    LDA #$04               ;root directory inode fix
+    STA BLOCK_BASE+$040    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01
     STA BLOCK_BASE+$041    ; dot, dot_dot entries
     LDX #$00
@@ -177,9 +189,9 @@ Loop_ROM:
     BNE Loop_ROM
 
 ; === /ram dir @ block 5 === ; dot, dot_dot entries
-    ; Entry 1: . (current directory - points to inode 2) ; dot, dot_dot entries
-    LDA #$02               ; dot, dot_dot entries
-    STA BLOCK_BASE+$500    ; dot, dot_dot entries
+    ; Entry 1: . (current directory - points to inode 3) ; dot, dot_dot entries ;root directory inode fix
+    LDA #$03               ; dot, dot_dot entries ;root directory inode fix
+    STA BLOCK_BASE+$500    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01               ; dot, dot_dot entries
     STA BLOCK_BASE+$501    ; dot, dot_dot entries
     LDX #$00               ; dot, dot_dot entries
@@ -190,9 +202,9 @@ Loop_RAM_DOT:              ; dot, dot_dot entries
     CPX #14                ; dot, dot_dot entries
     BNE Loop_RAM_DOT       ; dot, dot_dot entries
 
-    ; Entry 2: .. (parent directory - points to root inode 0) ; dot, dot_dot entries
-    LDA #$00               ; dot, dot_dot entries
-    STA BLOCK_BASE+$510    ; dot, dot_dot entries
+    ; Entry 2: .. (parent directory - points to root inode 1) ; dot, dot_dot entries ;root directory inode fix
+    LDA #$01               ; dot, dot_dot entries ;root directory inode fix
+    STA BLOCK_BASE+$510    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01               ; dot, dot_dot entries
     STA BLOCK_BASE+$511    ; dot, dot_dot entries
     LDX #$00               ; dot, dot_dot entries
@@ -204,9 +216,9 @@ Loop_RAM_DOTDOT:           ; dot, dot_dot entries
     BNE Loop_RAM_DOTDOT    ; dot, dot_dot entries
 
 ; === /rom dir @ block 6 ===
-    ; Entry 1: . (current directory - points to inode 3) ; dot, dot_dot entries
-    LDA #$03               ; dot, dot_dot entries
-    STA BLOCK_BASE+$600    ; dot, dot_dot entries
+    ; Entry 1: . (current directory - points to inode 4) ; dot, dot_dot entries ;root directory inode fix
+    LDA #$04               ; dot, dot_dot entries ;root directory inode fix
+    STA BLOCK_BASE+$600    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01               ; dot, dot_dot entries
     STA BLOCK_BASE+$601    ; dot, dot_dot entries
     LDX #$00               ; dot, dot_dot entries
@@ -217,9 +229,9 @@ Loop_ROM_DOT:              ; dot, dot_dot entries
     CPX #14                ; dot, dot_dot entries
     BNE Loop_ROM_DOT       ; dot, dot_dot entries
 
-    ; Entry 2: .. (parent directory - points to root inode 0) ; dot, dot_dot entries
-    LDA #$00               ; dot, dot_dot entries
-    STA BLOCK_BASE+$610    ; dot, dot_dot entries
+    ; Entry 2: .. (parent directory - points to root inode 1) ; dot, dot_dot entries ;root directory inode fix
+    LDA #$01               ; dot, dot_dot entries ;root directory inode fix
+    STA BLOCK_BASE+$610    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01               ; dot, dot_dot entries
     STA BLOCK_BASE+$611    ; dot, dot_dot entries
     LDX #$00               ; dot, dot_dot entries
@@ -231,8 +243,8 @@ Loop_ROM_DOTDOT:           ; dot, dot_dot entries
     BNE Loop_ROM_DOTDOT    ; dot, dot_dot entries
 
     ; Entry 3: romFS.txt ; dot, dot_dot entries
-    LDA #$04
-    STA BLOCK_BASE+$620    ; dot, dot_dot entries
+    LDA #$05               ;root directory inode fix
+    STA BLOCK_BASE+$620    ; dot, dot_dot entries ;root directory inode fix
     LDA #$00
     STA BLOCK_BASE+$621    ; dot, dot_dot entries
     LDX #$00
@@ -244,8 +256,8 @@ Loop_romFS:
     BNE Loop_romFS
 
     ; Entry 4: bin ; dot, dot_dot entries
-    LDA #$05
-    STA BLOCK_BASE+$630    ; dot, dot_dot entries
+    LDA #$06               ;root directory inode fix
+    STA BLOCK_BASE+$630    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01
     STA BLOCK_BASE+$631    ; dot, dot_dot entries
     LDX #$00
@@ -257,9 +269,9 @@ Loop_bin:
     BNE Loop_bin
 
 ; === /rom/bin dir @ block 9 === ; dot, dot_dot entries
-    ; Entry 1: . (current directory - points to inode 5) ; dot, dot_dot entries
-    LDA #$05               ; dot, dot_dot entries
-    STA BLOCK_BASE+$900    ; dot, dot_dot entries
+    ; Entry 1: . (current directory - points to inode 6) ; dot, dot_dot entries ;root directory inode fix
+    LDA #$06               ; dot, dot_dot entries ;root directory inode fix
+    STA BLOCK_BASE+$900    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01               ; dot, dot_dot entries
     STA BLOCK_BASE+$901    ; dot, dot_dot entries
     LDX #$00               ; dot, dot_dot entries
@@ -270,9 +282,9 @@ Loop_BIN_DOT:              ; dot, dot_dot entries
     CPX #14                ; dot, dot_dot entries
     BNE Loop_BIN_DOT       ; dot, dot_dot entries
 
-    ; Entry 2: .. (parent directory - points to /rom inode 3) ; dot, dot_dot entries
-    LDA #$03               ; dot, dot_dot entries
-    STA BLOCK_BASE+$910    ; dot, dot_dot entries
+    ; Entry 2: .. (parent directory - points to /rom inode 4) ; dot, dot_dot entries ;root directory inode fix
+    LDA #$04               ; dot, dot_dot entries ;root directory inode fix
+    STA BLOCK_BASE+$910    ; dot, dot_dot entries ;root directory inode fix
     LDA #$01               ; dot, dot_dot entries
     STA BLOCK_BASE+$911    ; dot, dot_dot entries
     LDX #$00               ; dot, dot_dot entries
@@ -348,18 +360,18 @@ ROM_name:     .byte "rom", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 ROMFS_name:   .byte "romfs.txt", 0, 0, 0, 0
 BIN_name:     .byte "bin", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-; Updated directory structure:
-; .
-; ├── . (inode 0)
-; ├── .. (inode 0)
-; ├── Readme.txt (inode 1)
-; ├── /ram (inode 2)
-; │   ├── . (inode 2)
-; │   └── .. (inode 0)
-; └── /rom (inode 3)
-;     ├── . (inode 3)
-;     ├── .. (inode 0)
-;     ├── romFS.txt (inode 4)
-;     └── /bin (inode 5)
-;         ├── . (inode 5)
-;         └── .. (inode 3)
+; Updated directory structure: ;root directory inode fix
+; . ;root directory inode fix
+; ├── . (inode 1) ;root directory inode fix
+; ├── .. (inode 1) ;root directory inode fix
+; ├── Readme.txt (inode 2) ;root directory inode fix
+; ├── /ram (inode 3) ;root directory inode fix
+; │   ├── . (inode 3) ;root directory inode fix
+; │   └── .. (inode 1) ;root directory inode fix
+; └── /rom (inode 4) ;root directory inode fix
+;     ├── . (inode 4) ;root directory inode fix
+;     ├── .. (inode 1) ;root directory inode fix
+;     ├── romFS.txt (inode 5) ;root directory inode fix
+;     └── /bin (inode 6) ;root directory inode fix
+;         ├── . (inode 6) ;root directory inode fix
+;         └── .. (inode 4) ;root directory inode fix
