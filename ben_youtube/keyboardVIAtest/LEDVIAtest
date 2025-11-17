@@ -1,0 +1,39 @@
+; 6502 Simple LED Test
+; Outputs HIGH on PA2 of keyboard VIA to light up LED
+; Keyboard VIA at $4000
+
+; VIA Register offsets
+PORTB = $00
+PORTA = $01
+DDRB  = $02
+DDRA  = $03
+
+; Keyboard VIA ($4000)
+KB_PORTA = $4001
+KB_DDRA  = $4003
+
+; PA2 bit mask
+PA2 = %00000100
+
+    .org $8000
+
+START:
+    ; Initialize VIA
+    ; Set PA2 as output (bit 2 = 1)
+    LDA #%00000100
+    STA KB_DDRA
+    
+    ; Turn LED ON - output 1 on PA2
+    LDA #PA2
+    STA KB_PORTA
+    
+    ; Infinite loop to keep LED on
+LOOP:
+    JMP LOOP
+
+;------------------------------------
+; Reset/IRQ vectors
+;------------------------------------
+    .org $FFFC
+    .word START
+    .word START     ; IRQ vector

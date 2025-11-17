@@ -1,0 +1,3 @@
+
+// -r means recursivly , meaning everything under pt4 will be copied
+cp -r pt4 lcd_6522_led_test
