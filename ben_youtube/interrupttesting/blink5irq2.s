@@ -14,7 +14,7 @@ KB_PORTA = $4001
 KB_DDRA  = $4003
 
 ; PA2 bit mask
-PA2 = %00000100
+PA2 = %11111111
 
     .org $8000
 
@@ -23,7 +23,7 @@ START:
     SEI
     
     ; Set PA2 as output (bit 2 = 1)
-    LDA #%00000100
+    LDA #%11111111
     STA KB_DDRA
     
     ; Blink LED 5 times before enabling IRQ
@@ -64,28 +64,22 @@ IRQ_HANDLER:
     PHA
     TYA
     PHA
-    
     ; Blink LED 2 times
     LDX #2              ; 2 blinks
 IRQ_BLINK_LOOP:
     ; Turn LED ON
     LDA #PA2
     STA KB_PORTA
-    
     ; Wait 1 second
     JSR DELAY_1S
-    
     ; Turn LED OFF
     LDA #$00
     STA KB_PORTA
-    
     ; Wait 1 second
     JSR DELAY_1S
-    
     ; Decrement counter and loop
     DEX
     BNE IRQ_BLINK_LOOP
-    
     ; Restore registers
     PLA
     TAY
