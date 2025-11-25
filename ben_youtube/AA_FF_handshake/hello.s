@@ -16,8 +16,8 @@ RW = %01000000
 RS = %00100000
 
 ; keyboard init - PS/2 Protocol Constants
-PS2_CLK_BIT  = %00000010    ; PA1 - Clock line
-PS2_DATA_BIT = %00000100    ; PA2 - Data line
+PS2_CLK_BIT  = %00000100    ; PA1 - Clock line
+PS2_DATA_BIT = %00000010    ; PA2 - Data line
 PS2_INIT_AA  = $AA          ; Expected initial byte from keyboard
 PS2_REPLY_FF = $FF          ; Reply byte for handshake
 
@@ -31,7 +31,40 @@ reset:
 ;;;; pt4 test code begin
 ; Disable interrupts
 SEI
+keyboard_init:
 
+
+  ; keyboard init - Configure Port A: PA1 and PA2 as outputs for PS/2 protocol
+  lda #%00000001      ; PA1(clock) and PA2(data) as outputs, PA0 as output -- erp029
+  sta KB_DDRA
+    
+  ; keyboard init - Configure Port B: all inputs for scan code
+  LDA #%00000000
+  STA KB_DDRB
+  ; keyboard init - Initialize handshake flag
+  LDA #$00
+  STA HANDSHAKE_DONE
+
+  ; ; keyboard init - Set PS/2 lines to idle state (both high)
+  ; lda #(PS2_CLK_BIT | PS2_DATA_BIT)  ; Both clock and data high
+  ; sta KB_PORTA
+
+;   lda #"4"        ; after 5s
+;   sta LCD_PORTB
+;   lda #RS         ; Set RS; Clear RW/E bits
+;   sta LCD_PORTA
+;   lda #(RS | E)   ; Set E bit to send instruction
+;   sta LCD_PORTA
+;   lda #RS         ; Clear E bits
+;   sta LCD_PORTA
+;   jsr lcd_delay   ; fast_clock
+; 
+;   jsr delay_5s
+; 
+;   lda #%00000000  ; Set bit 0 low
+;   sta KB_PORTA
+
+lcd_init:
   lda #%11111111 ; Set all pins on port B to output
   sta LCD_DDRB
 
@@ -74,105 +107,12 @@ SEI
   jsr lcd_delay  ; fast_clock
 
  
-;   ; memory access test
-
-;   LDA #$42        ; Load immediate value $42 into accumulator
-;   STA $10         ; Store accumulator to zero page address $10
-        
-;   LDA $10         ; Load value from zero page address $10
-;   CMP #$42        ; Compare accumulator with $42
-;   BEQ PASS        ; Branch if equal - jump to PASS
-; ;   JMP FAIL        ; If not equal, jump to FAIL
-
-; FAIL:
-;   lda #"F"
-;   sta LCD_PORTB
-;   lda #RS         ; Set RS; Clear RW/E bits
-;   sta LCD_PORTA
-;   lda #(RS | E)   ; Set E bit to send instruction
-;   sta LCD_PORTA
-;   lda #RS         ; Clear E bits
-;   sta LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-
-;   lda #"A"
-;   sta LCD_PORTB
-;   lda #RS         ; Set RS; Clear RW/E bits
-;   sta LCD_PORTA
-;   lda #(RS | E)   ; Set E bit to send instruction
-;   sta LCD_PORTA
-;   lda #RS         ; Clear E bits
-;   sta LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-
-;   lda #"I"
-;   sta LCD_PORTB
-;   lda #RS         ; Set RS; Clear RW/E bits
-;   sta LCD_PORTA
-;   lda #(RS | E)   ; Set E bit to send instruction
-;   sta LCD_PORTA
-;   lda #RS         ; Clear E bits
-;   sta LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-
-;   lda #"L"
-;   sta LCD_PORTB
-;   lda #RS         ; Set RS; Clear RW/E bits
-;   sta LCD_PORTA
-;   lda #(RS | E)   ; Set E bit to send instruction
-;   sta LCD_PORTA
-;   lda #RS         ; Clear E bits
-;   sta LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-
-; PASS:
-;   lda #"1"
-;   sta LCD_PORTB
-;   lda #RS         ; Set RS; Clear RW/E bits
-;   sta LCD_PORTA
-;   lda #(RS | E)   ; Set E bit to send instruction
-;   sta LCD_PORTA
-;   lda #RS         ; Clear E bits
-;   sta LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-
-;   lda #"M"
-;   sta LCD_PORTB
-;   lda #RS         ; Set RS; Clear RW/E bits
-;   sta LCD_PORTA
-;   lda #(RS | E)   ; Set E bit to send instruction
-;   sta LCD_PORTA
-;   lda #RS         ; Clear E bits
-;   sta LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-
-;   lda #"h"
-;   sta LCD_PORTB
-;   lda #RS         ; Set RS; Clear RW/E bits
-;   sta LCD_PORTA
-;   lda #(RS | E)   ; Set E bit to send instruction
-;   sta LCD_PORTA
-;   lda #RS         ; Clear E bits
-;   sta LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-
-;   lda #"z"
-;   sta LCD_PORTB
-;   lda #RS         ; Set RS; Clear RW/E bits
-;   sta LCD_PORTA
-;   lda #(RS | E)   ; Set E bit to send instruction
-;   sta LCD_PORTA
-;   lda #RS         ; Clear E bits
-;   sta LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-
-  ;;;;; pt4 test code end 
 
 ;Start LED blinking loop
   lda #%11111111 ; Set all pins on port A to output
   sta LCD_DDRA
 
-led_loop:
+lcd_loop:
 
 
   lda #"1"        ; before 5s
@@ -185,10 +125,9 @@ led_loop:
   sta LCD_PORTA
   jsr lcd_delay   ; fast_clock
 
-  ; Turn ON LED (set PA0 high, keep LCD control bits as they are)
-  lda LCD_PORTA
-  ora #%00000001  ; Set bit 0 high
-  sta LCD_PORTA
+  ; lda LCD_PORTA
+  ; ora #%00000001  ; Set bit 0 high
+  ; sta LCD_PORTA
   
   ; Delay for 5 seconds
   ;jsr delay_5s
@@ -203,49 +142,15 @@ led_loop:
   sta LCD_PORTA
   jsr lcd_delay   ; fast_clock
 
-  ; Turn OFF LED (clear PA0, keep LCD control bits as they are)
-  lda LCD_PORTA
-  and #%11111110  ; Clear bit 0
-  sta LCD_PORTA
+  ; ; Turn OFF LED (clear PA0, keep LCD control bits as they are)
+  ; lda LCD_PORTA
+  ; and #%11111110  ; Clear bit 0
+  ; sta LCD_PORTA
   
   ; Delay for 5 seconds
   ;jsr delay_5s
 
  
- 
-
-keyboard_init:
-  ; keyboard init - Initialize handshake flag
-  LDA #$00
-  STA HANDSHAKE_DONE
-
-  ; keyboard init - Configure Port A: PA1 and PA2 as outputs for PS/2 protocol
-  lda #%00000001      ; PA1(clock) and PA2(data) as outputs, PA0 as output -- erp029
-  sta KB_DDRA
-    
-  ; keyboard init - Configure Port B: all inputs for scan code
-  LDA #%00000000
-  STA KB_DDRB
-
-  ; ; keyboard init - Set PS/2 lines to idle state (both high)
-  ; lda #(PS2_CLK_BIT | PS2_DATA_BIT)  ; Both clock and data high
-  ; sta KB_PORTA
-
-;   lda #"4"        ; after 5s
-;   sta LCD_PORTB
-;   lda #RS         ; Set RS; Clear RW/E bits
-;   sta LCD_PORTA
-;   lda #(RS | E)   ; Set E bit to send instruction
-;   sta LCD_PORTA
-;   lda #RS         ; Clear E bits
-;   sta LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-; 
-;   jsr delay_5s
-; 
-;   lda #%00000000  ; Set bit 0 low
-;   sta KB_PORTA
-
 
 irq_setup:
     ; keyboard init - Configure CA1 for positive edge interrupt (filtered clock)
@@ -298,45 +203,7 @@ IRQ_HANDLER:
 
   ; keyboard init - Read the scancode from keyboard Port B
   LDA KB_PORTB
-; ; Save the scancode for later comparison
-;   PHA
-  
-;   ; Convert high nibble to ASCII and print
-;   PHA
-;   LSR A
-;   LSR A
-;   LSR A
-;   LSR A
-;   CMP #$0A
-;   BCC HIGH_DIGIT
-;   ADC #$06        ; Add 7 (6 + carry) to get A-F
-; HIGH_DIGIT:
-;   ADC #$30        ; Convert to ASCII
-;   STA LCD_PORTB
-;   LDA #RS         ; Set RS; Clear RW/E bits
-;   STA LCD_PORTA
-;   LDA #(RS | E)   ; Set E bit to send instruction
-;   STA LCD_PORTA
-;   LDA #RS         ; Clear E bits
-;   STA LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
-  
-;   ; Convert low nibble to ASCII and print
-;   PLA
-;   AND #$0F
-;   CMP #$0A
-;   BCC LOW_DIGIT
-;   ADC #$06        ; Add 7 (6 + carry) to get A-F
-; LOW_DIGIT:
-;   ADC #$30        ; Convert to ASCII
-;   STA LCD_PORTB
-;   LDA #RS         ; Set RS; Clear RW/E bits
-;   STA LCD_PORTA
-;   LDA #(RS | E)   ; Set E bit to send instruction
-;   STA LCD_PORTA
-;   LDA #RS         ; Clear E bits
-;   STA LCD_PORTA
-;   jsr lcd_delay   ; fast_clock
+ 
 
   ; keyboard init - Check if handshake is complete
   LDX HANDSHAKE_DONE
@@ -358,15 +225,15 @@ IRQ_HANDLER:
   ; STA KB_PORTA
   ; JSR delay_5s
   ; keyboard init - Display handshake complete message
-  lda #"a"        ; after 5s
-  sta LCD_PORTB
-  lda #RS         ; Set RS; Clear RW/E bits
-  sta LCD_PORTA
-  lda #(RS | E)   ; Set E bit to send instruction
-  sta LCD_PORTA
-  lda #RS         ; Clear E bits
-  sta LCD_PORTA
-  jsr lcd_delay   ; fast_clock
+  ; lda #"a"        ; after 5s
+  ; sta LCD_PORTB
+  ; lda #RS         ; Set RS; Clear RW/E bits
+  ; sta LCD_PORTA
+  ; lda #(RS | E)   ; Set E bit to send instruction
+  ; sta LCD_PORTA
+  ; lda #RS         ; Clear E bits
+  ; sta LCD_PORTA
+  ; jsr lcd_delay   ; fast_clock
 
   
   lda #%00000111      ; PA1(clock) and PA2(data) as outputs, PA0 as output -- erp029
@@ -384,7 +251,7 @@ IRQ_HANDLER:
   STA KB_DDRA
 
   ; keyboard init - Display handshake complete message
-  lda #"X"        ; after 5s
+  lda #"c"        ; after 5s
   sta LCD_PORTB
   lda #RS         ; Set RS; Clear RW/E bits
   sta LCD_PORTA
@@ -478,15 +345,15 @@ print_char_lcd:
 ; Sends $FF byte using bit-banged PS/2 protocol on Port A (PA1=clock, PA2=data)
 send_ff_reply:
 
-  lda #"F"        ; after 5s
-  sta LCD_PORTB
-  lda #RS         ; Set RS; Clear RW/E bits
-  sta LCD_PORTA
-  lda #(RS | E)   ; Set E bit to send instruction
-  sta LCD_PORTA
-  lda #RS         ; Clear E bits
-  sta LCD_PORTA
-  jsr lcd_delay   ; fast_clock
+  ; lda #"b"        ; after 5s
+  ; sta LCD_PORTB
+  ; lda #RS         ; Set RS; Clear RW/E bits
+  ; sta LCD_PORTA
+  ; lda #(RS | E)   ; Set E bit to send instruction
+  ; sta LCD_PORTA
+  ; lda #RS         ; Clear E bits
+  ; sta LCD_PORTA
+  ; jsr lcd_delay   ; fast_clock
 
 
     LDA #PS2_REPLY_FF
@@ -495,42 +362,45 @@ send_ff_reply:
     LDX #$00             ; Bit counter
     LDY #$00             ; Parity accumulator
     
-    ; Start bit: Pull data low while clock is high
-    LDA #PS2_CLK_BIT     ; Clock high, data low
-    STA KB_PORTA
-    JSR ps2_delay
+    ; FF reply fix - RULE 1: Pull Clock line low for at least 100µs to inhibit device
+    LDA #$00             ; FF reply fix - Both Clock and Data low
+    STA KB_PORTA         ; FF reply fix
+    JSR ps2_long_delay   ; FF reply fix - Wait 100µs
     
-    ; Clock the start bit
-    LDA #$00             ; Clock low, data low
-    STA KB_PORTA
-    JSR ps2_delay
+     ; FF reply fix - RULE 2: Request-to-Send - Pull Data line low while Clock is still low
+    LDA #$00             ; FF reply fix - Both Clock and Data low
+    STA KB_PORTA         ; FF reply fix
+    ; FF reply fix - RULE 3: Release Clock line (keep Data low, let Clock go high via pull-up)
+
+    LDA KB_DDRA          ; FF reply fix - Read current DDR
+    AND #%11111011       ; FF reply fix -   release clock, it is  pulled HIGH and host should wait for it goes low
+    STA KB_DDRA          ; FF reply fix
+    JSR ps2_delay        ; FF reply fix - Wait for Clock to stabilize high
+
+ 
     
 send_bit_loop:
+    ; FF reply fix - Wait for device to pull Clock LOW
+    JSR wait_clock_low   ; FF reply fix
+    
     ; Prepare data bit
     LDA PS2_BYTE_TEMP    ; Get byte to send
     AND #$01             ; Isolate LSB
     BEQ send_zero
     
 send_one:
-    ; Send '1': data high
-    LDA #(PS2_CLK_BIT | PS2_DATA_BIT)  ; Clock high, data high
-    STA KB_PORTA
-    JSR ps2_delay
-    LDA #PS2_DATA_BIT    ; Clock low, data high
-    STA KB_PORTA
+    LDA #PS2_DATA_BIT    ; FF reply fix - Data high (Clock released)
+    STA KB_PORTA         ; FF reply fix
     INY                  ; Update parity
     JMP next_bit
     
 send_zero:
-    ; Send '0': data low
-    LDA #PS2_CLK_BIT     ; Clock high, data low
-    STA KB_PORTA
-    JSR ps2_delay
-    LDA #$00             ; Clock low, data low
-    STA KB_PORTA
+    LDA #$00             ; FF reply fix - Data low (Clock released)
+    STA KB_PORTA         ; FF reply fix
     
 next_bit:
-    JSR ps2_delay
+    ; JSR ps2_delay ; FF reply fix - REMOVED
+    JSR wait_clock_high_sub  ; FF reply fix - Wait for device to pull Clock HIGH
     
     ; Shift to next bit
     LSR PS2_BYTE_TEMP
@@ -538,42 +408,70 @@ next_bit:
     CPX #$08             ; Sent all 8 bits?
     BNE send_bit_loop
     
+    ; FF reply fix - Wait for device to pull Clock LOW
+    JSR wait_clock_low   ; FF reply fix
+    
     ; Send parity bit (odd parity)
     TYA
     AND #$01             ; Check if parity is odd
     BNE send_parity_zero
     
 send_parity_one:
-    LDA #(PS2_CLK_BIT | PS2_DATA_BIT)
-    STA KB_PORTA
-    JSR ps2_delay
-    LDA #PS2_DATA_BIT
-    STA KB_PORTA
+
+    LDA #PS2_DATA_BIT    ; FF reply fix - Data high (Clock released)
+    STA KB_PORTA         ; FF reply fix
     JMP send_stop
     
 send_parity_zero:
-    LDA #PS2_CLK_BIT
-    STA KB_PORTA
-    JSR ps2_delay
-    LDA #$00
-    STA KB_PORTA
+
+    LDA #$00             ; FF reply fix - Data low (Clock released)
+    STA KB_PORTA         ; FF reply fix
     
 send_stop:
-    JSR ps2_delay
+    ; JSR ps2_delay ; FF reply fix - REMOVED
+    JSR wait_clock_high_sub  ; FF reply fix - Wait for device to pull Clock HIGH
+    
+    ; FF reply fix - Wait for device to pull Clock LOW
+    JSR wait_clock_low   ; FF reply fix
     
     ; Stop bit: data high
-    LDA #(PS2_CLK_BIT | PS2_DATA_BIT)
-    STA KB_PORTA
-    JSR ps2_delay
-    LDA #PS2_DATA_BIT
-    STA KB_PORTA
-    JSR ps2_delay
+    LDA #PS2_DATA_BIT    ; FF reply fix - Release Data (high)
+    STA KB_PORTA         ; FF reply fix
+    ; JSR ps2_delay ; FF reply fix - REMOVED
+    JSR wait_clock_high_sub  ; FF reply fix - Wait for device to pull Clock HIGH
+    
+    ; FF reply fix - Wait for ACK bit (device pulls Data low)
+    JSR wait_clock_low   ; FF reply fix - Device should have Data low now
+    JSR wait_clock_high_sub  ; FF reply fix
     
     ; Release lines (both high)
-    LDA #(PS2_CLK_BIT | PS2_DATA_BIT)
-    STA KB_PORTA
-    
+ 
+    LDA KB_DDRA          ;  
+    AND #%11111001       ;  release clock and data
+    STA KB_DDRA          ;
+    JSR ps2_delay        ;
+
     RTS
+
+; FF reply fix - Wait for Clock line to go LOW (device controls it)
+wait_clock_low:          ; FF reply fix
+  PHA                    ; FF reply fix
+wait_clock_low_loop:     ; FF reply fix
+  LDA KB_PORTA           ; FF reply fix
+  AND #PS2_CLK_BIT       ; FF reply fix - Check PA1 (clock)
+  BNE wait_clock_low_loop  ; FF reply fix - Loop while high
+  PLA                    ; FF reply fix
+  RTS                    ; FF reply fix
+
+; FF reply fix - Wait for Clock line to go HIGH (device controls it)
+wait_clock_high_sub:     ; FF reply fix
+  PHA                    ; FF reply fix
+wait_clock_high_loop:    ; FF reply fix
+  LDA KB_PORTA           ; FF reply fix
+  AND #PS2_CLK_BIT       ; FF reply fix - Check PA1 (clock)
+  BEQ wait_clock_high_loop  ; FF reply fix - Loop while low
+  PLA                    ; FF reply fix
+  RTS                    ; FF reply fix
 
 ; keyboard init - PS/2 TIMING DELAY
 ; For 1MHz clock: ~40-50µs per half-clock period
@@ -586,6 +484,16 @@ ps2_delay_loop:
     BNE ps2_delay_loop
     PLA
     RTS
+
+; FF reply fix - PS/2 long delay for 100µs initial clock hold
+ps2_long_delay:          ; FF reply fix
+    PHA                  ; FF reply fix
+    LDA #$32             ; FF reply fix - ~50 iterations * 2µs = 100µs at 1MHz
+ps2_long_delay_loop:     ; FF reply fix
+    SBC #$01             ; FF reply fix
+    BNE ps2_long_delay_loop  ; FF reply fix
+    PLA                  ; FF reply fix
+    RTS                  ; FF reply fix
 
 ; fast_clock - LCD delay routine (~2ms for 1MHz clock)
 lcd_delay:              ; fast_clock
