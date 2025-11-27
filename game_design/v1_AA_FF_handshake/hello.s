@@ -24,17 +24,21 @@ PS2_REPLY_FF = $FF
 BOX_X        = $0200      ; Box X position (0-75 pixels, 16 chars * 5 pixels - 2 pixels box width)
 BOX_Y        = $0201      ; Box Y position (0-14 pixels, 2 rows * 8 pixels - 2 pixels box height)
 FRAME_COUNTER = $0202     ; Frame counter for 30 FPS timing
+SCAN_CODE_BUFFER = $0203 
 
 ; Keyboard variables
 HANDSHAKE_DONE = $0222
 PS2_BYTE_TEMP  = $0223
 SCANCODE_STATE = $0224    ; 0=normal, 1=received F0 (skip next)
+;BREAK_CODE_FLAG = $0225   ; Flag to indicate F0 (break code) was received
 
 ; Circular buffer for key input
 KEY_BUFFER     = $0230    ; Buffer starts here (16 bytes)
 KEY_BUF_HEAD   = $0240    ; Write pointer
 KEY_BUF_TAIL   = $0241    ; Read pointer
 KEY_BUF_SIZE   = 16       ; Must be power of 2
+
+SCAN_ROW_POS = $0250      ; Current position in second row for scancode display (0-13, reserve 14-15 for position)
 
 ; PS/2 Scan codes for arrow keys and vi keys (make codes)
 SCANCODE_UP    = $75
@@ -68,7 +72,7 @@ keyboard_init:
   STA KEY_BUF_HEAD
   STA KEY_BUF_TAIL
   STA SHIFT_PRESSED
-  LDA #' '
+  LDA #'x'
   STA LAST_KEY_CHAR
 
 lcd_init:
@@ -136,6 +140,8 @@ game_init:
   STA BOX_X
   LDA #7
   STA BOX_Y
+  LDA #0
+  STA SCAN_ROW_POS
 
   lda #"1"        ; before 5s
   sta LCD_PORTB
@@ -145,7 +151,7 @@ game_init:
   sta LCD_PORTA
   lda #RS         ; Clear E bits
   sta LCD_PORTA
-  jsr lcd_delay   ; fast_clock
+  jsr lcd_long_delay   ; fast_clock
 
 game_loop:
   ; Process input from key buffer
@@ -171,22 +177,27 @@ process_key_input:
   ; Read from buffer
   LDX KEY_BUF_TAIL
   LDA KEY_BUFFER,X
-  
+
+  STA SCAN_CODE_BUFFER
+
+
   ; Increment tail pointer (with wrap)
   INX
   TXA
   AND #(KEY_BUF_SIZE - 1)
   STA KEY_BUF_TAIL
   
+
   ; Save scancode for character lookup
-  PHA
-  
+  ; PHA
+  LDA SCAN_CODE_BUFFER
   ; Look up character in keymap and store
   JSR lookup_keymap_char
   STA LAST_KEY_CHAR
   
   ; Restore scancode and process movement
-  PLA
+  ; PLA
+  LDA SCAN_CODE_BUFFER
   
   ; Check for arrow keys
   CMP #SCANCODE_UP
@@ -275,9 +286,10 @@ render_frame:
   JSR create_custom_character
   
   ; Clear display
-  LDA #%00000001
-  JSR lcd_instruction
-  
+  ;LDA #%00000001
+  ;JSR lcd_instruction
+  ;jsr lcd_long_delay ; 1.2ms or 2 ms need to clear all memories in LCD
+
   ; Calculate which character position to place the box
   ; Character column = BOX_X / 5
   ; Character row = BOX_Y / 8
@@ -290,16 +302,16 @@ render_frame:
   
 second_row:
   ; Set cursor to second row
-  LDA #%11000000  ; Set DDRAM address to second row
-  ORA BOX_X
+  LDA BOX_X 
+  ORA #%11000000  ; Set DDRAM address to second row
   JSR get_char_col
   JSR lcd_instruction
   JMP display_char
   
 first_row:
   ; Set cursor to first row
-  LDA #%10000000  ; Set DDRAM address to first row
-  ORA BOX_X
+  LDA BOX_X 
+  ORA #%10000000  ; Set DDRAM address to first row
   JSR get_char_col
   JSR lcd_instruction
   
@@ -328,6 +340,9 @@ display_char:
   LDA #RS
   STA LCD_PORTA
   JSR lcd_delay
+
+  LDA SCAN_CODE_BUFFER
+  JSR print_scancode_hex
   
   RTS
 
@@ -730,6 +745,7 @@ delay_frame:
   
   ; Outer loop: 23 iterations of full 256-cycle inner loops
   ldx #$17        ; 23 in decimal
+  ;ldx #$FF        ; almost 23*33 -- meaning 1 sec delay
 delay_outer:
   ldy #$00        ; 256 iterations
 delay_middle:
@@ -754,6 +770,78 @@ delay_fine:
   tax
   pla
   rts
+
+; Print scancode as hex at current position in second row
+print_scancode_hex:
+  PHA  ; Save original scancode
+  
+  ; Set cursor to second row at SCAN_ROW_POS
+  LDA SCAN_ROW_POS ; Load position first
+  ORA #%11000000   ; Then OR with second row base address
+  JSR lcd_instruction
+  
+  ; Print high nibble
+  PLA
+  PHA
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  CMP #$0A
+  BCC high_digit
+  ADC #$06        ; Add 7 (6 + carry) to get A-F
+high_digit:
+  ADC #$30        ; Convert to ASCII
+  JSR print_char
+  
+  ; Increment position
+  INC SCAN_ROW_POS
+  LDA SCAN_ROW_POS
+  CMP #14         ; Stop at column 13 (reserve 14-15 for position display)
+  BCC print_low_nibble
+  LDA #0
+  STA SCAN_ROW_POS
+  
+print_low_nibble:
+  ; Set cursor again for low nibble
+  LDA SCAN_ROW_POS ; Load position first
+  ORA #%11000000   ; Then OR with second row base address
+  JSR lcd_instruction
+  
+  ; Print low nibble
+  PLA
+  PHA
+  AND #$0F
+  CMP #$0A
+  BCC low_digit
+  ADC #$06        ; Add 7 (6 + carry) to get A-F
+low_digit:
+  ADC #$30        ; Convert to ASCII
+  JSR print_char
+  
+  ; Increment position
+  INC SCAN_ROW_POS
+  LDA SCAN_ROW_POS
+  CMP #14         ; Stop at column 13 (reserve 14-15 for position display)
+  BCC done_print
+  LDA #0
+  STA SCAN_ROW_POS
+  
+done_print:
+  PLA  ; Clean up stack
+  RTS
+
+; Print character in A to LCD
+print_char:
+  STA LCD_PORTB
+  LDA #RS
+  STA LCD_PORTA
+  LDA #(RS | E)
+  STA LCD_PORTA
+  LDA #RS
+  STA LCD_PORTA
+  JSR lcd_delay
+  RTS
 
   .org $fd00
 keymap:
