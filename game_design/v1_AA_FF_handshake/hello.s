@@ -25,6 +25,8 @@ BOX_X        = $0200      ; Box X position (0-75 pixels, 16 chars * 5 pixels - 2
 BOX_Y        = $0201      ; Box Y position (0-14 pixels, 2 rows * 8 pixels - 2 pixels box height)
 FRAME_COUNTER = $0202     ; Frame counter for 30 FPS timing
 SCAN_CODE_BUFFER = $0203 
+BOX_X_COL    = 0204       ; Box X / 5
+BOX_Y_COL    = 0205       ; Box Y / 8
 
 ; Keyboard variables
 HANDSHAKE_DONE = $0222
@@ -280,6 +282,22 @@ store_x_right:
   STA BOX_X
   RTS
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ; Render the current frame
 render_frame:
   ; Create custom character based on BOX_X and BOX_Y position
@@ -298,6 +316,7 @@ render_frame:
   LSR A
   LSR A
   LSR A          ; Divide by 8
+  STA BOX_Y_COL
   BEQ first_row
   
 second_row:
@@ -318,28 +337,30 @@ first_row:
 display_char:
   ; Display custom character 0
   LDA #$00
-  STA LCD_PORTB
-  LDA #RS
-  STA LCD_PORTA
-  LDA #(RS | E)
-  STA LCD_PORTA
-  LDA #RS
-  STA LCD_PORTA
-  JSR lcd_delay
+  JSR print_char 
+  ; STA LCD_PORTB
+  ; LDA #RS
+  ; STA LCD_PORTA
+  ; LDA #(RS | E)
+  ; STA LCD_PORTA
+  ; LDA #RS
+  ; STA LCD_PORTA
+  ; JSR lcd_delay
   
   ; Display last key pressed at bottom right (position 15 of row 2)
-  LDA #%11001111  ; DDRAM address for second row, position 15
+  LDA #%11001101  ; DDRAM address for second row, position 13
   JSR lcd_instruction
   
+  LDA BOX_X_COL
+  JSR print_char 
+
+  LDA BOX_Y_COL
+  JSR print_char 
+
   LDA LAST_KEY_CHAR
-  STA LCD_PORTB
-  LDA #RS
-  STA LCD_PORTA
-  LDA #(RS | E)
-  STA LCD_PORTA
-  LDA #RS
-  STA LCD_PORTA
-  JSR lcd_delay
+  JSR print_char 
+
+
 
   LDA SCAN_CODE_BUFFER
   JSR print_scancode_hex
@@ -361,10 +382,29 @@ div5_loop:
   JMP div5_loop
 div5_done:
   TXA
-  STA $0250      ; Temp storage
+  STA BOX_X_COL
   PLA
-  ORA $0250
+  ORA BOX_X_COL
   RTS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ; Create custom character based on box position
 create_custom_character:
@@ -436,6 +476,7 @@ write_char_row:
   
   RTS
 
+
 ; Create a row pattern for the box given X offset in A
 create_box_row:
   CMP #0
@@ -461,6 +502,24 @@ box_at_2:
 box_at_3:
   LDA #%00000011
   RTS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ; Send instruction to LCD
 lcd_instruction:
