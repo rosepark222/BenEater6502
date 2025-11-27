@@ -1,0 +1,432 @@
+LCD_PORTB = $6000
+LCD_PORTA = $6001
+LCD_DDRB = $6002
+LCD_DDRA = $6003
+
+KB_PORTB = $4000
+KB_PORTA = $4001
+KB_DDRB = $4002
+KB_DDRA = $4003
+KB_PCR   = $400C
+KB_IFR   = $400D
+KB_IER   = $400E
+
+E  = %10000000
+RW = %01000000
+RS = %00100000
+
+PS2_CLK_BIT  = %00000100
+PS2_DATA_BIT = %00000010
+PS2_INIT_AA  = $AA
+PS2_REPLY_FF = $FF
+
+; Simple game variables
+CHAR_POS     = $0200      ; Position of 'a' character (0-15)
+SCAN_ROW_POS = $0201      ; Current position in second row for scancode display (0-15)
+
+; Keyboard variables
+HANDSHAKE_DONE = $0222
+PS2_BYTE_TEMP  = $0223
+CURRENT_SCANCODE = $0224  ; Store the scancode received
+
+; PS/2 Scan codes for h and l
+SCANCODE_H     = $33  ; h - left
+SCANCODE_L     = $4B  ; l - right
+
+  .org $8000
+
+reset:
+  SEI
+  
+keyboard_init:
+  lda #%00000001
+  sta KB_DDRA
+  
+  LDA #%00000000
+  STA KB_DDRB
+  
+  LDA #$00
+  STA HANDSHAKE_DONE
+  STA CURRENT_SCANCODE
+
+lcd_init:
+  lda #%11111111
+  sta LCD_DDRB
+
+  lda #%11100000
+  sta LCD_DDRA
+
+  jsr lcd_long_delay
+  jsr lcd_long_delay
+  jsr lcd_long_delay
+
+  lda #%00111000  ; 8-bit mode; 2-line display; 5x8 font
+  sta LCD_PORTB
+  lda #0
+  sta LCD_PORTA
+  lda #E
+  sta LCD_PORTA
+  lda #0
+  sta LCD_PORTA
+  jsr lcd_delay
+
+  lda #%00001100  ; Display on; cursor off; blink off
+  sta LCD_PORTB
+  lda #0
+  sta LCD_PORTA
+  lda #E
+  sta LCD_PORTA
+  lda #0
+  sta LCD_PORTA
+  jsr lcd_delay
+
+  lda #%00000110  ; Increment and shift cursor
+  sta LCD_PORTB
+  lda #0
+  sta LCD_PORTA
+  lda #E
+  sta LCD_PORTA
+  lda #0
+  sta LCD_PORTA
+  jsr lcd_delay
+
+  ; Clear display
+  lda #%00000001
+  jsr lcd_instruction
+
+irq_setup:
+  LDA KB_PCR
+  AND #%11111110
+  ORA #%00000001
+  STA KB_PCR
+  
+  LDA #%10000010
+  STA KB_IER
+  
+  LDA KB_PORTA
+  CLI
+
+game_init:
+  ; Initialize character position to first column
+  LDA #0
+  STA CHAR_POS
+  STA SCAN_ROW_POS
+  
+  ; Display 'a' at first position
+  JSR display_frame
+
+main_loop:
+  ; Just wait for interrupts
+  JMP main_loop
+
+; Display the current frame
+display_frame:
+  ; Clear display
+  LDA #%00000001
+  JSR lcd_instruction
+  
+  ; Set cursor to first row, CHAR_POS position
+  LDA #%10000000  ; First row base address
+  ORA CHAR_POS
+  JSR lcd_instruction
+  
+  ; Display 'a'
+  LDA #'a'
+  JSR print_char
+  
+  RTS
+
+; Print character in A to LCD
+print_char:
+  STA LCD_PORTB
+  LDA #RS
+  STA LCD_PORTA
+  LDA #(RS | E)
+  STA LCD_PORTA
+  LDA #RS
+  STA LCD_PORTA
+  JSR lcd_delay
+  RTS
+
+; Print scancode as hex at current position in second row
+print_scancode_hex:
+  PHA  ; Save original scancode
+  
+  ; Set cursor to second row at SCAN_ROW_POS
+  LDA #%11000000  ; Second row base address
+  ORA SCAN_ROW_POS
+  JSR lcd_instruction
+  
+  ; Print high nibble
+  PLA
+  PHA
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  CMP #$0A
+  BCC high_digit
+  ADC #$06        ; Add 7 (6 + carry) to get A-F
+high_digit:
+  ADC #$30        ; Convert to ASCII
+  JSR print_char
+  
+  ; Increment position
+  INC SCAN_ROW_POS
+  LDA SCAN_ROW_POS
+  CMP #16
+  BCC print_low_nibble
+  LDA #0
+  STA SCAN_ROW_POS
+  
+print_low_nibble:
+  ; Set cursor again for low nibble
+  LDA #%11000000
+  ORA SCAN_ROW_POS
+  JSR lcd_instruction
+  
+  ; Print low nibble
+  PLA
+  PHA
+  AND #$0F
+  CMP #$0A
+  BCC low_digit
+  ADC #$06        ; Add 7 (6 + carry) to get A-F
+low_digit:
+  ADC #$30        ; Convert to ASCII
+  JSR print_char
+  
+  ; Increment position
+  INC SCAN_ROW_POS
+  LDA SCAN_ROW_POS
+  CMP #16
+  BCC done_print
+  LDA #0
+  STA SCAN_ROW_POS
+  
+done_print:
+  PLA  ; Clean up stack
+  RTS
+
+; Send instruction to LCD
+lcd_instruction:
+  STA LCD_PORTB
+  LDA #0
+  STA LCD_PORTA
+  LDA #E
+  STA LCD_PORTA
+  LDA #0
+  STA LCD_PORTA
+  JSR lcd_delay
+  RTS
+
+IRQ_HANDLER:
+  PHA
+  TXA
+  PHA
+  TYA
+  PHA
+
+  ; Read scancode from keyboard
+  LDA KB_PORTB
+  STA CURRENT_SCANCODE
+  
+  ; Check if handshake is complete
+  LDX HANDSHAKE_DONE
+  BNE PROCESS_SCANCODE
+  
+  ; Handshake logic
+  CMP #PS2_INIT_AA
+  BNE CLEAR_IRQ
+  
+  lda #%00000111
+  sta KB_DDRA
+  
+  JSR send_ff_reply
+  
+  LDA #$FF
+  STA HANDSHAKE_DONE
+  
+  LDA #%00000001
+  STA KB_DDRA
+  
+  JMP CLEAR_IRQ
+
+PROCESS_SCANCODE:
+  ; Print all scancodes to second row
+  LDA CURRENT_SCANCODE
+  JSR print_scancode_hex
+  
+  ; Check if it's 'h' (move left)
+  LDA CURRENT_SCANCODE
+  CMP #SCANCODE_H
+  BEQ move_left
+  
+  ; Check if it's 'l' (move right)
+  CMP #SCANCODE_L
+  BEQ move_right
+  
+  JMP CLEAR_IRQ
+
+move_left:
+  LDA CHAR_POS
+  BEQ CLEAR_IRQ  ; Already at leftmost position
+  DEC CHAR_POS
+  JSR display_frame
+  JMP CLEAR_IRQ
+
+move_right:
+  LDA CHAR_POS
+  CMP #15
+  BEQ CLEAR_IRQ  ; Already at rightmost position
+  INC CHAR_POS
+  JSR display_frame
+  JMP CLEAR_IRQ
+
+CLEAR_IRQ:
+  LDA KB_PORTA
+  
+  PLA
+  TAY
+  PLA
+  TAX
+  PLA
+  
+  RTI
+
+send_ff_reply:
+  LDA #PS2_REPLY_FF
+  STA PS2_BYTE_TEMP
+  
+  LDX #$00
+  LDY #$00
+  
+  LDA #$00
+  STA KB_PORTA
+  JSR ps2_long_delay
+  
+  LDA #$00
+  STA KB_PORTA
+  
+  LDA KB_DDRA
+  AND #%11111011
+  STA KB_DDRA
+  JSR ps2_delay
+  
+send_bit_loop:
+  JSR wait_clock_low
+  
+  LDA PS2_BYTE_TEMP
+  AND #$01
+  BEQ send_zero
+  
+send_one:
+  LDA #PS2_DATA_BIT
+  STA KB_PORTA
+  INY
+  JMP next_bit
+  
+send_zero:
+  LDA #$00
+  STA KB_PORTA
+  
+next_bit:
+  JSR wait_clock_high_sub
+  
+  LSR PS2_BYTE_TEMP
+  INX
+  CPX #$08
+  BNE send_bit_loop
+  
+  JSR wait_clock_low
+  
+  TYA
+  AND #$01
+  BNE send_parity_zero
+  
+send_parity_one:
+  LDA #PS2_DATA_BIT
+  STA KB_PORTA
+  JMP send_stop
+  
+send_parity_zero:
+  LDA #$00
+  STA KB_PORTA
+  
+send_stop:
+  JSR wait_clock_high_sub
+  JSR wait_clock_low
+  
+  LDA #PS2_DATA_BIT
+  STA KB_PORTA
+  JSR wait_clock_high_sub
+  
+  JSR wait_clock_low
+  JSR wait_clock_high_sub
+  
+  LDA KB_DDRA
+  AND #%11111001
+  STA KB_DDRA
+  JSR ps2_delay
+  
+  RTS
+
+wait_clock_low:
+  PHA
+wait_clock_low_loop:
+  LDA KB_PORTA
+  AND #PS2_CLK_BIT
+  BNE wait_clock_low_loop
+  PLA
+  RTS
+
+wait_clock_high_sub:
+  PHA
+wait_clock_high_loop:
+  LDA KB_PORTA
+  AND #PS2_CLK_BIT
+  BEQ wait_clock_high_loop
+  PLA
+  RTS
+
+ps2_delay:
+  PHA
+  LDA #$0A
+ps2_delay_loop:
+  SBC #$01
+  BNE ps2_delay_loop
+  PLA
+  RTS
+
+ps2_long_delay:
+  PHA
+  LDA #$32
+ps2_long_delay_loop:
+  SBC #$01
+  BNE ps2_long_delay_loop
+  PLA
+  RTS
+
+lcd_delay:
+  pha
+  lda #$82
+lcd_delay_loop:
+  sbc #$01
+  bne lcd_delay_loop
+  pla
+  rts
+
+lcd_long_delay:
+  pha
+  lda #$FF
+lcd_long_delay_loop:
+  sbc #$01
+  bne lcd_long_delay_loop
+  pla
+  rts
+
+  .org $FFFA
+  .word $0000
+  .word reset
+  .word IRQ_HANDLER
+
