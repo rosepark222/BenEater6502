@@ -31,7 +31,7 @@ BOX_Y_COL    = 0205       ; Box Y / 8
 ; Keyboard variables
 HANDSHAKE_DONE = $0222
 PS2_BYTE_TEMP  = $0223
-SCANCODE_STATE = $0224    ; 0=normal, 1=received F0 (skip next)
+F0_DETECTED = $0224    ; 0=normal, 1=received F0 (skip next)
 ;BREAK_CODE_FLAG = $0225   ; Flag to indicate F0 (break code) was received
 
 ; Circular buffer for key input
@@ -70,7 +70,7 @@ keyboard_init:
   
   LDA #$00
   STA HANDSHAKE_DONE
-  STA SCANCODE_STATE
+  STA F0_DETECTED
   STA KEY_BUF_HEAD
   STA KEY_BUF_TAIL
   STA SHIFT_PRESSED
@@ -155,6 +155,14 @@ game_init:
   sta LCD_PORTA
   jsr lcd_long_delay   ; fast_clock
 
+;    _____          __  __ ______ 
+;   / ____|   /\   |  \/  |  ____|
+;  | |  __   /  \  | \  / | |__   
+;  | | |_ | / /\ \ | |\/| |  __|  
+;  | |__| |/ ____ \| |  | | |____ 
+;   \_____/_/    \_\_|  |_|______|
+                                
+
 game_loop:
   ; Process input from key buffer
   JSR process_key_input
@@ -168,6 +176,16 @@ game_loop:
   JSR delay_frame
   
   JMP game_loop
+
+
+;   _  __________     __  _____ _   _ _____  _    _ _______ 
+;  | |/ /  ____\ \   / / |_   _| \ | |  __ \| |  | |__   __|
+;  | ' /| |__   \ \_/ /    | | |  \| | |__) | |  | |  | |   
+;  |  < |  __|   \   /     | | | . ` |  ___/| |  | |  | |   
+;  | . \| |____   | |     _| |_| |\  | |    | |__| |  | |   
+;  |_|\_\______|  |_|    |_____|_| \_|_|     \____/   |_|  
+
+
 
 ; Process one key from the circular buffer
 process_key_input:
@@ -292,7 +310,14 @@ store_x_right:
 
 
 
-
+;   ______ _____            __  __ ______ 
+;  |  ____|  __ \     /\   |  \/  |  ____|
+;  | |__  | |__) |   /  \  | \  / | |__   
+;  |  __| |  _  /   / /\ \ | |\/| |  __|  
+;  | |    | | \ \  / ____ \| |  | | |____ 
+;  |_|    |_|  \_\/_/    \_\_|  |_|______|
+                                        
+                                        
 
 
 
@@ -304,9 +329,9 @@ render_frame:
   JSR create_custom_character
   
   ; Clear display
-  ;LDA #%00000001
-  ;JSR lcd_instruction
-  ;jsr lcd_long_delay ; 1.2ms or 2 ms need to clear all memories in LCD
+  LDA #%00000001
+  JSR lcd_instruction
+  jsr lcd_long_delay ; 1.2ms or 2 ms need to clear all memories in LCD
 
   ; Calculate which character position to place the box
   ; Character column = BOX_X / 5
@@ -321,20 +346,24 @@ render_frame:
   
 second_row:
   ; Set cursor to second row
-  LDA BOX_X 
-  ORA #%11000000  ; Set DDRAM address to second row
+  LDA BOX_X
   JSR get_char_col
+  LDA BOX_X_COL 
+  ORA #%11000000  ; Set DDRAM address to second row
+
   JSR lcd_instruction
-  JMP display_char
+  JMP display_box
   
 first_row:
   ; Set cursor to first row
-  LDA BOX_X 
-  ORA #%10000000  ; Set DDRAM address to first row
+  LDA BOX_X
   JSR get_char_col
+
+  LDA BOX_X_COL 
+  ORA #%10000000  ; Set DDRAM address to first row
   JSR lcd_instruction
   
-display_char:
+display_box:
   ; Display custom character 0
   LDA #$00
   JSR print_char 
@@ -351,19 +380,21 @@ display_char:
   LDA #%11001101  ; DDRAM address for second row, position 13
   JSR lcd_instruction
   
-  LDA BOX_X_COL
-  JSR print_char 
+  ; LDA BOX_X_COL
+  ; JSR print_char 
 
-  LDA BOX_Y_COL
-  JSR print_char 
+  ; LDA BOX_Y_COL
+  ; JSR print_char 
+
+
+
+  jsr display_position
 
   LDA LAST_KEY_CHAR
   JSR print_char 
 
-
-
-  LDA SCAN_CODE_BUFFER
-  JSR print_scancode_hex
+  ; LDA SCAN_CODE_BUFFER
+  ; JSR print_scancode_hex
   
   RTS
 
@@ -533,6 +564,19 @@ lcd_instruction:
   JSR lcd_delay
   RTS
 
+
+
+;   _____ _____   ____  
+;  |_   _|  __ \ / __ \ 
+;    | | | |__) | |  | |
+;    | | |  _  /| |  | |
+;   _| |_| | \ \| |__| |
+;  |_____|_|  \_\\___\_\
+                      
+                      
+
+
+
 IRQ_HANDLER:
   PHA
   TXA
@@ -543,7 +587,7 @@ IRQ_HANDLER:
   LDA KB_PORTB
   
   LDX HANDSHAKE_DONE
-  BNE CHECK_SCANCODE_STATE
+  BNE CHECK_F0_DETECTED
   
   CMP #PS2_INIT_AA
   BNE CLEAR_IRQ
@@ -561,15 +605,15 @@ IRQ_HANDLER:
   
   JMP CLEAR_IRQ
 
-CHECK_SCANCODE_STATE:
-  LDX SCANCODE_STATE
+CHECK_F0_DETECTED:
+  LDX F0_DETECTED
   BNE HANDLE_SKIP_STATE
   
-  ; Check for shift key press (left shift = 0x12, right shift = 0x59)
-  CMP #$12
-  BEQ SET_SHIFT
-  CMP #$59
-  BEQ SET_SHIFT
+  ; ; Check for shift key press (left shift = 0x12, right shift = 0x59)
+  ; CMP #$12
+  ; BEQ SET_SHIFT
+  ; CMP #$59
+  ; BEQ SET_SHIFT
   
   ; Normal state - check if this is F0
   CMP #$F0
@@ -577,31 +621,31 @@ CHECK_SCANCODE_STATE:
   
   ; Received F0 - set state to skip next
   LDA #1
-  STA SCANCODE_STATE
+  STA F0_DETECTED
   JMP CLEAR_IRQ
 
-SET_SHIFT:
-  LDA #$FF
-  STA SHIFT_PRESSED
-  JMP CLEAR_IRQ
+; SET_SHIFT:
+;   LDA #$FF
+;   STA SHIFT_PRESSED
+;   JMP CLEAR_IRQ
 
 HANDLE_SKIP_STATE:
-  ; Check if releasing shift key
-  CMP #$12
-  BEQ CLEAR_SHIFT
-  CMP #$59
-  BEQ CLEAR_SHIFT
+;   ; Check if releasing shift key
+;   CMP #$12
+;   BEQ CLEAR_SHIFT
+;   CMP #$59
+;   BEQ CLEAR_SHIFT
   
   ; Skip this scancode and return to normal state
   LDA #0
-  STA SCANCODE_STATE
+  STA F0_DETECTED
   JMP CLEAR_IRQ
 
-CLEAR_SHIFT:
-  LDA #0
-  STA SHIFT_PRESSED
-  STA SCANCODE_STATE
-  JMP CLEAR_IRQ
+; CLEAR_SHIFT:
+;   LDA #0
+;   STA SHIFT_PRESSED
+;   STA F0_DETECTED
+;   JMP CLEAR_IRQ
 
 STORE_SCANCODE:
   ; Store scancode in circular buffer
@@ -626,6 +670,18 @@ CLEAR_IRQ:
   PLA
   
   RTI
+
+
+
+
+
+
+
+
+
+
+
+
 
 send_ff_reply:
   LDA #PS2_REPLY_FF
@@ -888,6 +944,45 @@ low_digit:
   
 done_print:
   PLA  ; Clean up stack
+  RTS
+
+
+; Display row and column position at second row columns 14-15
+display_position:
+  LDA #%11001101  ; Second row base + 13
+  JSR lcd_instruction
+  
+  ; Display row (convert BOX_Y_COL to ASCII digit)
+  LDA BOX_Y_COL
+  JSR convert_to_ascii
+  JSR print_char
+  
+  LDA #%11001110  ; Second row base + 14
+  JSR lcd_instruction
+  
+  ; Display column position (convert BOX_X_COL to ASCII digit)
+  LDA BOX_X_COL
+  JSR convert_to_ascii
+  JSR print_char
+  RTS
+
+; Convert value in A to ASCII character ('0'-'9' or 'A'-'F')
+; Input: A = value (0-15)
+; Output: A = ASCII character
+convert_to_ascii:
+  CMP #10
+  BCC single_digit
+  
+  ; For values 10-15, display A-F
+  SEC
+  SBC #10
+  CLC
+  ADC #'A'
+  RTS
+  
+single_digit:
+  CLC
+  ADC #'0'
   RTS
 
 ; Print character in A to LCD
