@@ -28,10 +28,18 @@ SCAN_CODE_BUFFER = $0203
 BOX_X_COL    = 0204       ; Box X / 5
 BOX_Y_COL    = 0205       ; Box Y / 8
 
+; Enemy system (max 5 enemies on screen)
+ENEMY_POS    = $0270      ; Enemy positions array (16 bytes, one per column)
+ENEMY_TIMER  = $0260      ; Timer for enemy movement (30 frames = 1 second)
+SPAWN_TIMER  = $0261      ; Timer for spawning new enemies
+SKIP_COUNT   = $0262      ; Number of times player used skip (w)
+KILL_COUNT   = $0263      ; Number of enemies killed (x)
+GAME_OVER    = $0264      ; Game over flag (0=playing, 1=dead)
+
 ; Keyboard variables
 HANDSHAKE_DONE = $0222
 PS2_BYTE_TEMP  = $0223
-F0_DETECTED = $0224    ; 0=normal, 1=received F0 (skip next)
+F0_DETECTED    = $0224    ; 0=normal, 1=received F0 (skip next)
 ;BREAK_CODE_FLAG = $0225   ; Flag to indicate F0 (break code) was received
 
 ; Circular buffer for key input
@@ -51,6 +59,8 @@ SCANCODE_H     = $33  ; h - left
 SCANCODE_J     = $3B  ; j - down
 SCANCODE_K     = $42  ; k - up
 SCANCODE_L     = $4B  ; l - right
+SCANCODE_W     = $1D  ; w - teleport/skip
+SCANCODE_X     = $22  ; x - kill enemy
 
 ; Shift key tracking
 SHIFT_PRESSED  = $0242  ; 0=not pressed, $FF=pressed
@@ -155,6 +165,26 @@ game_init:
   sta LCD_PORTA
   jsr lcd_long_delay   ; fast_clock
 
+  ; Clear enemy array
+  LDX #15
+clear_enemies:
+  LDA #0
+  STA ENEMY_POS,X
+  DEX
+  BPL clear_enemies
+  
+  ; Initialize game state
+  LDA #0
+  STA ENEMY_TIMER
+  STA SPAWN_TIMER
+  STA SKIP_COUNT
+  STA KILL_COUNT
+  STA GAME_OVER
+  
+  ; Spawn first enemy at right edge
+  LDA #'a'
+  STA ENEMY_POS+15
+
 ;    _____          __  __ ______ 
 ;   / ____|   /\   |  \/  |  ____|
 ;  | |  __   /  \  | \  / | |__   
@@ -167,8 +197,12 @@ game_loop:
   ; Process input from key buffer
   JSR process_key_input
   
-  ; Update box position (already done in process_key_input)
+  ; Update enemies
+;  JSR update_enemies ; erp029
   
+  ; Check collision
+;  JSR check_collision ; erp029
+
   ; Render the frame
   JSR render_frame
   
@@ -177,6 +211,83 @@ game_loop:
   
   JMP game_loop
 
+; ; Update enemy positions (move left every second)
+; update_enemies:
+;   ; Average ~60 cycles per frame (mostly just timer increment)
+;   ; Every 30th frame: ~300 cycles (move all enemies left)
+;   ; Increment timer
+;   INC ENEMY_TIMER
+;   LDA ENEMY_TIMER
+;   CMP #30         ; 30 frames = 1 second at 30 FPS
+;   BCC update_spawning
+  
+;   ; Reset timer
+;   LDA #0
+;   STA ENEMY_TIMER
+  
+;   ; Move all enemies left
+;   LDX #0
+; move_enemies_loop:
+;   CPX #15
+;   BEQ move_enemies_loop_end
+  
+;   LDA ENEMY_POS+1,X
+;   STA ENEMY_POS,X
+;   INX
+;   JMP move_enemies_loop
+
+  
+; move_enemies_loop_end:
+;   ; Clear rightmost position
+;   LDA #0
+;   STA ENEMY_POS+15
+
+; update_spawning:
+;   ; Increment spawn timer
+;   INC SPAWN_TIMER
+;   LDA SPAWN_TIMER
+;   CMP #60         ; Spawn every 2 seconds
+;   BCC spawn_done
+  
+;   ; Reset spawn timer
+;   LDA #0
+;   STA SPAWN_TIMER
+  
+;   ; Check if rightmost position is empty and previous position is not enemy
+;   LDA ENEMY_POS+15
+;   BNE spawn_done
+;   LDA ENEMY_POS+14
+;   BNE spawn_done
+  
+;   ; Spawn new enemy
+;   LDA #'a'
+;   STA ENEMY_POS+15
+  
+; spawn_done:
+;   RTS
+
+; ; Check collision between box and enemies
+; check_collision:
+;   ; ~100 cycles total (80 for division + 20 for checks)
+;   ; Calculate box column
+;   LDA BOX_X
+;   JSR get_char_col
+  
+;   ; Check if enemy at box position
+;   LDX BOX_X_COL
+;   LDA ENEMY_POS,X
+;   BEQ no_collision
+  
+;   ; Check if box is on first row
+;   LDA BOX_Y_COL
+;   BNE no_collision
+  
+;   ; Collision! Game over
+;   LDA #1
+;   STA GAME_OVER
+  
+; no_collision:
+;   RTS
 
 ;   _  __________     __  _____ _   _ _____  _    _ _______ 
 ;  | |/ /  ____\ \   / / |_   _| \ | |  __ \| |  | |__   __|
@@ -238,9 +349,19 @@ process_key_input:
   BEQ move_left
   CMP #SCANCODE_L
   BEQ move_right
-  
+  ; CMP #SCANCODE_W
+  ; BEQ do_teleport_skip
+  ; CMP #SCANCODE_X
+  ; BEQ do_kill_enemy
+
 no_key_available:
   RTS
+
+; do_teleport_skip:
+;   JMP teleport_skip
+
+; do_kill_enemy:
+;   JMP kill_enemy
 
 ; Look up character in keymap based on scancode in A
 lookup_keymap_char:
@@ -301,6 +422,85 @@ store_x_right:
   RTS
 
 
+
+; ; Teleport: skip over enemy to the right
+; teleport_skip:
+;   ; Get current box column
+;   LDA BOX_X
+;   JSR get_char_col
+  
+;   ; Only teleport if on first row
+;   LDA BOX_Y_COL
+;   BNE skip_done
+  
+;   ; Find next enemy to the right
+;   LDX BOX_X_COL
+; find_enemy_right:
+;   INX
+;   CPX #16
+;   BEQ skip_done
+  
+;   LDA ENEMY_POS,X
+;   BEQ find_enemy_right
+  
+;   ; Found enemy, teleport past it
+;   INX
+;   CPX #16
+;   BEQ skip_done
+  
+;   ; Move box to that column
+;   TXA
+;   STA BOX_X_COL
+  
+;   ; Convert column to pixels (multiply by 5)
+;   LDA #0
+;   STA BOX_X
+;   LDY BOX_X_COL
+;   BEQ teleport_done
+; multiply_by_5:
+;   LDA BOX_X
+;   CLC
+;   ADC #5
+;   STA BOX_X
+;   DEY
+;   BNE multiply_by_5
+  
+; teleport_done:
+;   ; Increment skip count
+;   INC SKIP_COUNT
+  
+; skip_done:
+;   RTS
+
+; ; Kill: remove enemy to the right
+; kill_enemy:
+;   ; Get current box column
+;   LDA BOX_X
+;   JSR get_char_col
+  
+;   ; Only kill if on first row
+;   LDA BOX_Y_COL
+;   BNE kill_done
+  
+;   ; Find next enemy to the right
+;   LDX BOX_X_COL
+; find_enemy_kill:
+;   INX
+;   CPX #16
+;   BEQ kill_done
+  
+;   LDA ENEMY_POS,X
+;   BEQ find_enemy_kill
+  
+;   ; Found enemy, remove it
+;   LDA #0
+;   STA ENEMY_POS,X
+  
+;   ; Increment kill count
+;   INC KILL_COUNT
+  
+; kill_done:
+;   RTS
 
 
 
@@ -533,24 +733,6 @@ box_at_2:
 box_at_3:
   LDA #%00000011
   RTS
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ; Send instruction to LCD
 lcd_instruction:
