@@ -1128,42 +1128,62 @@ lcd_long_delay_loop:
   pla
   rts
 
-; Frame timing analysis for 1MHz clock (30 FPS = 33,333 cycles per frame)
-;
-; CYCLE COUNT ANALYSIS:
-; ---------------------
-; process_key_input:
-;   - No key: ~15 cycles (buffer check + return)
-;   - With key: ~15 + ~50 (read buffer + process) = ~65 cycles
-;   - lookup_keymap_char: ~20 cycles (keymap lookup)
-;   - Move function: ~25 cycles
-;   - Total worst case: ~110 cycles
-;
-; render_frame:
-;   - create_custom_character: ~2,500 cycles
-;     * Set CGRAM: lcd_instruction = ~150 cycles
-;     * Calculate offsets: ~50 cycles
-;     * Generate 8 rows: 8 × (comparison + create_box_row + write) = 8 × 200 = 1,600 cycles
-;     * lcd_delay per write: 8 × 130 = 1,040 cycles
-;   - Clear display: lcd_instruction = ~150 cycles
-;   - Calculate position: ~100 cycles
-;   - Set cursor for box: lcd_instruction = ~150 cycles
-;   - Display box character: ~150 cycles
-;   - Set cursor for key display (bottom right): lcd_instruction = ~150 cycles
-;   - Display key character: ~150 cycles
-;   - Total: ~3,400 cycles
-;
-; TOTAL FRAME LOGIC: ~3,510 cycles
-; TARGET FRAME TIME: 33,333 cycles (30 FPS at 1MHz)
-; REQUIRED DELAY: 33,333 - 3,510 = 29,823 cycles
-;
-; Delay loop calculation:
-; Inner loop: 5 cycles (lda + sbc + bne) = 5 cycles per iteration
-; Middle loop: 256 inner iterations = 256 × 5 = 1,280 cycles + 5 overhead = 1,285 cycles
-; Outer loop: Need 29,823 / 1,285 = ~23.2 iterations, use 23 for outer loop
-; 23 × 1,285 = 29,555 cycles
-; Add fine-tune inner loop for remaining: 29,823 - 29,555 = 268 cycles
-; 268 / 5 = ~53 iterations
+; Let me recalculate the cycles per frame for your current game code:
+; Cycle Count Analysis (1MHz clock, 30 FPS target = 33,333 cycles/frame)
+; 1. process_key_input: ~110 cycles
+; Buffer empty check: ~15 cycles
+; With key: read buffer + lookup keymap + movement: ~95 cycles
+
+; 2. update_enemies: ~60-300 cycles (variable)
+; Most frames (timer < 10): ~60 cycles
+; INC ENEMY_TIMER: 5 cycles
+; Comparisons and branches: ~55 cycles
+
+
+; Every 10th frame (move enemies): ~300 cycles
+; Timer increment/reset: ~20 cycles
+; Move 15 enemies loop: ~15 × 15 = 225 cycles
+; Spawn logic checks: ~55 cycles
+
+; 3. check_collision: ~100 cycles
+; get_char_col division: ~80 cycles
+; Array lookup and comparisons: ~20 cycles
+
+; 4. render_frame: ~5,200 cycles
+; create_custom_character: ~2,500 cycles
+; Set CGRAM: 150 cycles
+; Calculate offsets: 100 cycles
+; Generate 8 rows with LCD writes: 8 × 280 = 2,240 cycles
+
+
+; Clear display + long delay: 150 + 1,280 = 1,430 cycles
+; Draw 16 enemies loop: ~16 × 50 = 800 cycles
+
+; Set cursor + print char for each position
+
+; Display box: ~300 cycles
+; Calculate position, set cursor, display character
+; Display position/stats: ~200 cycles
+; Set cursor 3 times, print 3 characters
+
+; Total Frame Logic:
+; Normal frame: 110 + 60 + 100 + 5,200 = 5,470 cycles
+; Enemy movement frame (every 10th): 110 + 300 + 100 + 5,200 = 5,710 cycles
+
+; Required Delay:
+; Normal frame: 33,333 - 5,470 = 27,863 cycles
+; Movement frame: 33,333 - 5,710 = 27,623 cycles
+
+; Current delay_frame with ldx #$0a (10 decimal):
+; Outer loop: 10 × 1,285 = 12,850 cycles
+; Fine-tune: 53 × 5 = 265 cycles
+; Total delay: ~13,115 cycles
+
+; Verdict:
+; Your current delay is way too short! You're only delaying ~13,115 cycles but need ~27,863 cycles.
+; Your game is running at about 55-60 FPS instead of 30 FPS!
+; Recommended fix:
+; asmldx #$16        ; 22 decimal for ~28,270 cycles
 
 delay_frame:
   pha
@@ -1175,7 +1195,8 @@ delay_frame:
   ; Outer loop: 23 iterations of full 256-cycle inner loops
   ;ldx #$17        ; 23 in decimal --- v1 
   ;ldx #$FF        ; almost 23*33 -- meaning 1 sec delay
-  ldx #$a         ; 
+  ;ldx #$a         ; 
+  ldx #$16        ; 22 decimal for ~28,270 cycles
 delay_outer:
   ldy #$00        ; 256 iterations
 delay_middle:
