@@ -1,0 +1,262 @@
+/*
+
+https://claude.ai/public/artifacts/7fc7e012-0c1a-4f43-9e75-5be61a8cf06d
+I want to display entire FFT spectrum, magnitude and phase.
+ 
+To get phase information, you'll need to implement a custom complex FFT since the Teensy Audio Library's FFT only provides magnitude. 
+Here's a modified solution using the arm_math library (CMSIS-DSP) which is available on Teensy 4.1:
+
+*/
+#include <Arduino.h>
+#include <Audio.h>
+#include <Wire.h>
+#include <U8g2lib.h>
+#include <arm_math.h>
+
+// ------------------ Pins ------------------
+const int VOLUME_LED = 13;
+const int LOW_LED    = 14;
+const int HIGH_LED   = 15;
+
+// ------------------ Audio objects ------------------
+AudioInputI2S           i2sMic;
+AudioAnalyzePeak         peak;
+AudioRecordQueue         queue;
+AudioConnection          patchCord1(i2sMic, 0, peak, 0);
+AudioConnection          patchCord2(i2sMic, 0, queue, 0);
+
+// ------------------ OLED ------------------
+U8G2_SH1106_128X64_NONAME_F_HW_I2C oled(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+
+// ------------------ Thresholds ------------------
+const float MIN_AMPLITUDE      = 0.01;
+const float QUIET_THRESH       = 0.06;
+const float TALKING_THRESH     = 0.07;
+const float CLAPPING_THRESH    = 0.10;
+const float BANGING_THRESH     = 0.40;
+
+// ------------------ FFT Settings ------------------
+#define FFT_SIZE 1024
+#define FFT_BINS (FFT_SIZE / 2)
+
+// ARM CMSIS FFT instance
+arm_rfft_fast_instance_f32 fft_inst;
+float fft_input[FFT_SIZE];
+float fft_output[FFT_SIZE];  // Interleaved real/imag: [real0, imag0, real1, imag1, ...]
+float magnitudes[FFT_BINS];
+float phases[FFT_BINS];
+
+int sample_count = 0;
+const bool SEND_FFT_DATA = true;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(VOLUME_LED, OUTPUT);
+  pinMode(LOW_LED, OUTPUT);
+  pinMode(HIGH_LED, OUTPUT);
+  
+  AudioMemory(20);  // Increased for queue
+  
+  // Initialize ARM FFT
+  arm_rfft_fast_init_f32(&fft_inst, FFT_SIZE);
+  
+  // Start recording
+  queue.begin();
+  
+  // Initialize OLED
+  oled.begin();
+  oled.clearBuffer();
+  oled.setFont(u8g2_font_ncenB08_tr);
+  oled.sendBuffer();
+}
+
+void computeFFT() {
+  // Perform FFT
+  arm_rfft_fast_f32(&fft_inst, fft_input, fft_output, 0);
+  
+  // Calculate magnitude and phase for each bin
+  // fft_output format: [real0, imag0, real1, imag1, ..., realN/2, imagN/2]
+  for (int i = 0; i < FFT_BINS; i++) {
+    float real = fft_output[i * 2];
+    float imag = fft_output[i * 2 + 1];
+    
+    // Magnitude
+    magnitudes[i] = sqrtf(real * real + imag * imag) / FFT_SIZE;
+    
+    // Phase (in radians)
+    phases[i] = atan2f(imag, real);
+  }
+}
+
+void sendFFTData() {
+  // Send start marker
+  Serial.println("FFT_START");
+  
+  // Send all FFT bins with magnitude and phase
+  // Format: BIN_INDEX,FREQUENCY,MAGNITUDE,PHASE
+  for (int i = 0; i < FFT_BINS; i++) {
+    float frequency = (i * 44100.0) / FFT_SIZE;
+    
+    Serial.print(i);
+    Serial.print(",");
+    Serial.print(frequency, 2);
+    Serial.print(",");
+    Serial.print(magnitudes[i], 6);
+    Serial.print(",");
+    Serial.println(phases[i], 6);
+  }
+  
+  // Send end marker
+  Serial.println("FFT_END");
+}
+
+void loop() {
+  // Collect audio samples
+  if (queue.available()) {
+    int16_t *buffer = queue.readBuffer();
+    
+    // Copy samples to FFT input buffer and convert to float
+    for (int i = 0; i < 128; i++) {
+      if (sample_count < FFT_SIZE) {
+        fft_input[sample_count++] = buffer[i] / 32768.0f;
+      }
+    }
+    
+    queue.freeBuffer();
+    
+    // When we have enough samples, compute FFT
+    if (sample_count >= FFT_SIZE) {
+      computeFFT();
+      sample_count = 0;
+      
+      // Send FFT data
+      if (SEND_FFT_DATA) {
+        sendFFTData();
+      }
+      
+      // Continue with display logic using the computed FFT data
+      if (peak.available()) {
+        float amplitude = peak.read();
+        
+        // ----- Volume LED -----
+        int brightness = 0;
+        int volumeLevel = 0;
+        
+        if (amplitude < MIN_AMPLITUDE) {
+          volumeLevel = 0; brightness = 0;
+        } 
+        else if (amplitude <= QUIET_THRESH) {
+          volumeLevel = 1; brightness = 80;
+        }
+        else if (amplitude <= TALKING_THRESH) {
+          volumeLevel = 2; brightness = 140;
+        }
+        else if (amplitude <= CLAPPING_THRESH) {
+          volumeLevel = 3; brightness = 200;
+        }
+        else if (amplitude <= BANGING_THRESH) {
+          volumeLevel = 4; brightness = 240;
+        }
+        else {
+          volumeLevel = 5; brightness = 255;
+        }
+        analogWrite(VOLUME_LED, brightness);
+        
+        // ----- Determine Pitch from our FFT -----
+        float dominantFreq = 0;
+        if (amplitude > MIN_AMPLITUDE) {
+          int dominantBin = 0;
+          float maxVal = 0;
+          for (int i = 2; i < FFT_BINS; i++) {
+            if (magnitudes[i] > maxVal) {
+              maxVal = magnitudes[i];
+              dominantBin = i;
+            }
+          }
+          dominantFreq = (dominantBin * 44100.0) / FFT_SIZE;
+        }
+        
+        // ----- OLED Display -----
+        oled.clearBuffer();
+        
+        oled.drawStr(0, 10, "Volume:");
+        
+        int volSegmentWidth = 22;
+        int volSegmentSpacing = 2;
+        int volStartX = 0;
+        int barY = 15;
+        int barHeight = 12;
+        
+        for(int i = 0; i < 5; i++) {
+          int x = volStartX + i * (volSegmentWidth + volSegmentSpacing);
+          oled.drawFrame(x, barY, volSegmentWidth, barHeight);
+          if(i < volumeLevel) {
+            oled.drawBox(x + 2, barY + 2, volSegmentWidth - 4, barHeight - 4);
+          }
+        }
+        
+        String volText;
+        switch(volumeLevel){
+          case 0: volText = "Silent"; break;
+          case 1: volText = "Quiet"; break;
+          case 2: volText = "Talking"; break;
+          case 3: volText = "Clapping"; break;
+          case 4: volText = "Banging"; break;
+          case 5: volText = "VERY LOUD!"; break;
+        }
+        oled.drawStr(0, 40, volText.c_str());
+        
+        oled.drawStr(0, 52, "Low");
+        oled.drawStr(48, 52, "Pitch");
+        oled.drawStr(92, 52, "High");
+        
+        int pitchBarY = 56;
+        int pitchBarHeight = 8;
+        int pitchSegmentWidth = 38;
+        int pitchSegmentSpacing = 2;
+        int pitchStartX = 0;
+        
+        for(int i = 0; i < 3; i++) {
+          int x = pitchStartX + i * (pitchSegmentWidth + pitchSegmentSpacing);
+          oled.drawFrame(x, pitchBarY, pitchSegmentWidth, pitchBarHeight);
+        }
+        
+        if (volumeLevel > 1 && dominantFreq > 0) {
+          if(dominantFreq < 400) {
+            oled.drawBox(pitchStartX + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
+          } 
+          else if(dominantFreq >= 2000) {
+            int x = pitchStartX + 2 * (pitchSegmentWidth + pitchSegmentSpacing);
+            oled.drawBox(x + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
+          }
+          else {
+            int x = pitchStartX + 1 * (pitchSegmentWidth + pitchSegmentSpacing);
+            oled.drawBox(x + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
+          }
+        }
+        
+        oled.sendBuffer();
+        
+        // ----- Pitch LEDs -----
+        if (volumeLevel <= 1) {
+          digitalWrite(LOW_LED, LOW);
+          digitalWrite(HIGH_LED, LOW);
+        } 
+        else {
+          if (dominantFreq < 400) {
+            digitalWrite(LOW_LED, HIGH);
+            digitalWrite(HIGH_LED, LOW);
+          } 
+          else if (dominantFreq >= 2000) {
+            digitalWrite(LOW_LED, LOW);
+            digitalWrite(HIGH_LED, HIGH);
+          } 
+          else {
+            digitalWrite(LOW_LED, LOW);
+            digitalWrite(HIGH_LED, LOW);
+          }
+        }
+      }
+    }
+  }
+}
