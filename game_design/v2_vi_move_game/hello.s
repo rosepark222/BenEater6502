@@ -11,6 +11,9 @@ KB_PCR   = $400C
 KB_IFR   = $400D
 KB_IER   = $400E
 
+MAGIC_ADDR = $0300      ; Location for magic value
+MAGIC_VALUE = $A5        ; Arbitrary "magic" value
+
 E  = %10000000
 RW = %01000000
 RS = %00100000
@@ -41,7 +44,9 @@ KEY_BUF_TAIL   = $0241    ; Read pointer
 KEY_BUF_SIZE   = 16       ; Must be power of 2
 
 SCAN_ROW_POS = $0250      ; Current position in second row for scancode display (0-13, reserve 14-15 for position)
-
+BOX_X_OFFSET = $0251      ; box offset within character box
+BOX_Y_OFFSET = $0252      ; box offset within character 
+; PS/2 Scan codes for arrow keys and vi keys (make codes)
 ; PS/2 Scan codes for arrow keys and vi keys (make codes)
 SCANCODE_UP    = $75
 SCANCODE_DOWN  = $72
@@ -51,10 +56,20 @@ SCANCODE_H     = $33  ; h - left
 SCANCODE_J     = $3B  ; j - down
 SCANCODE_K     = $42  ; k - up
 SCANCODE_L     = $4B  ; l - right
+SCANCODE_W     = $1D  ; w - teleport/skip
+SCANCODE_X     = $22  ; x - kill enemy
 
 ; Shift key tracking
 SHIFT_PRESSED  = $0242  ; 0=not pressed, $FF=pressed
 LAST_KEY_CHAR  = $0243  ; Last key character to display
+
+; Enemy system (max 5 enemies on screen)
+ENEMY_POS    = $0270      ; Enemy positions array (16 bytes, one per column)
+ENEMY_TIMER  = $0260      ; Timer for enemy movement (30 frames = 1 second)
+SPAWN_TIMER  = $0261      ; Timer for spawning new enemies
+SKIP_COUNT   = $0262      ; Number of times player used skip (w)
+KILL_COUNT   = $0263      ; Number of enemies killed (x)
+GAME_OVER    = $0264      ; Game over flag (0=playing, 1=dead)
 
   .org $8000
 
@@ -69,13 +84,36 @@ keyboard_init:
   STA KB_DDRB
   
   LDA #$00
-  STA HANDSHAKE_DONE
   STA F0_DETECTED
   STA KEY_BUF_HEAD
   STA KEY_BUF_TAIL
   STA SHIFT_PRESSED
-  LDA #'x'
+
+check_reset_type:
+  ; Check if this is a warm reset (reset button) or cold reset (power-on)
+  LDA MAGIC_ADDR
+  CMP #MAGIC_VALUE
+  BEQ warm_reset           ; Magic value present = warm reset
+
+cold_reset:
+  ; This is power-on reset - RAM was cleared/random
+  ; Set magic value for next time
+  LDA #MAGIC_VALUE
+  STA MAGIC_ADDR
+  LDA #$00
+  STA HANDSHAKE_DONE
+  LDA #'c'
   STA LAST_KEY_CHAR
+
+  jmp lcd_init
+
+warm_reset:
+  ; This is reset button press - RAM retained
+  ; Skip keyboard handshake
+  LDA #'w'
+  STA LAST_KEY_CHAR
+  LDA #$FF
+  STA HANDSHAKE_DONE       ; Mark handshake as already done
 
 lcd_init:
   lda #%11111111
@@ -155,6 +193,26 @@ game_init:
   sta LCD_PORTA
   jsr lcd_long_delay   ; fast_clock
 
+  ; Clear enemy array
+  LDX #15
+clear_enemies:
+  LDA #0
+  STA ENEMY_POS,X
+  DEX
+  BPL clear_enemies
+  
+  ; Initialize game state
+  LDA #0
+  STA ENEMY_TIMER
+  STA SPAWN_TIMER
+  STA SKIP_COUNT
+  STA KILL_COUNT
+  STA GAME_OVER
+  
+  ; Spawn first enemy at right edge
+  LDA #'a'
+  STA ENEMY_POS+15
+
 ;    _____          __  __ ______ 
 ;   / ____|   /\   |  \/  |  ____|
 ;  | |  __   /  \  | \  / | |__   
@@ -164,11 +222,19 @@ game_init:
                                 
 
 game_loop:
+  ; Check if game over
+  LDA GAME_OVER
+  BNE game_over_loop
+
   ; Process input from key buffer
   JSR process_key_input
   
   ; Update box position (already done in process_key_input)
   
+  JSR update_enemies
+
+  JSR check_collision
+
   ; Render the frame
   JSR render_frame
   
@@ -177,6 +243,96 @@ game_loop:
   
   JMP game_loop
 
+game_over_loop:
+  ; Display game over message
+  JSR render_game_over
+  JSR delay_frame
+  JMP game_over_loop
+
+;    ___ _ __   ___ _ __ ___  _   _ 
+;   / _ \ '_ \ / _ \ '_ ` _ \| | | |
+;  |  __/ | | |  __/ | | | | | |_| |
+;   \___|_| |_|\___|_| |_| |_|\__, |
+;                              __/ |
+;                             |___/ 
+
+; Update enemy positions (move left every second)
+update_enemies:
+  ; Average ~60 cycles per frame (mostly just timer increment)
+  ; Every 30th frame: ~300 cycles (move all enemies left)
+  ; Increment timer
+  INC ENEMY_TIMER
+  LDA ENEMY_TIMER
+  CMP #10         ; 30 frames = 1 second at 30 FPS
+  BCC update_spawning
+  
+  ; Reset timer
+  LDA #0
+  STA ENEMY_TIMER
+  
+  ; Move all enemies left
+  LDX #0
+move_enemies_loop:
+  CPX #15
+  BEQ move_enemies_loop_end
+  
+  LDA ENEMY_POS+1,X
+  STA ENEMY_POS,X
+  INX
+  JMP move_enemies_loop
+
+  
+move_enemies_loop_end:
+  ; Clear rightmost position
+  LDA #0
+  STA ENEMY_POS+15
+
+update_spawning:
+  ; Increment spawn timer
+  INC SPAWN_TIMER
+  LDA SPAWN_TIMER
+  CMP #40         ; Spawn every 2 seconds
+  BCC spawn_done
+  
+  ; Reset spawn timer
+  LDA #0
+  STA SPAWN_TIMER
+  
+  ; Check if rightmost position is empty and previous position is not enemy
+  LDA ENEMY_POS+15
+  BNE spawn_done
+  LDA ENEMY_POS+14
+  BNE spawn_done
+  
+  ; Spawn new enemy
+  LDA #'a'
+  STA ENEMY_POS+15
+  
+spawn_done:
+  RTS
+
+; Check collision between box and enemies
+check_collision:
+  ; ~100 cycles total (80 for division + 20 for checks)
+  ; Calculate box column
+  LDA BOX_X
+  JSR get_char_col
+  
+  ; Check if enemy at box position
+  LDX BOX_X_COL
+  LDA ENEMY_POS,X
+  BEQ no_collision
+  
+  ; Check if box is on first row
+  LDA BOX_Y_COL
+  BNE no_collision
+  
+  ; Collision! Game over
+  LDA #1
+  STA GAME_OVER
+  
+no_collision:
+  RTS
 
 ;   _  __________     __  _____ _   _ _____  _    _ _______ 
 ;  | |/ /  ____\ \   / / |_   _| \ | |  __ \| |  | |__   __|
@@ -238,9 +394,20 @@ process_key_input:
   BEQ move_left
   CMP #SCANCODE_L
   BEQ move_right
-  
+  CMP #SCANCODE_W
+  BEQ do_teleport_skip
+  CMP #SCANCODE_X
+  BEQ do_kill_enemy
+
 no_key_available:
   RTS
+
+do_teleport_skip:
+  JMP teleport_skip
+
+do_kill_enemy:
+  JMP kill_enemy
+
 
 ; Look up character in keymap based on scancode in A
 lookup_keymap_char:
@@ -301,7 +468,84 @@ store_x_right:
   RTS
 
 
+; Teleport: skip over enemy to the right
+teleport_skip:
+  ; Get current box column
+  LDA BOX_X
+  JSR get_char_col
+  
+  ; Only teleport if on first row
+  LDA BOX_Y_COL
+  BNE skip_done
+  
+  ; Find next enemy to the right
+  LDX BOX_X_COL
+find_enemy_right:
+  INX
+  CPX #16
+  BEQ skip_done
+  
+  LDA ENEMY_POS,X
+  BEQ find_enemy_right
+  
+  ; Found enemy, teleport past it
+  INX
+  CPX #16
+  BEQ skip_done
+  
+  ; Move box to that column
+  TXA
+  STA BOX_X_COL
+  
+  ; Convert column to pixels (multiply by 5)
+  LDA #0
+  STA BOX_X
+  LDY BOX_X_COL
+  BEQ teleport_done
+multiply_by_5:
+  LDA BOX_X
+  CLC
+  ADC #5
+  STA BOX_X
+  DEY
+  BNE multiply_by_5
+  
+teleport_done:
+  ; Increment skip count
+  INC SKIP_COUNT
+  
+skip_done:
+  RTS
 
+; Kill: remove enemy to the right
+kill_enemy:
+  ; Get current box column
+  LDA BOX_X
+  JSR get_char_col
+  
+  ; Only kill if on first row
+  LDA BOX_Y_COL
+  BNE kill_done
+  
+  ; Find next enemy to the right
+  LDX BOX_X_COL
+find_enemy_kill:
+  INX
+  CPX #16
+  BEQ kill_done
+  
+  LDA ENEMY_POS,X
+  BEQ find_enemy_kill
+  
+  ; Found enemy, remove it
+  LDA #0
+  STA ENEMY_POS,X
+  
+  ; Increment kill count
+  INC KILL_COUNT
+  
+kill_done:
+  RTS
 
 
 
@@ -332,6 +576,26 @@ render_frame:
   LDA #%00000001
   JSR lcd_instruction
   jsr lcd_long_delay ; 1.2ms or 2 ms need to clear all memories in LCD
+
+  ; Draw enemies on first row    ; erp029
+  LDX #0
+draw_enemies:
+  LDA ENEMY_POS,X
+  BEQ skip_enemy_draw
+  
+  ; Set cursor to first row, column X
+  TXA
+  ORA #%10000000
+  JSR lcd_instruction
+  
+  ; Draw enemy
+  LDA ENEMY_POS,X
+  JSR print_char
+  
+skip_enemy_draw:
+  INX
+  CPX #16
+  BNE draw_enemies
 
   ; Calculate which character position to place the box
   ; Character column = BOX_X / 5
@@ -398,6 +662,56 @@ display_box:
   
   RTS
 
+
+
+
+render_game_over:
+  ; Clear display
+  LDA #%00000001
+  JSR lcd_instruction
+  jsr lcd_long_delay
+  
+  ; Display "GAME OVER"
+  LDA #%10000011
+  JSR lcd_instruction
+  
+  LDA #'D'
+  JSR print_char
+  LDA #'E'
+  JSR print_char
+  LDA #'A'
+  JSR print_char
+  LDA #'D'
+  JSR print_char
+  LDA #'!'
+  JSR print_char
+  
+  ; Display final score on second row
+  LDA #%11000000
+  JSR lcd_instruction
+  
+  LDA #'S'
+  JSR print_char
+  LDA #':'
+  JSR print_char
+  LDA SKIP_COUNT
+  JSR convert_to_ascii
+  JSR print_char
+  
+  LDA #' '
+  JSR print_char
+  
+  LDA #'K'
+  JSR print_char
+  LDA #':'
+  JSR print_char
+  LDA KILL_COUNT
+  JSR convert_to_ascii
+  JSR print_char
+  
+  RTS
+
+
 ; Convert BOX_X to character column (divide by 5)
 get_char_col:
   PHA
@@ -455,7 +769,7 @@ x_offset_loop:
   INX
   JMP x_offset_loop
 x_offset_done:
-  STA $0251      ; X offset (0-4)
+  STA BOX_X_OFFSET ; X offset (0-4)
   
   LDA BOX_Y
 calc_y_offset:
@@ -468,21 +782,21 @@ y_offset_loop:
   INX
   JMP y_offset_loop
 y_offset_done:
-  STA $0252      ; Y offset (0-7)
+  STA BOX_Y_OFFSET ; Y offset (0-7)
   
   ; Generate 8 rows of custom character data
   LDX #0
 gen_char_loop:
   TXA
-  CMP $0252      ; Compare with Y offset
+  CMP BOX_Y_OFFSET      ; Compare with Y offset
   BCC gen_empty_row
   SEC
-  SBC $0252
+  SBC BOX_Y_OFFSET
   CMP #2         ; Box is 2 pixels tall
   BCS gen_empty_row
   
   ; This row contains part of the box
-  LDA $0251      ; Get X offset
+  LDA BOX_X_OFFSET      ; Get X offset
   JSR create_box_row
   JMP write_char_row
   
@@ -814,42 +1128,62 @@ lcd_long_delay_loop:
   pla
   rts
 
-; Frame timing analysis for 1MHz clock (30 FPS = 33,333 cycles per frame)
-;
-; CYCLE COUNT ANALYSIS:
-; ---------------------
-; process_key_input:
-;   - No key: ~15 cycles (buffer check + return)
-;   - With key: ~15 + ~50 (read buffer + process) = ~65 cycles
-;   - lookup_keymap_char: ~20 cycles (keymap lookup)
-;   - Move function: ~25 cycles
-;   - Total worst case: ~110 cycles
-;
-; render_frame:
-;   - create_custom_character: ~2,500 cycles
-;     * Set CGRAM: lcd_instruction = ~150 cycles
-;     * Calculate offsets: ~50 cycles
-;     * Generate 8 rows: 8 × (comparison + create_box_row + write) = 8 × 200 = 1,600 cycles
-;     * lcd_delay per write: 8 × 130 = 1,040 cycles
-;   - Clear display: lcd_instruction = ~150 cycles
-;   - Calculate position: ~100 cycles
-;   - Set cursor for box: lcd_instruction = ~150 cycles
-;   - Display box character: ~150 cycles
-;   - Set cursor for key display (bottom right): lcd_instruction = ~150 cycles
-;   - Display key character: ~150 cycles
-;   - Total: ~3,400 cycles
-;
-; TOTAL FRAME LOGIC: ~3,510 cycles
-; TARGET FRAME TIME: 33,333 cycles (30 FPS at 1MHz)
-; REQUIRED DELAY: 33,333 - 3,510 = 29,823 cycles
-;
-; Delay loop calculation:
-; Inner loop: 5 cycles (lda + sbc + bne) = 5 cycles per iteration
-; Middle loop: 256 inner iterations = 256 × 5 = 1,280 cycles + 5 overhead = 1,285 cycles
-; Outer loop: Need 29,823 / 1,285 = ~23.2 iterations, use 23 for outer loop
-; 23 × 1,285 = 29,555 cycles
-; Add fine-tune inner loop for remaining: 29,823 - 29,555 = 268 cycles
-; 268 / 5 = ~53 iterations
+; Let me recalculate the cycles per frame for your current game code:
+; Cycle Count Analysis (1MHz clock, 30 FPS target = 33,333 cycles/frame)
+; 1. process_key_input: ~110 cycles
+; Buffer empty check: ~15 cycles
+; With key: read buffer + lookup keymap + movement: ~95 cycles
+
+; 2. update_enemies: ~60-300 cycles (variable)
+; Most frames (timer < 10): ~60 cycles
+; INC ENEMY_TIMER: 5 cycles
+; Comparisons and branches: ~55 cycles
+
+
+; Every 10th frame (move enemies): ~300 cycles
+; Timer increment/reset: ~20 cycles
+; Move 15 enemies loop: ~15 × 15 = 225 cycles
+; Spawn logic checks: ~55 cycles
+
+; 3. check_collision: ~100 cycles
+; get_char_col division: ~80 cycles
+; Array lookup and comparisons: ~20 cycles
+
+; 4. render_frame: ~5,200 cycles
+; create_custom_character: ~2,500 cycles
+; Set CGRAM: 150 cycles
+; Calculate offsets: 100 cycles
+; Generate 8 rows with LCD writes: 8 × 280 = 2,240 cycles
+
+
+; Clear display + long delay: 150 + 1,280 = 1,430 cycles
+; Draw 16 enemies loop: ~16 × 50 = 800 cycles
+
+; Set cursor + print char for each position
+
+; Display box: ~300 cycles
+; Calculate position, set cursor, display character
+; Display position/stats: ~200 cycles
+; Set cursor 3 times, print 3 characters
+
+; Total Frame Logic:
+; Normal frame: 110 + 60 + 100 + 5,200 = 5,470 cycles
+; Enemy movement frame (every 10th): 110 + 300 + 100 + 5,200 = 5,710 cycles
+
+; Required Delay:
+; Normal frame: 33,333 - 5,470 = 27,863 cycles
+; Movement frame: 33,333 - 5,710 = 27,623 cycles
+
+; Current delay_frame with ldx #$0a (10 decimal):
+; Outer loop: 10 × 1,285 = 12,850 cycles
+; Fine-tune: 53 × 5 = 265 cycles
+; Total delay: ~13,115 cycles
+
+; Verdict:
+; Your current delay is way too short! You're only delaying ~13,115 cycles but need ~27,863 cycles.
+; Your game is running at about 55-60 FPS instead of 30 FPS!
+; Recommended fix:
+; asmldx #$16        ; 22 decimal for ~28,270 cycles
 
 delay_frame:
   pha
@@ -859,8 +1193,10 @@ delay_frame:
   pha
   
   ; Outer loop: 23 iterations of full 256-cycle inner loops
-  ldx #$17        ; 23 in decimal
+  ;ldx #$17        ; 23 in decimal --- v1 
   ;ldx #$FF        ; almost 23*33 -- meaning 1 sec delay
+  ;ldx #$a         ; 
+  ldx #$16        ; 22 decimal for ~28,270 cycles
 delay_outer:
   ldy #$00        ; 256 iterations
 delay_middle:
