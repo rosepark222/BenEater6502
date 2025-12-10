@@ -1,0 +1,402 @@
+/*
+https://claude.ai/public/artifacts/aa01a426-8a88-45c9-b2ab-3c25af2e2211
+
+1, use the teensy code sending FFT , draw amp and phase 
+2, use 44.1khz , so 0 to 22.05khz 
+3, also freq resolution should be 44.1khz / 1024
+
+*/
+
+import processing.serial.*;
+
+Serial myPort;
+
+// FFT Data arrays
+final int FFT_BINS = 512;
+float[] magnitudes = new float[FFT_BINS];
+float[] phases = new float[FFT_BINS];
+float[] frequencies = new float[FFT_BINS];
+
+// Smoothed data for display
+float[] smoothMagnitudes = new float[FFT_BINS];
+float[] smoothPhases = new float[FFT_BINS];
+
+// Data receiving state
+boolean receivingFFT = false;
+int currentBin = 0;
+long lastUpdateTime = 0;
+float dataRate = 0;
+
+// Display settings
+int magnitudeGraphHeight = 300;
+int phaseGraphHeight = 200;
+int graphMargin = 80;
+float maxDisplayFreq = 22050; // Display up to Nyquist frequency (22.05kHz)
+int maxDisplayBin;
+
+void setup() {
+  size(1400, 900);
+  smooth();
+  
+  // Calculate max bin for display frequency
+  maxDisplayBin = int(maxDisplayFreq / (44100.0 / 1024.0));
+  maxDisplayBin = constrain(maxDisplayBin, 0, FFT_BINS - 1);
+  
+  println("Available ports:");
+  printArray(Serial.list());
+  
+  if (Serial.list().length > 0) {
+    String portName = Serial.list()[0];
+    println("Connecting to: " + portName);
+    myPort = new Serial(this, portName, 115200);
+    myPort.bufferUntil('\n');
+    println("Connected successfully!");
+  }
+  
+  // Initialize arrays
+  for (int i = 0; i < FFT_BINS; i++) {
+    magnitudes[i] = 0;
+    phases[i] = 0;
+    smoothMagnitudes[i] = 0;
+    smoothPhases[i] = 0;
+  }
+}
+
+void serialEvent(Serial myPort) {
+  String data = myPort.readStringUntil('\n');
+  if (data != null) {
+    data = trim(data);
+    
+    // Check for FFT start marker
+    if (data.equals("FFT_START")) {
+      receivingFFT = true;
+      currentBin = 0;
+      lastUpdateTime = millis();
+      return;
+    }
+    
+    // Check for FFT end marker
+    if (data.equals("FFT_END")) {
+      receivingFFT = false;
+      long updateTime = millis() - lastUpdateTime;
+      dataRate = 1000.0 / updateTime; // Updates per second
+      return;
+    }
+    
+    // Parse FFT data: bin_index,frequency,magnitude,phase
+    if (receivingFFT) {
+      String[] values = split(data, ',');
+      if (values.length >= 4) {
+        try {
+          int bin = int(values[0]);
+          float freq = float(values[1]);
+          float mag = float(values[2]);
+          float phase = float(values[3]);
+          
+          if (bin >= 0 && bin < FFT_BINS) {
+            frequencies[bin] = freq;
+            magnitudes[bin] = mag;
+            phases[bin] = phase;
+          }
+        } catch (Exception e) {
+          // Skip invalid data
+        }
+      }
+    }
+  }
+}
+
+void draw() {
+  // Smooth the data for less jittery display
+  float smoothing = 0.3;
+  for (int i = 0; i < FFT_BINS; i++) {
+    smoothMagnitudes[i] = lerp(smoothMagnitudes[i], magnitudes[i], smoothing);
+    
+    // Phase smoothing needs special handling for wraparound
+    float phaseDiff = phases[i] - smoothPhases[i];
+    // Handle phase wraparound at ±π
+    if (phaseDiff > PI) phaseDiff -= TWO_PI;
+    if (phaseDiff < -PI) phaseDiff += TWO_PI;
+    smoothPhases[i] += phaseDiff * smoothing;
+    
+    // Keep phase in -π to π range
+    if (smoothPhases[i] > PI) smoothPhases[i] -= TWO_PI;
+    if (smoothPhases[i] < -PI) smoothPhases[i] += TWO_PI;
+  }
+  
+  // Sleek gradient background
+  setGradient(0, 0, width, height, color(15, 20, 40), color(40, 25, 50));
+  
+  // Draw background pattern
+  drawBackgroundPattern();
+  
+  // Title
+  fill(255);
+  textSize(32);
+  textAlign(LEFT);
+  text("FFT SPECTRUM ANALYZER", 40, 50);
+  
+  // Data rate indicator
+  fill(100, 255, 150);
+  textSize(16);
+  textAlign(RIGHT);
+  text("Update Rate: " + nf(dataRate, 0, 1) + " Hz", width - 40, 50);
+  
+  // Connection indicator
+  float pulse = sin(frameCount * 0.1) * 0.3 + 0.7;
+  fill(100, 255, 150, 255 * pulse);
+  noStroke();
+  ellipse(width - 40, 80, 24, 24);
+  fill(100, 255, 150);
+  ellipse(width - 40, 80, 16, 16);
+  
+  // ===== MAGNITUDE SPECTRUM =====
+  pushMatrix();
+  translate(graphMargin, 100);
+  
+  // Title
+  fill(255);
+  textSize(24);
+  textAlign(LEFT);
+  text("MAGNITUDE SPECTRUM", 0, 0);
+  
+  int graphWidth = width - graphMargin * 2;
+  
+  // Draw axes
+  stroke(100, 100, 120);
+  strokeWeight(2);
+  line(0, magnitudeGraphHeight, graphWidth, magnitudeGraphHeight); // X-axis
+  line(0, 0, 0, magnitudeGraphHeight); // Y-axis
+  
+  // Y-axis labels (magnitude)
+  fill(180);
+  textSize(12);
+  textAlign(RIGHT);
+  for (int i = 0; i <= 5; i++) {
+    float y = map(i, 0, 5, magnitudeGraphHeight, 0);
+    text(nf(i * 0.2, 0, 1), -10, y + 5);
+    stroke(60, 60, 80);
+    strokeWeight(1);
+    line(0, y, graphWidth, y);
+  }
+  
+  // X-axis labels (frequency)
+  textAlign(CENTER);
+  for (int i = 0; i <= 10; i++) {
+    float freq = (maxDisplayFreq / 10) * i;
+    float x = map(i, 0, 10, 0, graphWidth);
+    text(int(freq) + "Hz", x, magnitudeGraphHeight + 20);
+  }
+  
+  // Draw magnitude spectrum
+  noFill();
+  stroke(100, 255, 200);
+  strokeWeight(2);
+  beginShape();
+  for (int i = 0; i < maxDisplayBin; i++) {
+    float x = map(i, 0, maxDisplayBin, 0, graphWidth);
+    float y = map(smoothMagnitudes[i], 0, 1.0, magnitudeGraphHeight, 0);
+    y = constrain(y, 0, magnitudeGraphHeight);
+    vertex(x, y);
+  }
+  endShape();
+  
+  // Filled area under curve
+  fill(100, 255, 200, 30);
+  beginShape();
+  vertex(0, magnitudeGraphHeight);
+  for (int i = 0; i < maxDisplayBin; i++) {
+    float x = map(i, 0, maxDisplayBin, 0, graphWidth);
+    float y = map(smoothMagnitudes[i], 0, 1.0, magnitudeGraphHeight, 0);
+    y = constrain(y, 0, magnitudeGraphHeight);
+    vertex(x, y);
+  }
+  vertex(map(maxDisplayBin, 0, maxDisplayBin, 0, graphWidth), magnitudeGraphHeight);
+  endShape(CLOSE);
+  
+  // Peak frequency indicator
+  int peakBin = 0;
+  float peakMag = 0;
+  for (int i = 2; i < maxDisplayBin; i++) {
+    if (smoothMagnitudes[i] > peakMag) {
+      peakMag = smoothMagnitudes[i];
+      peakBin = i;
+    }
+  }
+  
+  if (peakMag > 0.01) {
+    float peakX = map(peakBin, 0, maxDisplayBin, 0, graphWidth);
+    float peakY = map(peakMag, 0, 1.0, magnitudeGraphHeight, 0);
+    
+    // Vertical line at peak
+    stroke(255, 200, 100);
+    strokeWeight(2);
+    line(peakX, magnitudeGraphHeight, peakX, peakY);
+    
+    // Peak marker
+    fill(255, 200, 100);
+    noStroke();
+    ellipse(peakX, peakY, 12, 12);
+    
+    // Peak info
+    fill(255, 200, 100);
+    textSize(14);
+    textAlign(CENTER);
+    text(nf(frequencies[peakBin], 0, 1) + " Hz", peakX, peakY - 15);
+  }
+  
+  popMatrix();
+  
+  // ===== PHASE SPECTRUM =====
+  pushMatrix();
+  translate(graphMargin, 100 + magnitudeGraphHeight + 80);
+  
+  // Title
+  fill(255);
+  textSize(24);
+  textAlign(LEFT);
+  text("PHASE SPECTRUM", 0, 0);
+  
+  // Draw axes
+  stroke(100, 100, 120);
+  strokeWeight(2);
+  line(0, phaseGraphHeight/2, graphWidth, phaseGraphHeight/2); // Zero line
+  line(0, 0, 0, phaseGraphHeight); // Y-axis
+  line(0, phaseGraphHeight, graphWidth, phaseGraphHeight); // Bottom
+  
+  // Y-axis labels (phase in radians)
+  fill(180);
+  textSize(12);
+  textAlign(RIGHT);
+  text("+π", -10, 5);
+  text("0", -10, phaseGraphHeight/2 + 5);
+  text("-π", -10, phaseGraphHeight + 5);
+  
+  // Grid lines
+  stroke(60, 60, 80);
+  strokeWeight(1);
+  line(0, phaseGraphHeight/4, graphWidth, phaseGraphHeight/4); // +π/2
+  line(0, 3*phaseGraphHeight/4, graphWidth, 3*phaseGraphHeight/4); // -π/2
+  
+  // X-axis labels
+  textAlign(CENTER);
+  for (int i = 0; i <= 10; i++) {
+    float freq = (maxDisplayFreq / 10) * i;
+    float x = map(i, 0, 10, 0, graphWidth);
+    text(int(freq) + "Hz", x, phaseGraphHeight + 20);
+  }
+  
+  // Draw phase spectrum
+  noFill();
+  stroke(255, 150, 255);
+  strokeWeight(2);
+  beginShape();
+  for (int i = 0; i < maxDisplayBin; i++) {
+    float x = map(i, 0, maxDisplayBin, 0, graphWidth);
+    // Map phase from -π...π to 0...phaseGraphHeight
+    float y = map(smoothPhases[i], PI, -PI, 0, phaseGraphHeight);
+    y = constrain(y, 0, phaseGraphHeight);
+    vertex(x, y);
+  }
+  endShape();
+  
+  // Phase at peak frequency
+  if (peakMag > 0.01) {
+    float peakX = map(peakBin, 0, maxDisplayBin, 0, graphWidth);
+    float peakPhaseY = map(smoothPhases[peakBin], PI, -PI, 0, phaseGraphHeight);
+    
+    // Vertical line
+    stroke(255, 200, 100);
+    strokeWeight(2);
+    line(peakX, 0, peakX, phaseGraphHeight);
+    
+    // Phase marker
+    fill(255, 200, 100);
+    noStroke();
+    ellipse(peakX, peakPhaseY, 12, 12);
+    
+    // Phase value
+    fill(255, 200, 100);
+    textSize(14);
+    textAlign(CENTER);
+    float phaseDeg = degrees(smoothPhases[peakBin]);
+    text(nf(phaseDeg, 0, 1) + "°", peakX, peakPhaseY - 15);
+  }
+  
+  popMatrix();
+  
+  // ===== INFO PANEL =====
+  pushMatrix();
+  translate(40, height - 120);
+  
+  fill(30, 30, 45, 200);
+  noStroke();
+  rect(0, 0, width - 80, 100, 10);
+  
+  fill(255);
+  textSize(16);
+  textAlign(LEFT);
+  text("Peak Frequency: " + nf(frequencies[peakBin], 0, 2) + " Hz", 20, 30);
+  text("Peak Magnitude: " + nf(peakMag, 0, 4), 20, 55);
+  text("Peak Phase: " + nf(degrees(smoothPhases[peakBin]), 0, 2) + "° (" + nf(smoothPhases[peakBin], 0, 3) + " rad)", 20, 80);
+  
+  textAlign(RIGHT);
+  text("FFT Size: 1024 points (" + FFT_BINS + " bins)", width - 100, 30);
+  text("Sample Rate: 44.1 kHz", width - 100, 55);
+  text("Frequency Resolution: " + nf(43.07, 0, 2) + " Hz/bin", width - 100, 80);
+  
+  popMatrix();
+}
+
+// Helper function for gradient background
+void setGradient(int x, int y, float w, float h, color c1, color c2) {
+  noFill();
+  for (int i = y; i <= y+h; i++) {
+    float inter = map(i, y, y+h, 0, 1);
+    color c = lerpColor(c1, c2, inter);
+    stroke(c);
+    line(x, i, x+w, i);
+  }
+}
+
+// Background decorative pattern
+void drawBackgroundPattern() {
+  noFill();
+  
+  // Tech grid lines
+  stroke(255, 255, 255, 3);
+  strokeWeight(1);
+  for (int i = 0; i < width; i += 50) {
+    line(i, 0, i, height);
+  }
+  for (int i = 0; i < height; i += 50) {
+    line(0, i, width, i);
+  }
+  
+  // Rotating arcs
+  pushMatrix();
+  translate(width * 0.85, height * 0.15);
+  rotateX(frameCount * 0.005);
+  rotateY(frameCount * 0.008);
+  
+  for (int i = 0; i < 8; i++) {
+    float radius = 40 + i * 10;
+    stroke(100, 150, 255, 25 - i * 2);
+    strokeWeight(2);
+    noFill();
+    ellipse(0, 0, radius * 2, radius * 2);
+  }
+  popMatrix();
+  
+  // Corner brackets
+  stroke(0, 255, 200, 60);
+  strokeWeight(3);
+  line(20, 20, 80, 20);
+  line(20, 20, 20, 80);
+  line(width - 20, 20, width - 80, 20);
+  line(width - 20, 20, width - 20, 80);
+  line(20, height - 20, 80, height - 20);
+  line(20, height - 20, 20, height - 80);
+  line(width - 20, height - 20, width - 80, height - 20);
+  line(width - 20, height - 20, width - 20, height - 80);
+}
