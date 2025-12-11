@@ -166,17 +166,19 @@ void loop() {
     }
     
     // Send data with FFT - Only send first 24 bins (0-1033 Hz for human voice)
-    Serial.print(amplitude); 
+    /*Serial.print(amplitude); 
     Serial.print(","); 
     Serial.print(volumeLevel); 
     Serial.print(","); 
     Serial.print(dominantFreq);
-    Serial.print(",");
+    Serial.print(",");*/
     
     for(int i = 0; i < NUM_FFT_BINS; i++) {
       float binValue = fft.read(i);
       int scaledValue = (int)(binValue * 1000);
       scaledValue = constrain(scaledValue, 0, 100);
+      //if(i < 5) { scaledValue = 0;}
+      //scaledValue = 0;
       Serial.print(scaledValue);
       if(i < NUM_FFT_BINS - 1) {
         Serial.print(",");
