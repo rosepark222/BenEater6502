@@ -7,7 +7,7 @@ float dominantFreq = 0;
 
 // FFT spectrum data
 ArrayList<Float> fftSpectrum = new ArrayList<Float>();
-int numFFTBins = 32;
+int numFFTBins = 512;  // Changed from 32 to 512
 
 // Smoothing variables
 float smoothAmplitude = 0;
@@ -53,7 +53,7 @@ void serialEvent(Serial myPort) {
       volumeLevel = int(values[1]);
       dominantFreq = float(values[2]);
       
-      // Parse FFT spectrum data if present
+      // Parse FFT spectrum data if present (now expecting 512 bins)
       if (values.length > 3) {
         fftSpectrum.clear();
         for (int i = 3; i < values.length && fftSpectrum.size() < numFFTBins; i++) {
@@ -494,37 +494,58 @@ void drawTempoWave() {
   text("Amp: " + nf(amplitude, 0, 3) + " | Freq: " + nf(smoothFreq, 0, 1) + "Hz | Note: " + currentNote + currentOctave, width - 20, waveBaseY + 50);
 }
 
-// Draw FFT spectrum analyzer at the bottom
+// Draw FULL SPECTRUM FFT analyzer at the bottom (512 bins)
 void drawFFTSpectrum() {
   float spectrumBaseY = height - 80;
-  float barWidth = (width - 100) / float(fftSpectrum.size());
+  float spectrumWidth = width - 100;
+  
+  // Calculate bar width - with 512 bins, bars will be very thin
+  float barWidth = spectrumWidth / float(fftSpectrum.size());
+  
+  // For better performance and visibility with 512 bins, we can optionally downsample
+  // by grouping adjacent bins. Here we'll draw every bin but they'll be very thin.
   
   // Label
   fill(100, 200, 255);
   textSize(20);
   textAlign(LEFT);
-  text("⚡ FFT SPECTRUM", 50, spectrumBaseY - 140);
+  text("⚡ FULL SPECTRUM FFT (512 bins, 0-22kHz)", 50, spectrumBaseY - 140);
   
+  // Draw all 512 bins
   for (int i = 0; i < fftSpectrum.size(); i++) {
     float x = 50 + i * barWidth;
     float value = fftSpectrum.get(i);
     
-    // Map FFT value to bar height - INCREASED HEIGHT for better visibility
+    // Map FFT value to bar height
     float barHeight = map(value, 0, 100, 0, 120);
     
-    // Color based on frequency (low = blue, mid = green, high = red)
+    // Color based on frequency range (low = blue, mid = green, high = red)
     float hue = map(i, 0, fftSpectrum.size(), 0.6, 0.0);
     colorMode(HSB, 1.0);
-    fill(hue, 0.8, 0.9, 0.8);
-    noStroke();
     
-    // Draw bar from baseline up
-    rect(x, spectrumBaseY - barHeight, barWidth - 2, barHeight, 3);
-    
-    // Add glow effect for ALL bars (not just tall ones)
-    if (barHeight > 10) {
-      fill(hue, 0.6, 1.0, 0.3);
-      rect(x - 2, spectrumBaseY - barHeight - 5, barWidth + 2, barHeight + 5, 5);
+    // For thin bars, we'll use stroke instead of filled rectangles for better visibility
+    if (barWidth < 2) {
+      stroke(hue, 0.8, 0.9, 0.9);
+      strokeWeight(1);
+      line(x, spectrumBaseY, x, spectrumBaseY - barHeight);
+      
+      // Add glow for prominent frequencies
+      if (barHeight > 30) {
+        stroke(hue, 0.6, 1.0, 0.5);
+        strokeWeight(2);
+        line(x, spectrumBaseY, x, spectrumBaseY - barHeight);
+      }
+    } else {
+      // If bars are wide enough, use filled rectangles
+      fill(hue, 0.8, 0.9, 0.8);
+      noStroke();
+      rect(x, spectrumBaseY - barHeight, barWidth - 1, barHeight, 2);
+      
+      // Add glow effect for prominent bars
+      if (barHeight > 20) {
+        fill(hue, 0.6, 1.0, 0.3);
+        rect(x - 1, spectrumBaseY - barHeight - 3, barWidth + 1, barHeight + 3, 3);
+      }
     }
   }
   
@@ -535,15 +556,26 @@ void drawFFTSpectrum() {
   strokeWeight(2);
   line(50, spectrumBaseY, width - 50, spectrumBaseY);
   
-  // Frequency labels
+  // Frequency labels with actual Hz values
   fill(150, 150, 170);
-  textSize(14);
+  textSize(12);
   textAlign(LEFT);
-  text("Bass", 50, spectrumBaseY + 20);
+  text("0 Hz", 50, spectrumBaseY + 20);
+  text("Bass", 50, spectrumBaseY + 35);
+  
   textAlign(CENTER);
-  text("Mid", width/2, spectrumBaseY + 20);
+  text("~5.5 kHz", width/2, spectrumBaseY + 20);
+  text("Mid", width/2, spectrumBaseY + 35);
+  
   textAlign(RIGHT);
-  text("Treble", width - 50, spectrumBaseY + 20);
+  text("~22 kHz", width - 50, spectrumBaseY + 20);
+  text("Treble", width - 50, spectrumBaseY + 35);
+  
+  // Show bin count
+  textAlign(LEFT);
+  fill(100, 200, 255);
+  textSize(12);
+  text("Bins: " + fftSpectrum.size(), 50, spectrumBaseY - 155);
 }
 
 void drawArc(float x, float y, float degrees, float radius, float w) {
