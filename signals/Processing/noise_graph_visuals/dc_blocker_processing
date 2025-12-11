@@ -1,0 +1,252 @@
+import processing.serial.*;
+
+Serial myPort;
+float amplitude = 0;
+int volumeLevel = 0;
+float dominantFreq = 0;
+
+// FFT spectrum data - receive all 512 bins but only draw first 24
+ArrayList<Float> fftSpectrum = new ArrayList<Float>();
+int numFFTBins = 512;  // Receive all 512 bins from Arduino
+int displayBins = 48;  // But only display first 24 bins (0-1000 Hz)
+
+void setup() {
+  size(1200, 800);
+  smooth();
+  
+  println("Available ports:");
+  printArray(Serial.list());
+  
+  if (Serial.list().length > 0) {
+    String portName = Serial.list()[0];
+    println("Connecting to: " + portName);
+    myPort = new Serial(this, portName, 115200);
+    myPort.bufferUntil('\n');
+    println("Connected successfully!");
+  }
+}
+
+void serialEvent(Serial myPort) {
+  String data = myPort.readStringUntil('\n');
+  if (data != null) {
+    data = trim(data);
+    String[] values = split(data, ',');
+    
+    if (values.length > 0) {
+      /*amplitude = float(values[0]);
+      volumeLevel = int(values[1]);
+      dominantFreq = float(values[2]);*/
+      
+      // Parse FFT spectrum data (24 bins for 0-1000Hz)
+      //if (values.length > 3) {
+        fftSpectrum.clear();
+        for (int i = 0; i < values.length && fftSpectrum.size() < numFFTBins; i++) {
+          try {
+            fftSpectrum.add(float(values[i]));
+          } catch (Exception e) {
+            // Skip invalid values
+          }
+        }
+      //}
+    }
+  }
+}
+
+void draw() {
+  // Dark background
+  background(20, 25, 35);
+  
+  // Draw FFT spectrum only
+  if (fftSpectrum.size() > 0) {
+    drawFFTSpectrum();
+  } else {
+    // Waiting for data message
+    fill(150, 150, 170);
+    textSize(24);
+    textAlign(CENTER, CENTER);
+    text("Waiting for FFT data...", width/2, height/2);
+  }
+  
+  // Connection indicator
+  float pulse = sin(frameCount * 0.1) * 0.3 + 0.7;
+  fill(100, 255, 150, 255 * pulse);
+  noStroke();
+  ellipse(width - 40, 40, 24, 24);
+  fill(100, 255, 150);
+  ellipse(width - 40, 40, 16, 16);
+}
+
+// Draw detailed FFT spectrum for 0-1000Hz (human voice range)
+void drawFFTSpectrum() {
+  float marginX = 100;
+  float marginTop = 100;
+  float marginBottom = 150;
+  
+  float spectrumWidth = width - marginX * 2;
+  float spectrumHeight = height - marginTop - marginBottom;
+  float spectrumBaseY = height - marginBottom;
+  
+  // Title
+  fill(100, 200, 255);
+  textSize(32);
+  textAlign(CENTER);
+  text("⚡ HUMAN VOICE RANGE FFT", width/2, 50);
+  
+  // Subtitle with frequency range
+  fill(150, 180, 255);
+  textSize(18);
+  text("Frequency Range: 0 - 1000 Hz (displaying 24 of 512 bins, 43 Hz per bin)", width/2, 85);
+  
+  // Calculate bar width - only draw first 24 bins
+  float barWidth = spectrumWidth / float(displayBins);
+  float barSpacing = 2;
+  float actualBarWidth = barWidth - barSpacing;
+  
+  // Find max value for scaling (only in first 24 bins)
+  float maxValue = 0;
+  for (int i = 0; i < min(displayBins, fftSpectrum.size()); i++) {
+    if (fftSpectrum.get(i) > maxValue) {
+      maxValue = fftSpectrum.get(i);
+    }
+  }
+  
+  // Draw frequency grid lines
+  stroke(60, 70, 90);
+  strokeWeight(1);
+  for (int hz = 0; hz <= 1000; hz += 100) {
+    float x = marginX + map(hz, 0, 1000, 0, spectrumWidth);
+    line(x, marginTop, x, spectrumBaseY);
+    
+    // Frequency labels at bottom
+    fill(120, 140, 180);
+    textSize(14);
+    textAlign(CENTER);
+    text(hz + " Hz", x, spectrumBaseY + 30);
+  }
+  
+  // Draw amplitude grid lines
+  for (int i = 0; i <= 4; i++) {
+    float y = spectrumBaseY - (spectrumHeight / 4) * i;
+    stroke(60, 70, 90);
+    strokeWeight(1);
+    line(marginX, y, width - marginX, y);
+    
+    // Amplitude labels on left
+    fill(120, 140, 180);
+    textSize(12);
+    textAlign(RIGHT);
+    text((i * 25) + "%", marginX - 10, y + 5);
+  }
+  
+  // Draw only first 24 bins (0-1000 Hz range)
+  for (int i = 0; i < min(displayBins, fftSpectrum.size()); i++) {
+    float x = marginX + i * barWidth + barSpacing/2;
+    float value = fftSpectrum.get(i);
+    
+    // Map FFT value to bar height with full spectrum height
+    float barHeight = map(value, 0, 100, 0, spectrumHeight);
+    
+    // Calculate frequency for this bin
+    float binFreq = i * 43.066; // 44100 / 1024 = 43.066 Hz per bin
+    
+    // Color coding by voice characteristics:
+    // 0-250 Hz: Bass/Low (blue)
+    // 250-500 Hz: Baritone/Mid-low (cyan)
+    // 500-750 Hz: Tenor/Mid (green-yellow)
+    // 750-1000 Hz: Soprano/High (yellow-orange)
+    color barColor;
+    if (binFreq < 250) {
+      barColor = color(80, 120, 255);  // Blue
+    } else if (binFreq < 500) {
+      barColor = color(80, 200, 255);  // Cyan
+    } else if (binFreq < 750) {
+      barColor = color(150, 255, 100); // Green-yellow
+    } else {
+      barColor = color(255, 200, 80);  // Yellow-orange
+    }
+    
+    // Draw glow/shadow
+    noStroke();
+    fill(red(barColor), green(barColor), blue(barColor), 40);
+    for (int g = 8; g > 0; g--) {
+      rect(x - g, spectrumBaseY - barHeight - g, actualBarWidth + g*2, barHeight + g*2, 4);
+    }
+    
+    // Draw main bar
+    fill(barColor);
+    noStroke();
+    rect(x, spectrumBaseY - barHeight, actualBarWidth, barHeight, 4);
+    
+    // Highlight border for prominent frequencies
+    if (value > 40) {
+      noFill();
+      stroke(255, 255, 255, 200);
+      strokeWeight(2);
+      rect(x, spectrumBaseY - barHeight, actualBarWidth, barHeight, 4);
+    }
+    
+    // Draw peak indicator dot
+    if (value > 20) {
+      fill(255, 255, 255, 200);
+      noStroke();
+      ellipse(x + actualBarWidth/2, spectrumBaseY - barHeight - 8, 6, 6);
+    }
+  }
+  
+  // Draw baseline
+  stroke(255, 255, 255, 150);
+  strokeWeight(3);
+  line(marginX, spectrumBaseY, width - marginX, spectrumBaseY);
+  
+  // Draw voice range labels at top
+  fill(150, 150, 170);
+  textSize(14);
+  textAlign(CENTER);
+  
+  float bassX = marginX + map(125, 0, 1000, 0, spectrumWidth);
+  text("BASS", bassX, marginTop - 20);
+  text("(0-250 Hz)", bassX, marginTop - 5);
+  
+  float bariX = marginX + map(375, 0, 1000, 0, spectrumWidth);
+  text("BARITONE", bariX, marginTop - 20);
+  text("(250-500 Hz)", bariX, marginTop - 5);
+  
+  float tenorX = marginX + map(625, 0, 1000, 0, spectrumWidth);
+  text("TENOR", tenorX, marginTop - 20);
+  text("(500-750 Hz)", tenorX, marginTop - 5);
+  
+  float sopX = marginX + map(875, 0, 1000, 0, spectrumWidth);
+  text("SOPRANO", sopX, marginTop - 20);
+  text("(750-1000 Hz)", sopX, marginTop - 5);
+  
+  // Display current dominant frequency if in range
+  if (dominantFreq > 0 && dominantFreq < 1000) {
+    float freqX = marginX + map(dominantFreq, 0, 1000, 0, spectrumWidth);
+    
+    // Draw vertical line at dominant frequency
+    stroke(255, 100, 100, 180);
+    strokeWeight(3);
+    line(freqX, marginTop, freqX, spectrumBaseY);
+    
+    // Label
+    fill(255, 120, 120);
+    textSize(16);
+    textAlign(CENTER);
+    text("► " + nf(dominantFreq, 0, 1) + " Hz", freqX, marginTop - 40);
+  }
+  
+  // Info panel at bottom
+  fill(40, 50, 65);
+  noStroke();
+  rect(marginX, spectrumBaseY + 50, spectrumWidth, 60, 8);
+  
+  fill(200, 220, 255);
+  textSize(16);
+  textAlign(LEFT);
+  text("Amplitude: " + nf(amplitude, 0, 3), marginX + 20, spectrumBaseY + 75);
+  text("Volume Level: " + volumeLevel, marginX + 20, spectrumBaseY + 100);
+  
+  textAlign(RIGHT);
+  text("Dominant Freq: " + nf(dominantFreq, 0, 1) + " Hz", width - marginX - 20, spectrumBaseY + 75);
+  text("FFT Bins: " + displayBins + " displayed / " + fftSpectrum.size() + " received", width - marginX - 20, spectrumBaseY + 100);
+}
