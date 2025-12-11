@@ -26,7 +26,7 @@ const float CLAPPING_THRESH    = 0.10;
 const float BANGING_THRESH     = 0.40;
 
 // ------------------ FFT Settings ------------------
-#define NUM_FFT_BINS 32
+#define NUM_FFT_BINS 512  // Changed from 32 to 512 (1024/2)
 
 void setup() {
   Serial.begin(115200);
@@ -159,7 +159,7 @@ void loop() {
       }
     }
     
-    // Send data with FFT
+    // Send data with FFT - Now sending all 512 bins
     Serial.print(amplitude); 
     Serial.print(","); 
     Serial.print(volumeLevel); 
