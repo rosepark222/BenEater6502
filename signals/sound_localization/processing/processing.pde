@@ -33,11 +33,35 @@ void setup() {
     String portName = Serial.list()[0];
     println("Connecting to: " + portName);
     myPort = new Serial(this, portName, 115200);
+
     myPort.bufferUntil('\n');
     println("Connected successfully!");
   }
 }
 
+/*
+Data Size: 512 floats * 4 bytes/float = 2048 bytes (2 KB) of data.
+Teensy 4.1 Capability: The Teensy 4.1 can achieve speeds of over 20 MB/second 
+(megabytes per second) when optimized, and in some benchmarks even higher. 
+The theoretical maximum for USB 2.0 high-speed is around 60 MB/sec.
+
+ 
+    myPort.bufferUntil(char): This is the most common use case. The serialEvent() 
+    is called every time the specified termination character (e.g., a newline \n or 
+    carriage return \r) is received. This is useful for processing complete "packets" 
+    or lines of data sent from a device like an Arduino.
+    
+https://forum.pjrc.com/index.php?threads/fft-number-of-samples.53146/#:~:text=1024%20is%20the%20number%20of,section%20of%20the%20video%20walkthrough.
+1024 is the number of audio samples it analyzes. At 44.1 kHz, each FFT result 
+represents the spectrum based on 23.2 ms of time. By default a Hanning window scaling 
+is applied, so you're getting results that mostly represent the middle ~13 ms of that time. 
+This is covered in detail in the tutorial. Check out pages 27-29 in the tutorial PDF, or 
+watch that section of the video walkthrough.
+  
+512 mag send < 22.3msec
+512 mag, 512 phase  -->   about 40msec 
+512 mag, 512 phase for both mic1 and 2 --> about 60 msec 
+*/
 void serialEvent(Serial myPort) {
   String data = myPort.readStringUntil('\n');
   if (data != null) {
@@ -91,8 +115,9 @@ void serialEvent(Serial myPort) {
       if (currentMic.equals("MIC1")) {
         for (int i = 0; i < min(values.length / 2, 512); i++) {
           try {
+            // 512 floats * 4 bytes/float = 2048 bytes (2 KB) of data.
             mic1_magnitude[i] = float(values[i * 2]);
-            mic1_phase[i] = float(values[i * 2 + 1]);
+            //mic1_phase[i] = float(values[i * 2 + 1]);
           } catch (Exception e) {
             // Skip invalid values
           }
@@ -258,14 +283,23 @@ void drawFFTGraph(float[] magData, float[] phaseData, int x, int y, int w, int h
   stroke(col);
   strokeWeight(2);
   beginShape();
-  
+  float minDecibel = -60.0; 
   if (magData != null) {
     // Draw magnitude - only first 24 bins
     for (int i = 0; i < displayBins; i++) {
       float px = map(i, 0, displayBins - 1, 0, w);
-      float py = map(magData[i], 0, 1.0, h, 0);
+      // float py = map(magData[i], 0, 1.0, h, 0);
+
+      // Map the dB value: from minDecibel to 0dB -> to screen height h to 0
+      // 0dB (loudest) maps to the top (0 y-coordinate)
+      // minDecibel (quietest visible) maps to the bottom (h y-coordinate)
+      float dB = (float) ( 20 * Math.log10(max(magData[i], 0.00001))); // Use max() to avoid log(0)
+      float py = map(dB, minDecibel, 0, h, 0);
+      
+      
       py = constrain(py, 0, h);
       vertex(px, py);
+      println("px:"  + px + " py:" + py + " h:" + h + "magData: " + magData[i]);
     }
   } else if (phaseData != null) {
     // Draw phase - only first 24 bins
@@ -321,4 +355,3 @@ void keyPressed() {
     println("Screenshot saved!");
   }
 }
-

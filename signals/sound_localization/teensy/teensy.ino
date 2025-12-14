@@ -17,7 +17,7 @@ AudioAnalyzeFFT1024     fft;  // Keep for display
 AudioRecordQueue        queueMic1;  // NEW: For raw samples
 AudioConnection         patchCord1(i2sMic, 0, dcBlocker, 0);
 AudioConnection         patchCord2(dcBlocker, 0, peak, 0);
-AudioConnection         patchCord3(dcBlocker, 0, fft, 0);
+//AudioConnection         patchCord3(dcBlocker, 0, fft, 0);
 AudioConnection         patchCord4(dcBlocker, 0, queueMic1, 0);  // NEW: Capture samples
 
 // ------------------ OLED ------------------
@@ -77,7 +77,12 @@ void setup() {
   pinMode(VOLUME_LED, OUTPUT);
   pinMode(LOW_LED, OUTPUT);
   pinMode(HIGH_LED, OUTPUT);
-  
+  /*
+  Each audio block is a fixed size: 128 samples of 16-bit data (2 bytes per sample). 
+  The total buffer size allocated by that call is: 
+   Total Samples: 20 blocks x 128 samples/block = 2560 samples
+   Total Memory: 20 blocks x 256 bytes/block = 5120 bytes (5kb)
+  */
   AudioMemory(20);
   
   // Initialize ARM FFT
@@ -104,17 +109,18 @@ void setup() {
 }
 
 void loop() {
-  // Collect samples for ARM FFT
-  if (queueMic1.available()) {
+  // Continuous draining mic1 queue - prevents audio buffer overflow
+  // We must always read available buffers even while processing FFT
+  while (queueMic1.available()) {
     int16_t *buffer = queueMic1.readBuffer();
     
     for (int i = 0; i < 128; i++) {
       if (sample_count < FFT_SIZE) {
-        // Mic1: current sample
-        mic1_time[sample_count] = buffer[i] / 32768.0f;
-        
-        // Mic2: delayed version (emulated)
-        mic2_time[sample_count] = delayBuffer[delayIndex] / 32768.0f;
+
+        // The data is divided by 32768.0f to normalize the raw audio samples from a 16-bit signed integer range into a floating-point range of -1.0 to 1.0.
+
+        mic1_time[sample_count] = buffer[i] / 32768.0f;                //        Mic1: current sample
+        mic2_time[sample_count] = delayBuffer[delayIndex] / 32768.0f; //        Mic2: delayed version (emulated)
         
         // Update delay buffer
         delayBuffer[delayIndex] = buffer[i];
@@ -126,17 +132,18 @@ void loop() {
     
     queueMic1.freeBuffer();
     
-    // When buffer is full, compute FFT
-    if (sample_count >= FFT_SIZE) {
+    // When buffer is full, mark ready for FFT processing
+    if (sample_count >= FFT_SIZE && !fft_ready) {
       computeFFTAndPhase(mic1_time, mic1_fft, mic1_magnitude, mic1_phase);
       computeFFTAndPhase(mic2_time, mic2_fft, mic2_magnitude, mic2_phase);
       fft_ready = true;
-      sample_count = 0;
+      sample_count = 0;  // Reset immediately to start collecting next frame
     }
   }
   
   // Original display code - runs when both FFTs are available
-  if (peak.available() && fft.available() && fft_ready) {
+  //if (peak.available() && fft.available() && fft_ready) {
+  if (fft_ready) {
     float amplitude = peak.read();
     
     int brightness = 0;
@@ -163,19 +170,19 @@ void loop() {
     analogWrite(VOLUME_LED, brightness);
     
     float dominantFreq = 0;
-    if (amplitude > MIN_AMPLITUDE) {
-      int dominantBin = 0;
-      float maxVal = 0;
-      for (int i = 2; i < 512; i++) {
-        float val = fft.read(i);
-        if (val > maxVal) { maxVal = val; dominantBin = i; }
-      }
-      dominantFreq = (dominantBin * 44100.0) / 1024.0;
-    }
+    // if (amplitude > MIN_AMPLITUDE) {
+    //   int dominantBin = 0;
+    //   float maxVal = 0;
+    //   for (int i = 2; i < 512; i++) {
+    //     float val = fft.read(i);
+    //     if (val > maxVal) { maxVal = val; dominantBin = i; }
+    //   }
+    //   dominantFreq = (dominantBin * 44100.0) / 1024.0;
+    // }
     
     // OLED Display
-    oled.clearBuffer();
-    oled.drawStr(0, 10, "Volume:");
+    // oled.clearBuffer();
+    // oled.drawStr(0, 10, "Volume:");
     
     int volSegmentWidth = 22;
     int volSegmentSpacing = 2;
@@ -183,28 +190,28 @@ void loop() {
     int barY = 15;
     int barHeight = 12;
     
-    for(int i = 0; i < 5; i++) {
-      int x = volStartX + i * (volSegmentWidth + volSegmentSpacing);
-      oled.drawFrame(x, barY, volSegmentWidth, barHeight);
-      if(i < volumeLevel) {
-        oled.drawBox(x + 2, barY + 2, volSegmentWidth - 4, barHeight - 4);
-      }
-    }
+    // for(int i = 0; i < 5; i++) {
+    //   int x = volStartX + i * (volSegmentWidth + volSegmentSpacing);
+    //   oled.drawFrame(x, barY, volSegmentWidth, barHeight);
+    //   if(i < volumeLevel) {
+    //     oled.drawBox(x + 2, barY + 2, volSegmentWidth - 4, barHeight - 4);
+    //   }
+    // }
     
-    String volText;
-    switch(volumeLevel){
-      case 0: volText = "Silent"; break;
-      case 1: volText = "Quiet"; break;
-      case 2: volText = "Talking"; break;
-      case 3: volText = "Clapping"; break;
-      case 4: volText = "Banging"; break;
-      case 5: volText = "VERY LOUD!"; break;
-    }
-    oled.drawStr(0, 40, volText.c_str());
+    // String volText;
+    // switch(volumeLevel){
+    //   case 0: volText = "Silent"; break;
+    //   case 1: volText = "Quiet"; break;
+    //   case 2: volText = "Talking"; break;
+    //   case 3: volText = "Clapping"; break;
+    //   case 4: volText = "Banging"; break;
+    //   case 5: volText = "VERY LOUD!"; break;
+    // }
+    // oled.drawStr(0, 40, volText.c_str());
     
-    oled.drawStr(0, 52, "Low");
-    oled.drawStr(48, 52, "Pitch");
-    oled.drawStr(92, 52, "High");
+    // oled.drawStr(0, 52, "Low");
+    // oled.drawStr(48, 52, "Pitch");
+    // oled.drawStr(92, 52, "High");
     
     int pitchBarY = 56;
     int pitchBarHeight = 8;
@@ -212,26 +219,26 @@ void loop() {
     int pitchSegmentSpacing = 2;
     int pitchStartX = 0;
     
-    for(int i = 0; i < 3; i++) {
-      int x = pitchStartX + i * (pitchSegmentWidth + pitchSegmentSpacing);
-      oled.drawFrame(x, pitchBarY, pitchSegmentWidth, pitchBarHeight);
-    }
+    // for(int i = 0; i < 3; i++) {
+    //   int x = pitchStartX + i * (pitchSegmentWidth + pitchSegmentSpacing);
+    //   oled.drawFrame(x, pitchBarY, pitchSegmentWidth, pitchBarHeight);
+    // }
     
-    if (volumeLevel > 1 && dominantFreq > 0) {
-      if(dominantFreq < 400) {
-        oled.drawBox(pitchStartX + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
-      } 
-      else if(dominantFreq >= 2000) {
-        int x = pitchStartX + 2 * (pitchSegmentWidth + pitchSegmentSpacing);
-        oled.drawBox(x + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
-      }
-      else {
-        int x = pitchStartX + 1 * (pitchSegmentWidth + pitchSegmentSpacing);
-        oled.drawBox(x + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
-      }
-    }
+    // if (volumeLevel > 1 && dominantFreq > 0) {
+    //   if(dominantFreq < 400) {
+    //     oled.drawBox(pitchStartX + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
+    //   } 
+    //   else if(dominantFreq >= 2000) {
+    //     int x = pitchStartX + 2 * (pitchSegmentWidth + pitchSegmentSpacing);
+    //     oled.drawBox(x + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
+    //   }
+    //   else {
+    //     int x = pitchStartX + 1 * (pitchSegmentWidth + pitchSegmentSpacing);
+    //     oled.drawBox(x + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
+    //   }
+    // }
     
-    oled.sendBuffer();
+    // oled.sendBuffer();
     
     // Send data to serial - now using ARM FFT results
     // Format: MIC1_MAG,MIC1_PHASE,MIC2_MAG,MIC2_PHASE (alternating)
@@ -241,29 +248,28 @@ void loop() {
     Serial.print("MIC1:");
     for(int i = 0; i < NUM_FFT_BINS; i++) {
       Serial.print(mic1_magnitude[i], 6);
-      Serial.print(",");
-      Serial.print(mic1_phase[i], 6);
+      //Serial.print(",");
+      //Serial.print(mic1_phase[i], 6);
       if(i < NUM_FFT_BINS - 1) {
         Serial.print(",");
       }
     }
     Serial.println();
     
-    // Send Mic2 FFT (magnitude and phase interleaved)
-    Serial.print("MIC2:");
-    for(int i = 0; i < NUM_FFT_BINS; i++) {
-      Serial.print(mic2_magnitude[i], 6);
-      Serial.print(",");
-      Serial.print(mic2_phase[i], 6);
-      if(i < NUM_FFT_BINS - 1) {
-        Serial.print(",");
-      }
-    }
-    Serial.println();
+    // // Send Mic2 FFT (magnitude and phase interleaved)
+    // Serial.print("MIC2:");
+    // for(int i = 0; i < NUM_FFT_BINS; i++) {
+    //   Serial.print(mic2_magnitude[i], 6);
+    //   Serial.print(",");
+    //   Serial.print(mic2_phase[i], 6);
+    //   if(i < NUM_FFT_BINS - 1) {
+    //     Serial.print(",");
+    //   }
+    // }
+    // Serial.println();
     
     Serial.println("FFT_DATA_END");
     
     fft_ready = false;  // Reset flag
   }
 }
-
