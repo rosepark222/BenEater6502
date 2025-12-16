@@ -1,7 +1,7 @@
-import processing.serial.*;
+import processing.serial.*; //<>//
 
 Serial myPort;
-
+boolean newFrameAvailable = false; 
 // Eye class for demo mode - DEFINED FIRST
 class Eye {
   int x, y;
@@ -31,12 +31,14 @@ class Eye {
 }
 
 // FFT data storage
-float[] mic1_magnitude = new float[512];
-float[] mic1_phase = new float[512];
-float[] mic2_magnitude = new float[512];
-float[] mic2_phase = new float[512];
+float[] correlation_data = new float[1024];
+float[] corr_roated = new float[1024];
+//float[] mic1_phase = new float[512];
+//float[] mic2_magnitude = new float[512];
+//float[] mic2_phase = new float[512];
 
-int displayBins = 24;  // Only display first 24 bins (0-1000 Hz)
+//int displayBins = 20;  // Only display first 24 bins (0-1000 Hz)
+ int displayBins = 1024;  // Only display first 24 bins (0-1000 Hz)
 
 boolean showEyes = false;  // Toggle between FFT display and eyes demo
 
@@ -137,8 +139,8 @@ void serialEvent(Serial myPort) {
 
     if (receivingData) {
       // Check which mic data this is
-      if (data.startsWith("MIC1:")) {
-        currentMic = "MIC1";
+      if (data.startsWith("CORR:")) {
+        currentMic = "CORR";
         data = data.substring(5); // Remove "MIC1:" prefix
       } else if (data.startsWith("MIC2:")) {
         currentMic = "MIC2";
@@ -150,28 +152,31 @@ void serialEvent(Serial myPort) {
       // Parse magnitude and phase data (interleaved: mag0,phase0,mag1,phase1,...)
       String[] values = split(data, ',');
 
-      if (currentMic.equals("MIC1")) {
-        for (int i = 0; i < min(values.length / 2, 512); i++) {
+      if (currentMic.equals("CORR")) {
+        for (int i = 0; i < 1024; i++) {
           try {
             // 512 floats * 4 bytes/float = 2048 bytes (2 KB) of data.
-            mic1_magnitude[i] = float(values[i * 2]);
-            //mic1_phase[i] = float(values[i * 2 + 1]);
+            correlation_data[i] = float(values[i]);
           } catch (Exception e) {
             // Skip invalid values
           }
         }
-      } else if (currentMic.equals("MIC2")) {
-        for (int i = 0; i < min(values.length / 2, 512); i++) {
-          try {
-            mic2_magnitude[i] = float(values[i * 2]);
-            mic2_phase[i] = float(values[i * 2 + 1]);
-          } catch (Exception e) {
-            // Skip invalid values
-          }
-        }
-      }
+      } 
+      //else if (currentMic.equals("MIC2")) {
+      //  for (int i = 0; i < min(values.length / 2, 512); i++) {
+      //    try {
+      //      mic2_magnitude[i] = float(values[i * 2]);
+      //      //mic2_phase[i] = float(values[i * 2 + 1]);
+      //    } catch (Exception e) {
+      //      // Skip invalid values
+      //    }
+      //  }
+      //}
     }
   }
+  
+  newFrameAvailable = true; 
+
 }
 
 void draw() {
@@ -237,14 +242,18 @@ void drawFFTDisplay() {
   text("Time to draw frame: " + nf(timeToDrawFrame, 0, 1) + " ms", 20, 60);
   
   // Check if we have valid data
-  float mic1Sum = 0;
-  float mic2Sum = 0;
-  for (int i = 0; i < 10; i++) {
-    mic1Sum += mic1_magnitude[i];
-    mic2Sum += mic2_magnitude[i];
+  float max_value = 0;
+  float max_idx = 0;
+  for (int i = 0; i < 1024; i++) {
+    if( correlation_data[i] > max_value) {
+      max_value = correlation_data[i];
+      max_idx = i;
+    }
+    max_value += correlation_data[i];
+    //max_idx += mic2_magnitude[i];
   }
   fill(150, 150, 255);
-  text("MIC1 sum: " + nf(mic1Sum, 0, 4) + " | MIC2 sum: " + nf(mic2Sum, 0, 4), 400, 20);
+  text("corr max: " + nf(max_value, 0, 4) + " | max index: " + nf(max_idx, 0, 4), 400, 20);
 
   // Title
   fill(100, 200, 255);
@@ -263,20 +272,20 @@ void drawFFTDisplay() {
   int spacing = 220;
 
   // Draw MIC1 Magnitude
-  drawFFTGraph(mic1_magnitude, null, margin, 150, graphWidth, graphHeight,
+  drawFFTGraph(correlation_data, null, margin, 150, graphWidth, graphHeight,
                "MIC1 - MAGNITUDE", color(100, 255, 200), false);
 
-  // Draw MIC1 Phase
-  drawFFTGraph(null, mic1_phase, margin, 150 + spacing, graphWidth, graphHeight,
-               "MIC1 - PHASE", color(100, 255, 200), true);
+  //// Draw MIC1 Phase
+  //drawFFTGraph(null, mic1_phase, margin, 150 + spacing, graphWidth, graphHeight,
+  //             "MIC1 - PHASE", color(100, 255, 200), true);
 
-  // Draw MIC2 Magnitude
-  drawFFTGraph(mic2_magnitude, null, margin, 150 + spacing * 2, graphWidth, graphHeight,
-               "MIC2 - MAGNITUDE (Delayed)", color(255, 150, 100), false);
+  //// Draw MIC2 Magnitude
+  //drawFFTGraph(mic2_magnitude, null, margin, 150 + spacing * 2, graphWidth, graphHeight,
+  //             "MIC2 - MAGNITUDE (Delayed)", color(255, 150, 100), false);
 
-  // Draw MIC2 Phase
-  drawFFTGraph(null, mic2_phase, margin, 150 + spacing * 3, graphWidth, graphHeight,
-               "MIC2 - PHASE (Delayed)", color(255, 150, 100), true);
+  //// Draw MIC2 Phase
+  //drawFFTGraph(null, mic2_phase, margin, 150 + spacing * 3, graphWidth, graphHeight,
+  //             "MIC2 - PHASE (Delayed)", color(255, 150, 100), true);
 
   // Connection indicator
   float pulse = sin(frameCount * 0.1) * 0.3 + 0.7;
@@ -286,6 +295,37 @@ void drawFFTDisplay() {
   fill(100, 255, 150);
   ellipse(width - 40, 80, 16, 16);
 
+}
+
+//void rotateLeftInPlace(float[] magData, float[] magDataRotated, int MAX_LAG) {
+//  //int N = magData.length;
+
+//  for (int i = 0; i < MAX_LAG; i++) {
+//    magDataRotated[i] = magData[i + MAX_LAG];
+//    magDataRotated[i + MAX_LAG] = magData[i];
+//  }
+//  magDataRotated[MAX_LAG] = magData[MAX_LAG];
+//}
+
+void shiftIntoNewBuffer(float[] src, float[] dst, int MAX_LAG) {
+  int N = src.length;
+  int k = 0;
+
+  // -------------------------------
+  // 1) Negative lags (tail)
+  //    src[-MAX_LAG+1:]
+  // -------------------------------
+  for (int i = N - MAX_LAG + 1; i < N; i++) {
+    dst[k++] = src[i];
+  }
+
+  // -------------------------------
+  // 2) Zero + positive lags
+  //    src[:MAX_LAG+1]
+  // -------------------------------
+  for (int i = 0; i <= MAX_LAG; i++) {
+    dst[k++] = src[i];
+  }
 }
 
 void drawFFTGraph(float[] magData, float[] phaseData, int x, int y, int w, int h,
@@ -365,40 +405,85 @@ void drawFFTGraph(float[] magData, float[] phaseData, int x, int y, int w, int h
   beginShape();
   float minDecibel = -60.0;
   if (magData != null) {
-    // Draw magnitude - only first 24 bins
+    
+    // the inplace rotation is called twice if draw is called twice given a frame
+    // thus, it should be guarded to do once per frame
+    //if (newFrameAvailable) {
+    //  rotateLeftInPlace(magData, displayBins / 2);
+    //  newFrameAvailable = false;   // VERY IMPORTANT
+    //}
+    
+    shiftIntoNewBuffer(magData, corr_roated, displayBins / 2);
+    
     for (int i = 0; i < displayBins; i++) {
       float px = map(i, 0, displayBins - 1, 0, w);
-      // float py = map(magData[i], 0, 1.0, h, 0);
+      float py = map(corr_roated[i], 0, 1.0, h, 0);
 
-      // Map the dB value: from minDecibel to 0dB -> to screen height h to 0
-      // 0dB (loudest) maps to the top (0 y-coordinate)
-      // minDecibel (quietest visible) maps to the bottom (h y-coordinate)
-      float dB = (float) ( 20 * Math.log10(max(magData[i], 0.00001))); // Use max() to avoid log(0)
-      float py = map(dB, minDecibel, 0, h, 0);
+      //// Map the dB value: from minDecibel to 0dB -> to screen height h to 0
+      //// 0dB (loudest) maps to the top (0 y-coordinate)
+      //// minDecibel (quietest visible) maps to the bottom (h y-coordinate)
+      //float dB = (float) ( 20 * Math.log10(max(corr_roated[i], 0.00001))); // Use max() to avoid log(0)
+      //float py = map(dB, minDecibel, 0, h, 0);
 
 
       py = constrain(py, 0, h);
       vertex(px, py);
-      println("px:"  + px + " py:" + py + " h:" + h + "magData: " + magData[i]);
+      if(corr_roated[i] > 0.5) {
+        println("i:"  + i  + " px:"  + px + " py:" + py + " w:" + w + " h:" + h + " corr_roated: " + corr_roated[i]);
+      }
+ 
+
     }
-  } else if (phaseData != null) {
-    // Draw phase - only first 24 bins
-    for (int i = 0; i < displayBins; i++) {
-      float px = map(i, 0, displayBins - 1, 0, w);
-      float py = map(phaseData[i], PI, -PI, 0, h);
-      py = constrain(py, 0, h);
-      vertex(px, py);
-    }
-  }
+    
+    //int plotIndex = 0;
+    //int MAX_LAG = displayBins / 2;
+    //// ---------------------------------------
+    //// 1) Negative lags: tail of array
+    ////    Equivalent to Python:
+    ////    R[-MAX_LAG+1 : ]
+    //// ---------------------------------------
+    //for (int i = displayBins - MAX_LAG + 1; i < displayBins; i++) {
+    //  float px = map(plotIndex, 0, displayBins - 1, 0, w);
+    //  float py = map(corr_roated[i], 0, 1.0, h, 0);
+    //  py = constrain(py, 0, h);
+    //  vertex(px, py);
+    //  plotIndex++;
+    //}
+  
+    //// ---------------------------------------
+    //// 2) Zero + positive lags: head of array
+    ////    Equivalent to Python:
+    ////    R[ : MAX_LAG+1 ]
+    //// ---------------------------------------
+    //for (int i = 0; i <= MAX_LAG; i++) {
+    //  float px = map(plotIndex, 0, displayBins - 1, 0, w);
+    //  float py = map(corr_roated[i], 0, 1.0, h, 0);
+    //  py = constrain(py, 0, h);
+    //  vertex(px, py);
+    //  plotIndex++;
+    //}
+    
+    
+    
+  } 
+  //else if (phaseData != null) {
+  //  // Draw phase - only first 24 bins
+  //  for (int i = 0; i < displayBins; i++) {
+  //    float px = map(i, 0, displayBins - 1, 0, w);
+  //    float py = map(phaseData[i], PI, -PI, 0, h);
+  //    py = constrain(py, 0, h);
+  //    vertex(px, py);
+  //  }
+  //}
   endShape();
 
-  // Find and mark peak (only for magnitude graphs, within first 24 bins)
-  if (magData != null) {
+
+  if (corr_roated != null) {
     int peakBin = 0;
     float peakVal = 0;
-    for (int i = 2; i < displayBins; i++) {
-      if (magData[i] > peakVal) {
-        peakVal = magData[i];
+    for (int i = 0; i < displayBins; i++) {
+      if (corr_roated[i] > peakVal) {
+        peakVal = corr_roated[i];
         peakBin = i;
       }
     }
@@ -417,12 +502,20 @@ void drawFFTGraph(float[] magData, float[] phaseData, int x, int y, int w, int h
       noStroke();
       ellipse(peakX, peakY, 10, 10);
 
-      // Peak frequency label
-      float peakFreq = (peakBin * 44100.0) / 1024.0;
+      // TDOA label
+      float peakFreq = 30; // (peakBin * 44100.0) / 1024.0;
+      if(peakBin < 512) {
+        peakFreq = -1*  (( 512.0f - peakBin ) / 44100.0f * 1000.0f);
+      } else {
+        peakFreq =  ((peakBin - 512.0f ) / 44100.0f * 1000.0f);
+      }
+
       fill(255, 200, 100);
-      textSize(12);
+      textSize(22);
       textAlign(CENTER);
-      text(nf(peakFreq, 0, 1) + " Hz", peakX, peakY - 15);
+      text(nf(peakFreq, 0, 3) + " ms", peakX, peakY - 15);
+      
+      println("peakBin:"  + peakBin  + " peakVal:"  + peakVal + " peakFreq:" + peakFreq);
     }
   }
 
@@ -440,4 +533,3 @@ void keyPressed() {
     println("Mode switched to: " + (showEyes ? "Eyes Demo" : "FFT Display"));
   }
 }
-

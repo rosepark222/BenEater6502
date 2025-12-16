@@ -41,15 +41,18 @@ arm_rfft_fast_instance_f32 fft_inst;
 
 // Mic1 buffers
 float mic1_time[FFT_SIZE];
-float mic1_fft[FFT_SIZE * 2];  // Complex: [real0, imag0, real1, imag1, ...]
+float mic1_fft[FFT_SIZE * 2];  // 1024 Complex: [real0, imag0, real1, imag1, ...]
 float mic1_magnitude[FFT_BINS];
 float mic1_phase[FFT_BINS];
 
 // Mic2 buffers (delayed version)
 float mic2_time[FFT_SIZE];
-float mic2_fft[FFT_SIZE * 2];
+float mic2_fft[FFT_SIZE * 2]; // 1024 complex 
 float mic2_magnitude[FFT_BINS];
 float mic2_phase[FFT_BINS];
+
+float cross_spectrum[FFT_SIZE]; // X(f)X2*(f) / |X(f)X2*(f)|
+float correlation_result[FFT_SIZE]; // Final time domain result (size N)
 
 // Delay buffer for mic2 emulation
 int16_t delayBuffer[DELAY_SAMPLES];
@@ -70,6 +73,66 @@ void computeFFTAndPhase(float* input, float* fft_output, float* magnitude, float
     magnitude[i] = sqrtf(real * real + imag * imag) / FFT_SIZE;
     phase[i] = atan2f(imag, real);
   }
+}
+ 
+void run_gcc_phat(float* fft1, float* fft2) {
+    // 1. Perform Forward FFTs
+    // Input is real samples, Output is complex interleaved in the same size buffer
+    // arm_rfft_fast_f32(&fft_instance, samples1, fft1, 0); // 0 for forward FFT
+    // arm_rfft_fast_f32(&fft_instance, samples2, fft2, 0); 
+    
+    // 2. Calculate the Normalized Cross-Spectrum (G_PHAT)
+    for (unsigned int k = 0; k < FFT_BINS; k++) {
+        unsigned int real_idx = k * 2;
+        unsigned int imag_idx = k * 2 + 1;
+
+        float a = fft1[real_idx]; // Real(F1)
+        float b = fft1[imag_idx]; // Imag(F1)
+        float c = fft2[real_idx]; // Real(F2)
+        float d = fft2[imag_idx]; // Imag(F2)
+
+        // G(f) = F1 * conj(F2) = (a + j b) * ( c - j d ) note d = -d for conjugate
+        float cross_real = (a * c) + (b * d);
+        float cross_imag = (b * c) - (a * d); 
+
+        // // G(f) = conj(F1) *  F2 = (a - j b) * ( c + j d )
+        // float cross_real = (a * c) + (b * d);
+        // float cross_imag = -(b * c) + (a * d); 
+        
+        // Magnitude |G(f)| = |F1|*|F2|
+        float magnitude = sqrtf(cross_real * cross_real + cross_imag * cross_imag);
+        float weight_denominator = magnitude + 1e-10; // Epsilon for stability
+
+        // G_PHAT(f) = G(f) / |G(f)| (Normalized Phase Transform)
+        cross_spectrum[real_idx] = cross_real / weight_denominator;
+        cross_spectrum[imag_idx] = cross_imag / weight_denominator;
+    }
+
+    // 3. Perform Inverse FFT (IFFT)
+    // Input is the normalized complex cross_spectrum
+    // Output (stored back into the same buffer for space efficiency) is 
+    // the real time-domain correlation function
+    arm_rfft_fast_f32(&fft_inst, cross_spectrum, correlation_result, 1); // 1 for inverse FFT
+
+    // 4. Normalize the IFFT result (critical for true amplitude scaling)
+    for (unsigned int i = 0; i < FFT_SIZE; i++) {
+      // correlation_result[i] /= FFT_SIZE; 
+      // correlation_result[i] *= 5; 
+
+    }
+
+    // correlation_result[] now holds the 1024-point time-domain GCC-PHAT function
+    // You can now find the peak in correlation_result[] to determine the time delay (tau).
+    /*
+    You should look for the single highest absolute peak in the correlation_result array. 
+    The location of this peak corresponds directly to the time delay: 
+    Index 0 to 511: These indices represent positive time delays (signal 2 arrived after signal 1). 
+    Index 0 represents zero delay (the signals are perfectly aligned).
+    Index 1023 down to 512: These indices represent negative time delays (signal 1 arrived after signal 2). 
+    The exact index of the maximum value (max_index) gives you the time lag in samples. 
+    You can convert this to actual time (seconds) using your sampling frequency: 
+     Time delay = max(index) / 44100
+     */
 }
 
 void setup() {
@@ -136,6 +199,7 @@ void loop() {
     if (sample_count >= FFT_SIZE && !fft_ready) {
       computeFFTAndPhase(mic1_time, mic1_fft, mic1_magnitude, mic1_phase);
       computeFFTAndPhase(mic2_time, mic2_fft, mic2_magnitude, mic2_phase);
+      run_gcc_phat(mic1_fft, mic2_fft);
       fft_ready = true;
       sample_count = 0;  // Reset immediately to start collecting next frame
     }
@@ -170,98 +234,41 @@ void loop() {
     analogWrite(VOLUME_LED, brightness);
     
     float dominantFreq = 0;
-    // if (amplitude > MIN_AMPLITUDE) {
-    //   int dominantBin = 0;
-    //   float maxVal = 0;
-    //   for (int i = 2; i < 512; i++) {
-    //     float val = fft.read(i);
-    //     if (val > maxVal) { maxVal = val; dominantBin = i; }
-    //   }
-    //   dominantFreq = (dominantBin * 44100.0) / 1024.0;
-    // }
-    
-    // OLED Display
-    // oled.clearBuffer();
-    // oled.drawStr(0, 10, "Volume:");
-    
-    int volSegmentWidth = 22;
-    int volSegmentSpacing = 2;
-    int volStartX = 0;
-    int barY = 15;
-    int barHeight = 12;
-    
-    // for(int i = 0; i < 5; i++) {
-    //   int x = volStartX + i * (volSegmentWidth + volSegmentSpacing);
-    //   oled.drawFrame(x, barY, volSegmentWidth, barHeight);
-    //   if(i < volumeLevel) {
-    //     oled.drawBox(x + 2, barY + 2, volSegmentWidth - 4, barHeight - 4);
-    //   }
-    // }
-    
-    // String volText;
-    // switch(volumeLevel){
-    //   case 0: volText = "Silent"; break;
-    //   case 1: volText = "Quiet"; break;
-    //   case 2: volText = "Talking"; break;
-    //   case 3: volText = "Clapping"; break;
-    //   case 4: volText = "Banging"; break;
-    //   case 5: volText = "VERY LOUD!"; break;
-    // }
-    // oled.drawStr(0, 40, volText.c_str());
-    
-    // oled.drawStr(0, 52, "Low");
-    // oled.drawStr(48, 52, "Pitch");
-    // oled.drawStr(92, 52, "High");
-    
-    int pitchBarY = 56;
-    int pitchBarHeight = 8;
-    int pitchSegmentWidth = 38;
-    int pitchSegmentSpacing = 2;
-    int pitchStartX = 0;
-    
-    // for(int i = 0; i < 3; i++) {
-    //   int x = pitchStartX + i * (pitchSegmentWidth + pitchSegmentSpacing);
-    //   oled.drawFrame(x, pitchBarY, pitchSegmentWidth, pitchBarHeight);
-    // }
-    
-    // if (volumeLevel > 1 && dominantFreq > 0) {
-    //   if(dominantFreq < 400) {
-    //     oled.drawBox(pitchStartX + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
-    //   } 
-    //   else if(dominantFreq >= 2000) {
-    //     int x = pitchStartX + 2 * (pitchSegmentWidth + pitchSegmentSpacing);
-    //     oled.drawBox(x + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
-    //   }
-    //   else {
-    //     int x = pitchStartX + 1 * (pitchSegmentWidth + pitchSegmentSpacing);
-    //     oled.drawBox(x + 2, pitchBarY + 2, pitchSegmentWidth - 4, pitchBarHeight - 4);
-    //   }
-    // }
-    
-    // oled.sendBuffer();
-    
+  
     // Send data to serial - now using ARM FFT results
     // Format: MIC1_MAG,MIC1_PHASE,MIC2_MAG,MIC2_PHASE (alternating)
     Serial.println("FFT_DATA_START");
     
     // Send Mic1 FFT (magnitude and phase interleaved)
-    Serial.print("MIC1:");
-    for(int i = 0; i < NUM_FFT_BINS; i++) {
-      Serial.print(mic1_magnitude[i], 6);
+    Serial.print("CORR:");
+    // for(int i = 0; i < NUM_FFT_BINS ; i++) {
+    //   Serial.print(mic1_magnitude[i], 6);
+    //   // Serial.print(mic2_magnitude[i], 6);
+    //   if(i < NUM_FFT_BINS  - 1) {
+    //     Serial.print(",");
+    //   }
+    // }
+    for(int i = 0; i < FFT_SIZE; i++) {
+      Serial.print(correlation_result[i], 6);
+      // Serial.print(mic1_magnitude[i], 6);
+      // Serial.print(mic2_magnitude[i], 6);
       //Serial.print(",");
       //Serial.print(mic1_phase[i], 6);
-      if(i < NUM_FFT_BINS - 1) {
+      if(i < FFT_SIZE - 1) {
         Serial.print(",");
       }
     }
+
+    
     Serial.println();
     
     // // Send Mic2 FFT (magnitude and phase interleaved)
     // Serial.print("MIC2:");
     // for(int i = 0; i < NUM_FFT_BINS; i++) {
-    //   Serial.print(mic2_magnitude[i], 6);
-    //   Serial.print(",");
-    //   Serial.print(mic2_phase[i], 6);
+    //   Serial.print(correlation_result[i+512], 6);
+    //   //Serial.print(mic2_magnitude[i], 6);
+    //   //Serial.print(",");
+    //   //Serial.print(mic2_phase[i], 6);
     //   if(i < NUM_FFT_BINS - 1) {
     //     Serial.print(",");
     //   }
