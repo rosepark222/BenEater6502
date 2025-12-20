@@ -12,13 +12,17 @@ const int HIGH_LED   = 15;
 // ------------------ Audio objects ------------------
 AudioInputI2S           i2sMic;
 AudioFilterBiquad       dcBlocker;
+AudioFilterBiquad       dcBlocker2;  // mic2 added - DC blocker for right channel
 AudioAnalyzePeak        peak;
 AudioAnalyzeFFT1024     fft;  // Keep for display
-AudioRecordQueue        queueMic1;  // NEW: For raw samples
+AudioRecordQueue        queueMic1;  // Left channel (mic1)
+AudioRecordQueue        queueMic2;  // mic2 added - Right channel (mic2)
 AudioConnection         patchCord1(i2sMic, 0, dcBlocker, 0);
 AudioConnection         patchCord2(dcBlocker, 0, peak, 0);
 //AudioConnection         patchCord3(dcBlocker, 0, fft, 0);
-AudioConnection         patchCord4(dcBlocker, 0, queueMic1, 0);  // NEW: Capture samples
+AudioConnection         patchCord4(dcBlocker, 0, queueMic1, 0);  // Left channel to queue
+AudioConnection         patchCord5(i2sMic, 1, dcBlocker2, 0);  // mic2 added - Right channel
+AudioConnection         patchCord6(dcBlocker2, 0, queueMic2, 0);  // mic2 added - Right channel to queue
 
 // ------------------ OLED ------------------
 U8G2_SH1106_128X64_NONAME_F_HW_I2C oled(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
@@ -34,10 +38,13 @@ const float BANGING_THRESH     = 0.40;
 #define FFT_SIZE 1024
 #define FFT_BINS 512
 #define NUM_FFT_BINS 512
-#define DELAY_SAMPLES 13  // 0.3ms at 44.1kHz
+// #define DELAY_SAMPLES 13  // mic2 added - No longer needed with dual I2S channels
 
 // ARM CMSIS FFT instance
 arm_rfft_fast_instance_f32 fft_inst;
+
+// Hann window coefficients
+float hann_window[FFT_SIZE];
 
 // Mic1 buffers
 float mic1_time[FFT_SIZE];
@@ -52,18 +59,51 @@ float mic2_magnitude[FFT_BINS];
 float mic2_phase[FFT_BINS];
 
 float cross_spectrum[FFT_SIZE]; // X(f)X2*(f) / |X(f)X2*(f)|
-float correlation_result[FFT_SIZE]; // Final time domain result (size N)
+float correlation_result[FFT_SIZE]; // Final time domain result (size FFT_SIZE)
 
-// Delay buffer for mic2 emulation
-int16_t delayBuffer[DELAY_SAMPLES];
-int delayIndex = 0;
+// mic2 added - Delay buffer no longer needed
+// int16_t delayBuffer[DELAY_SAMPLES];
+// int delayIndex = 0;
 
 int sample_count = 0;
 bool fft_ready = false;
 
+float tukeyTable[FFT_SIZE];
+float alpha = 0.5; // Tapering parameter
+
+void generateTukey() {
+    float taperSamples = alpha * (FFT_SIZE - 1) / 2.0;
+    for (int n = 0; n < FFT_SIZE; n++) {
+        if (n < taperSamples) {
+            // Left cosine taper
+            tukeyTable[n] = 0.5 * (1 + cos(M_PI * ( (2.0 * n / (alpha * (FFT_SIZE - 1))) - 1)));
+        } else if (n > (FFT_SIZE - 1 - taperSamples)) {
+            // Right cosine taper
+            tukeyTable[n] = 0.5 * (1 + cos(M_PI * ( (2.0 * n / (alpha * (FFT_SIZE - 1))) - (2.0 / alpha) + 1)));
+        } else {
+            // Middle flat section
+            tukeyTable[n] = 1.0;
+        }
+    }
+}
+
+void generateHann() {
+    for (int i = 0; i < FFT_SIZE; i++) {
+    hann_window[i] = 0.5 * (1.0 - cosf(2.0 * PI * i / (FFT_SIZE - 1)));
+    }
+  
+}
+
 void computeFFTAndPhase(float* input, float* fft_output, float* magnitude, float* phase) {
+  // Apply Hann window before FFT
+  float windowed_input[FFT_SIZE];
+  for (int i = 0; i < FFT_SIZE; i++) {
+    // windowed_input[i] = input[i] * hann_window[i];
+    windowed_input[i] = input[i] * tukeyTable[i];   
+  }
+  
   // Perform FFT
-  arm_rfft_fast_f32(&fft_inst, input, fft_output, 0);
+  arm_rfft_fast_f32(&fft_inst, windowed_input, fft_output, 0);
   
   // Calculate magnitude and phase for each bin
   for (int i = 0; i < FFT_BINS; i++) {
@@ -125,12 +165,12 @@ void run_gcc_phat(float* fft1, float* fft2) {
     // You can now find the peak in correlation_result[] to determine the time delay (tau).
     /*
     You should look for the single highest absolute peak in the correlation_result array. 
-    The location of this peak corresponds directly to the time delay: 
+    The location of this peak corresponds directly to the time delay: 
     Index 0 to 511: These indices represent positive time delays (signal 2 arrived after signal 1). 
     Index 0 represents zero delay (the signals are perfectly aligned).
-    Index 1023 down to 512: These indices represent negative time delays (signal 1 arrived after signal 2). 
+    Index 1023 down to 512: These indices represent negative time delays (signal 1 arrived after signal 2). 
     The exact index of the maximum value (max_index) gives you the time lag in samples. 
-    You can convert this to actual time (seconds) using your sampling frequency: 
+    You can convert this to actual time (seconds) using your sampling frequency: 
      Time delay = max(index) / 44100
      */
 }
@@ -141,26 +181,33 @@ void setup() {
   pinMode(LOW_LED, OUTPUT);
   pinMode(HIGH_LED, OUTPUT);
   /*
-  Each audio block is a fixed size: 128 samples of 16-bit data (2 bytes per sample). 
-  The total buffer size allocated by that call is: 
+  Each audio block is a fixed size: 128 samples of 16-bit data (2 bytes per sample). 
+  The total buffer size allocated by that call is: 
    Total Samples: 20 blocks x 128 samples/block = 2560 samples
    Total Memory: 20 blocks x 256 bytes/block = 5120 bytes (5kb)
   */
-  AudioMemory(20);
+  AudioMemory(30);  // mic2 added - Increased from 20 to 30 for dual channel recording
   
   // Initialize ARM FFT
   arm_rfft_fast_init_f32(&fft_inst, FFT_SIZE);
   
+  // Initialize Hann window coefficients
+  generateTukey();
+  generateHann();
+
+
   // Configure DC blocking filter
   dcBlocker.setHighpass(0, 20, 0.707);
+  dcBlocker2.setHighpass(0, 20, 0.707);  // mic2 added - Configure DC blocker for right channel
   
-  // Initialize delay buffer
-  for (int i = 0; i < DELAY_SAMPLES; i++) {
-    delayBuffer[i] = 0;
-  }
+  // mic2 added - Delay buffer initialization no longer needed
+  // for (int i = 0; i < DELAY_SAMPLES; i++) {
+  //   delayBuffer[i] = 0;
+  // }
   
   // Start recording queue
   queueMic1.begin();
+  queueMic2.begin();  // mic2 added - Start right channel queue
   
   oled.begin();
   oled.clearBuffer();
@@ -168,32 +215,35 @@ void setup() {
   oled.drawStr(0, 10, "Setup done");
   oled.sendBuffer();
   
-  Serial.println("Setup complete - ARM FFT initialized");
+  Serial.println("Setup complete - ARM FFT initialized with Hann window");
 }
 
 void loop() {
   // Continuous draining mic1 queue - prevents audio buffer overflow
   // We must always read available buffers even while processing FFT
-  while (queueMic1.available()) {
-    int16_t *buffer = queueMic1.readBuffer();
+  // mic2 added - Now processing both left and right channels simultaneously
+  while (queueMic1.available() && queueMic2.available()) {  // mic2 added - Check both queues
+    int16_t *buffer1 = queueMic1.readBuffer();  // mic2 added - Left channel buffer
+    int16_t *buffer2 = queueMic2.readBuffer();  // mic2 added - Right channel buffer
     
     for (int i = 0; i < 128; i++) {
       if (sample_count < FFT_SIZE) {
 
         // The data is divided by 32768.0f to normalize the raw audio samples from a 16-bit signed integer range into a floating-point range of -1.0 to 1.0.
 
-        mic1_time[sample_count] = buffer[i] / 32768.0f;                //        Mic1: current sample
-        mic2_time[sample_count] = delayBuffer[delayIndex] / 32768.0f; //        Mic2: delayed version (emulated)
+        mic1_time[sample_count] = buffer1[i] / 32768.0f;  // mic2 added - Direct left channel data
+        mic2_time[sample_count] = buffer2[i] / 32768.0f;  // mic2 added - Direct right channel data (no delay needed)
         
-        // Update delay buffer
-        delayBuffer[delayIndex] = buffer[i];
-        delayIndex = (delayIndex + 1) % DELAY_SAMPLES;
+        // mic2 added - Delay buffer update no longer needed
+        // delayBuffer[delayIndex] = buffer[i];
+        // delayIndex = (delayIndex + 1) % DELAY_SAMPLES;
         
         sample_count++;
       }
     }
     
     queueMic1.freeBuffer();
+    queueMic2.freeBuffer();  // mic2 added - Free right channel buffer
     
     // When buffer is full, mark ready for FFT processing
     if (sample_count >= FFT_SIZE && !fft_ready) {

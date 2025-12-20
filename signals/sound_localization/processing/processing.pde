@@ -57,6 +57,9 @@ int frameCount = 0;
 boolean receivingData = false;
 String currentMic = "";
 
+  float max_value = 0;
+  int  max_idx = 0;
+  
 void setup() {
   size(1400, 1000);
   smooth();
@@ -130,9 +133,9 @@ void serialEvent(Serial myPort) {
       long receiveEndTime = millis();
       float receiveTime = receiveEndTime - frameArrivalTime;
 
-      println("Frame " + frameCount +
-              " | Between frames: " + nf(timeBetweenFrames, 0, 1) + " ms" +
-              " | Receive time: " + nf(receiveTime, 0, 1) + " ms");
+      //println("Frame " + frameCount +
+      //        " | Between frames: " + nf(timeBetweenFrames, 0, 1) + " ms" +
+      //        " | Receive time: " + nf(receiveTime, 0, 1) + " ms");
 
       return;
     }
@@ -141,10 +144,10 @@ void serialEvent(Serial myPort) {
       // Check which mic data this is
       if (data.startsWith("CORR:")) {
         currentMic = "CORR";
-        data = data.substring(5); // Remove "MIC1:" prefix
+        data = data.substring(5); // Remove prefix
       } else if (data.startsWith("MIC2:")) {
         currentMic = "MIC2";
-        data = data.substring(5); // Remove "MIC2:" prefix
+        data = data.substring(5); // Remove   prefix
       } else {
         return; // Skip if no prefix
       }
@@ -162,17 +165,19 @@ void serialEvent(Serial myPort) {
           }
         }
       } 
-      //else if (currentMic.equals("MIC2")) {
-      //  for (int i = 0; i < min(values.length / 2, 512); i++) {
-      //    try {
-      //      mic2_magnitude[i] = float(values[i * 2]);
-      //      //mic2_phase[i] = float(values[i * 2 + 1]);
-      //    } catch (Exception e) {
-      //      // Skip invalid values
-      //    }
-      //  }
-      //}
     }
+    
+    max_value = -1;
+    max_idx = -1;
+    for (int i = 0; i < 1024; i++) {
+      if( correlation_data[i] > max_value) {
+        max_value = correlation_data[i];
+        max_idx = i;
+      }
+    }
+    
+    println("mouseX: " + mouseX + " mouseY: " + mouseY + " max_idx: " + max_idx + " max_value: " + max_value);
+  
   }
   
   newFrameAvailable = true; 
@@ -181,6 +186,8 @@ void serialEvent(Serial myPort) {
 
 void draw() {
   long drawStartTime = millis();
+    // Check if we have valid data
+
   
   background(20, 25, 35);
   // Debug info - TIMING DIAGNOSTICS
@@ -194,6 +201,13 @@ void draw() {
 
   fill(100, 255, 100);
   text("Time to draw frame: " + nf(timeToDrawFrame, 0, 1) + " ms", 20, 60);
+
+
+  fill(100, 255, 100);
+  text("max idx: " + nf(max_idx, 0, 1), 20, 80);
+  
+
+
 
   // Check mode and draw accordingly
   if (showEyes) {
@@ -210,9 +224,24 @@ void drawEyesDemo() {
   
 
   noStroke();  // Eyes should have no stroke
+  
 
-  e1.update(mouseX, mouseY);
-  e2.update(mouseX, mouseY);
+  
+  // int eye_move = 100;
+  if(max_value > .05) {
+    if(max_idx < 1024/2) {
+      e1.update(1113, 430);
+      e2.update(1113, 430);
+    }else {
+      e1.update(92, 430);
+      e2.update(92, 430);
+    }
+  }
+      
+        //     " | Between frames: " + nf(timeBetweenFrames, 0, 1) + " ms" +
+        //     " | Receive time: " + nf(receiveTime, 0, 1) + " ms");
+  //e1.update(mouseX, mouseY);
+  //e2.update(mouseX, mouseY);
 
   e1.display();
   e2.display();
@@ -241,19 +270,19 @@ void drawFFTDisplay() {
   fill(100, 255, 100);
   text("Time to draw frame: " + nf(timeToDrawFrame, 0, 1) + " ms", 20, 60);
   
-  // Check if we have valid data
-  float max_value = 0;
-  float max_idx = 0;
-  for (int i = 0; i < 1024; i++) {
-    if( correlation_data[i] > max_value) {
-      max_value = correlation_data[i];
-      max_idx = i;
-    }
-    max_value += correlation_data[i];
-    //max_idx += mic2_magnitude[i];
-  }
-  fill(150, 150, 255);
-  text("corr max: " + nf(max_value, 0, 4) + " | max index: " + nf(max_idx, 0, 4), 400, 20);
+  //// Check if we have valid data
+  //float max_value = 0;
+  //float max_idx = 0;
+  //for (int i = 0; i < 1024; i++) {
+  //  if( correlation_data[i] > max_value) {
+  //    max_value = correlation_data[i];
+  //    max_idx = i;
+  //  }
+  //  //max_value += correlation_data[i];
+  //  //max_idx += mic2_magnitude[i];
+  //}
+  //fill(150, 150, 255);
+  //text("corr max: " + nf(max_value, 0, 4) + " | max index: " + nf(max_idx, 0, 4), 400, 20);
 
   // Title
   fill(100, 200, 255);
@@ -315,16 +344,20 @@ void shiftIntoNewBuffer(float[] src, float[] dst, int MAX_LAG) {
   // 1) Negative lags (tail)
   //    src[-MAX_LAG+1:]
   // -------------------------------
-  for (int i = N - MAX_LAG + 1; i < N; i++) {
-    dst[k++] = src[i];
-  }
+  //for (int i = N - MAX_LAG + 1; i < N; i++) {
+  //  dst[k++] = src[i];
+  //}
 
-  // -------------------------------
-  // 2) Zero + positive lags
-  //    src[:MAX_LAG+1]
-  // -------------------------------
-  for (int i = 0; i <= MAX_LAG; i++) {
-    dst[k++] = src[i];
+  //// -------------------------------
+  //// 2) Zero + positive lags
+  ////    src[:MAX_LAG+1]
+  //// -------------------------------
+  //for (int i = 0; i <= MAX_LAG; i++) {
+  //  dst[k++] = src[i];
+  //}
+  
+  for (int i = 0; i < N; i++) {
+    dst[i] = src[i];
   }
 }
 
@@ -435,46 +468,8 @@ void drawFFTGraph(float[] magData, float[] phaseData, int x, int y, int w, int h
 
     }
     
-    //int plotIndex = 0;
-    //int MAX_LAG = displayBins / 2;
-    //// ---------------------------------------
-    //// 1) Negative lags: tail of array
-    ////    Equivalent to Python:
-    ////    R[-MAX_LAG+1 : ]
-    //// ---------------------------------------
-    //for (int i = displayBins - MAX_LAG + 1; i < displayBins; i++) {
-    //  float px = map(plotIndex, 0, displayBins - 1, 0, w);
-    //  float py = map(corr_roated[i], 0, 1.0, h, 0);
-    //  py = constrain(py, 0, h);
-    //  vertex(px, py);
-    //  plotIndex++;
-    //}
-  
-    //// ---------------------------------------
-    //// 2) Zero + positive lags: head of array
-    ////    Equivalent to Python:
-    ////    R[ : MAX_LAG+1 ]
-    //// ---------------------------------------
-    //for (int i = 0; i <= MAX_LAG; i++) {
-    //  float px = map(plotIndex, 0, displayBins - 1, 0, w);
-    //  float py = map(corr_roated[i], 0, 1.0, h, 0);
-    //  py = constrain(py, 0, h);
-    //  vertex(px, py);
-    //  plotIndex++;
-    //}
-    
-    
-    
   } 
-  //else if (phaseData != null) {
-  //  // Draw phase - only first 24 bins
-  //  for (int i = 0; i < displayBins; i++) {
-  //    float px = map(i, 0, displayBins - 1, 0, w);
-  //    float py = map(phaseData[i], PI, -PI, 0, h);
-  //    py = constrain(py, 0, h);
-  //    vertex(px, py);
-  //  }
-  //}
+
   endShape();
 
 
@@ -488,7 +483,7 @@ void drawFFTGraph(float[] magData, float[] phaseData, int x, int y, int w, int h
       }
     }
 
-    if (peakVal > 0.01) {
+    if (peakVal > 0.25) {
       float peakX = map(peakBin, 0, displayBins - 1, 0, w);
       float peakY = map(peakVal, 0, 1.0, h, 0);
 
