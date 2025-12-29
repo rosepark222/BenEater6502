@@ -7,6 +7,7 @@ class Eye {
   int x, y;
   int size;
   float angle = 0.0;
+  int eyex, eyey;
 
   Eye(int tx, int ty, int ts) {
     x = tx;
@@ -15,10 +16,24 @@ class Eye {
   }
 
   void update(int mx, int my) {
-    angle = atan2(my - y, mx - x);
+    // angle = atan2(my - y, mx - x);
+    eyex = mx;
+    eyey = my;
   }
 
   void display() {
+    pushMatrix();
+    translate(x, y);
+    fill(255);
+    ellipse(0, 0, size, 2*size);
+    //rotate(angle);
+    // fill(153, 204, 0); yellowish green
+    fill(0);  // black
+    ellipse(eyex, eyey, size/2, size/2);
+    popMatrix();
+  }
+  
+  void display2() {
     pushMatrix();
     translate(x, y);
     fill(255);
@@ -318,7 +333,13 @@ void draw() {
   fill(100, 255, 100);
   text("max value: " + nf(last_max_value, 0, 1), 20, 100);
 
-  
+  //if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12")) {
+    fill(100, 255, 100);
+    text("eyeX: " + nf(e1.eyex, 0, 1), 20, 120);
+    
+    fill(100, 255, 100);
+    text("eyeY: " + nf(e1.eyey, 0, 1), 20, 140);
+  //}
 
 
 
@@ -377,19 +398,24 @@ void drawEyesDemo() {
 
   if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12")) {
     println("sure_signal " + sure_signal);
-    if(mic01_phat_peak_idx < 0 && mic23_phat_peak_idx < 0) {
-      e1.update(leftX, upY);
-      e2.update(leftX, upY);
-    } else if(mic01_phat_peak_idx > 0 && mic23_phat_peak_idx < 0) {
-      e1.update(rightX, upY);
-      e2.update(rightX, upY);
-    } else if(mic01_phat_peak_idx < 0 && mic23_phat_peak_idx > 0) {
-      e1.update(leftX, downY);
-      e2.update(leftX, downY);
-    } else if(mic01_phat_peak_idx > 0 && mic23_phat_peak_idx > 0) {
-      e1.update(rightX, downY);
-      e2.update(rightX, downY);
-    }
+    //if(mic01_phat_peak_idx < 0 && mic23_phat_peak_idx < 0) {
+    //  e1.update(leftX, upY);
+    //  e2.update(leftX, upY);
+    //} else if(mic01_phat_peak_idx > 0 && mic23_phat_peak_idx < 0) {
+    //  e1.update(rightX, upY);
+    //  e2.update(rightX, upY);
+    //} else if(mic01_phat_peak_idx < 0 && mic23_phat_peak_idx > 0) {
+    //  e1.update(leftX, downY);
+    //  e2.update(leftX, downY);
+    //} else if(mic01_phat_peak_idx > 0 && mic23_phat_peak_idx > 0) {
+    //  e1.update(rightX, downY);
+    //  e2.update(rightX, downY);
+    //}
+    
+    e1.update(3*(int)mic01_phat_peak_idx, 3*(int)mic23_phat_peak_idx);
+    e2.update(3*(int)mic01_phat_peak_idx, 3*(int)mic23_phat_peak_idx);
+    //println(String.format("INFO:X  %5d, Y %5d ", 3*(int)mic01_phat_peak_idx, 3*(int)mic23_phat_peak_idx));
+          
   }
  
   e1.display();
