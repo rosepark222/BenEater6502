@@ -3,14 +3,30 @@
 #include <Wire.h>
 #include <U8g2lib.h>
 #include <arm_math.h>
+#include <math.h>
+
+#define FFT_MODE 0
+#define CORR_MODE 1
+#define EYE_MODE 2
+#define GAME_MODE 3
 
 // ------------------ Pins ------------------
 const int MIC1_LED = 13;
 const int MIC2_LED = 14;
 const int MIC3_LED = 15;
 
+// MODE SWITCHING: Current mode and pending mode change
+int debug_mode = EYE_MODE;
+int pending_mode = -1; // -1 means no pending mode change
 
-int debug_mode = 4; // 1: send to processing, 2: print max_value and index,   4: eye tracking
+// MODE SWITCHING: Buffer management for receiving commands from host
+String commandBuffer = "";
+bool newCommand = false;
+
+// DEBUG: Heartbeat to show Teensy is alive
+unsigned long lastHeartbeat = 0;
+const unsigned long HEARTBEAT_INTERVAL = 2000; // 2 seconds
+
 // ------------------ Audio objects ------------------
 AudioInputI2SQuad      i2s_quad;  
 
@@ -95,7 +111,6 @@ float mic3_magnitude[FFT_BINS];
 float mic3_phase[FFT_BINS];
 
 // Mic2 buffers (delayed version)
-
 
 float cross_spectrum01[FFT_SIZE]; // X(f)X2*(f) / |X(f)X2*(f)|
 float correlation_result01[FFT_SIZE]; // Final time domain result (size FFT_SIZE)
@@ -223,18 +238,147 @@ void run_gcc_phat(float* fft1, float* fft2, float *cross_spectrum, float *correl
      */
 }
 
+/*
+| PSR value | Interpretation          |
+| --------- | ----------------------- |
+| < 4       | noise / heavy multipath |
+| 4–6       | weak / ambiguous        |
+| 6–8       | usable                  |
+| > 8       | strong direct path      |
+| > 15      | very clean impulse      |
+
+*/
+float psr(float *correlation_result, int max_idx, int fft_size)
+{
+    const int EXCLUDE = 4;     // exclude ±4 bins around main peak
+    float sum = 0.0f;
+    float sumsq = 0.0f;
+    int count = 0;
+
+    for (int i = 0; i < fft_size; i++) {
+        if (abs(i - max_idx) <= EXCLUDE)
+            continue;
+
+        float v = correlation_result[i];
+        sum += v;
+        sumsq += v * v;
+        count++;
+    }
+
+    if (count < 2)
+        return 0.0f;
+
+    float mean = sum / count;
+    float var  = (sumsq / count) - (mean * mean);
+    if (var < 1e-12f)
+        var = 1e-12f;
+
+    float std = sqrtf(var);
+
+    return (correlation_result[max_idx] - mean) / std;
+}
+
+// MODE SWITCHING: Check for incoming serial commands (non-blocking)
+// This reads characters from serial and buffers them until newline is received
+void checkSerialCommand() {
+  while (Serial.available() > 0) {
+    char inChar = (char)Serial.read();
+    
+    // DEBUG: Blink LED when receiving serial data
+    digitalWrite(LED_BUILTIN, HIGH);
+    
+    // Check for command terminator (newline or carriage return)
+    if (inChar == '\n' || inChar == '\r') {
+      if (commandBuffer.length() > 0) {
+        newCommand = true; // Flag that we have a complete command
+        // DEBUG: Double blink when command complete
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(50);
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(50);
+        digitalWrite(LED_BUILTIN, LOW);
+      }
+    } else {
+      commandBuffer += inChar; // Accumulate characters into command buffer
+    }
+  }
+  digitalWrite(LED_BUILTIN, LOW);
+}
+
+// MODE SWITCHING: Process received command and send acknowledgment
+// BUFFER CORRUPTION PREVENTION: Only sets pending_mode, actual switch happens after current frame completes
+void processCommand() {
+  if (!newCommand) return; // No new command to process
+  
+  // DEBUG: Show what command we received
+  Serial.print("DEBUG:Received command: '");
+  Serial.print(commandBuffer);
+  Serial.println("'");
+  
+  commandBuffer.trim(); // Remove any whitespace
+  commandBuffer.toUpperCase(); // Convert to uppercase for consistency
+  
+  // DEBUG: Show after trimming
+  Serial.print("DEBUG:After trim: '");
+  Serial.print(commandBuffer);
+  Serial.println("'");
+  
+  // HANDSHAKE: Parse command and set pending mode change
+  if (commandBuffer == "MODE_FFT") {
+    pending_mode = FFT_MODE; // Don't switch immediately - wait for frame to complete
+    Serial.println("ACK:MODE_FFT"); // Send acknowledgment to host
+    Serial.println("DEBUG:Set pending_mode to FFT_MODE");
+  } 
+  else if (commandBuffer == "MODE_CORR") {
+    pending_mode = CORR_MODE;
+    Serial.println("ACK:MODE_CORR");
+    Serial.println("DEBUG:Set pending_mode to CORR_MODE");
+  }
+  else if (commandBuffer == "MODE_EYE") {
+    pending_mode = EYE_MODE;
+    Serial.println("ACK:MODE_EYE");
+    Serial.println("DEBUG:Set pending_mode to EYE_MODE");
+  }
+  else if (commandBuffer == "MODE_GAME") {
+    pending_mode = GAME_MODE;
+    Serial.println("ACK:MODE_GAME");
+    Serial.println("DEBUG:Set pending_mode to GAME_MODE");
+  }
+  else if (commandBuffer == "STATUS") {
+    // Report current mode without changing anything
+    Serial.print("CURRENT_MODE:");
+    Serial.println(debug_mode);
+  }
+  else {
+    // Unknown command
+    Serial.println("ERROR:UNKNOWN_COMMAND");
+    Serial.print("DEBUG:Unknown command length: ");
+    Serial.println(commandBuffer.length());
+    Serial.println("VALID_COMMANDS: MODE_FFT, MODE_CORR, MODE_EYE, MODE_GAME, STATUS");
+  }
+  
+  // BUFFER CORRUPTION PREVENTION: Clear command buffer and flag immediately after processing
+  commandBuffer = "";
+  newCommand = false;
+}
+
 void setup() {
   Serial.begin(115200);
+  
+  // Wait a moment for serial to initialize
+  delay(100);
+  
   pinMode(MIC1_LED, OUTPUT);
   pinMode(MIC2_LED, OUTPUT);
   pinMode(MIC3_LED, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT); // DEBUG: Use built-in LED for debugging
   /*
   Each audio block is a fixed size: 128 samples of 16-bit data (2 bytes per sample). 
   The total buffer size allocated by that call is: 
    Total Samples: 20 blocks x 128 samples/block = 2560 samples
    Total Memory: 20 blocks x 256 bytes/block = 5120 bytes (5kb)
 
-   Let’s add it up conservatively:
+   Let's add it up conservatively:
 
 Component	Blocks
 FFT accumulation (1024 × 4)	32
@@ -253,7 +397,6 @@ Total	104 blocks
   generateTukey();
   generateHann();
 
-
   // Configure DC blocking filter
   dcBlocker0.setHighpass(0, 20, 0.707);
   dcBlocker1.setHighpass(0, 20, 0.707);  
@@ -271,7 +414,6 @@ Total	104 blocks
   queueMic2.begin();  // mic2 added - Start right channel queue
   queueMic3.begin();
 
-
   oled.begin();
   oled.clearBuffer();
   oled.setFont(u8g2_font_ncenB08_tr);
@@ -279,10 +421,31 @@ Total	104 blocks
   oled.sendBuffer();
   
   Serial.println("Setup complete - ARM FFT initialized with Hann window");
+  Serial.println("READY"); // Tell host we're ready for commands
+  Serial.println("Send commands: MODE_FFT, MODE_CORR, MODE_EYE, MODE_GAME, STATUS");
 }
 
 void loop() {
-   loop_gcc_phat(); 
+  // MODE SWITCHING: Check for incoming mode change commands every loop iteration
+  checkSerialCommand();
+  processCommand();
+  
+  // DEBUG: Send heartbeat to show Teensy is running
+  unsigned long now = millis();
+  if (now - lastHeartbeat > HEARTBEAT_INTERVAL) {
+    Serial.print("HEARTBEAT:mode=");
+    Serial.print(debug_mode);
+    Serial.print(",pending=");
+    Serial.print(pending_mode);
+    Serial.print(",fft_ready=");
+    Serial.print(fft_ready);
+    Serial.print(",sample_count=");
+    Serial.println(sample_count);
+    lastHeartbeat = now;
+  }
+  
+  // Run main audio processing
+  loop_gcc_phat(); 
 }
 
 void loop_gcc_phat() {
@@ -309,8 +472,6 @@ void loop_gcc_phat() {
     queueMic3.freeBuffer(); 
     // When buffer is full, mark ready for FFT processing
     if (sample_count >= FFT_SIZE && !fft_ready) {
- 
-
       fft_ready = true;
       sample_count = 0;  // Reset immediately to start collecting next frame
     }
@@ -325,156 +486,134 @@ void loop_gcc_phat() {
       run_gcc_phat(mic0_fft, mic1_fft, cross_spectrum01, correlation_result01);
       run_gcc_phat(mic0_fft, mic2_fft, cross_spectrum02, correlation_result02);
       run_gcc_phat(mic0_fft, mic3_fft, cross_spectrum03, correlation_result03);
-
       run_gcc_phat(mic2_fft, mic3_fft, cross_spectrum23, correlation_result23);
 
+      // BUFFER CORRUPTION PREVENTION: Apply pending mode change ONLY after frame is complete
+      // This ensures we don't switch modes mid-frame, which would cause corrupt/mixed data
+      if (pending_mode != -1) {
+        debug_mode = pending_mode; // Apply the mode change now that frame is done
+        Serial.print("MODE_CHANGED:"); // Notify host that mode switch is complete
+        Serial.println(debug_mode);
+        pending_mode = -1; // Clear pending flag
+      }
 
       /*
-      *
-      *
+      *  MODE: FFT_MODE - Send 512 FFT magnitude bins
       *
       */
-    if(debug_mode == 1) {
-      Serial.println("FFT_DATA_START");
-      Serial.print("CORR:");
-      for(int i = 0; i < FFT_SIZE; i++) {
-        Serial.print(correlation_result01[i], 6);
-        // Serial.print(mic1_magnitude[i], 6);
-        // Serial.print(mic2_magnitude[i], 6);
-        //Serial.print(",");
-        //Serial.print(mic1_phase[i], 6);
-        if(i < FFT_SIZE - 1) {
+      if(debug_mode == FFT_MODE) {      
+        Serial.println("FFT_START"); // Start marker for FFT data packet
+        for(int i = 0; i < FFT_BINS; i++) {
+          Serial.print(mic0_magnitude[i], 6); // Send magnitude with 6 decimal places
+          //Serial.print(mic1_magnitude[i], 6);
+          //Serial.print(mic2_magnitude[i], 6);
+          //Serial.print(mic3_magnitude[i], 6);
+          if(i < FFT_BINS - 1) {Serial.print(",");} // Comma-separated values
+        }
+        Serial.println(); // End of data line
+        Serial.println("FFT_END"); // End marker for FFT data packet
+      
+      /*
+      *  MODE: CORR_MODE - Send only 21 values around peak (optimization)
+      *
+      */
+      } else if(debug_mode == CORR_MODE) {
+        // Find peak in correlation result first
+        float corr_max_value = -1;
+        int corr_max_idx = -1;
+        for(int i = 0; i < FFT_SIZE; i++) {
+          if(correlation_result01[i] > corr_max_value) {
+            corr_max_value = correlation_result01[i];
+            corr_max_idx = i;
+          }
+        }
+        
+        Serial.println("CORR_START"); // Start marker for correlation data packet
+        
+        // Send peak index and value first
+        Serial.print(corr_max_idx);
+        Serial.print(",");
+        Serial.print(corr_max_value, 6);
+        
+        // Send 10 values to the left of peak (or less if near boundary)
+        int left_start = max(0, corr_max_idx - 10);
+        int left_count = corr_max_idx - left_start;
+        Serial.print(",");
+        Serial.print(left_count); // How many left values
+        for(int i = left_start; i < corr_max_idx; i++) {
           Serial.print(",");
+          Serial.print(correlation_result01[i], 6);
         }
-      }
-
+        
+        // Send 10 values to the right of peak (or less if near boundary)
+        int right_end = min(FFT_SIZE - 1, corr_max_idx + 10);
+        int right_count = right_end - corr_max_idx;
+        Serial.print(",");
+        Serial.print(right_count); // How many right values
+        for(int i = corr_max_idx + 1; i <= right_end; i++) {
+          Serial.print(",");
+          Serial.print(correlation_result01[i], 6);
+        }
+        
+        Serial.println(); // End of data line
+        Serial.println("CORR_END"); // End marker for correlation data packet
       
-      Serial.println();
-      Serial.println("FFT_DATA_END");
-
       /*
-      *
-      *
+      *  MODE: EYE_MODE and GAME_MODE - Send PHAT peak detection data
       *
       */
-    } else if(debug_mode == 2) {
-      float max01_value = -1; int max01_idx = -1;
-      float max02_value = -1; int max02_idx = -1;
-      float max03_value = -1; int max03_idx = -1;
-
-      for(int i = 0; i < FFT_SIZE; i++) {
-        if(correlation_result01[i] > max01_value) {
-          max01_value =  correlation_result01[i];
-          max01_idx = i;
-        } 
-        if(correlation_result02[i] > max02_value) {
-          max02_value =  correlation_result02[i];
-          max02_idx = i;
-        } 
-        if(correlation_result03[i] > max03_value) {
-          max03_value =  correlation_result03[i];
-          max03_idx = i;
-        } 
-      }
-
-      if (max01_value > 0.25 && max02_value > 0.25 && max03_value > 0.25) {
-        int max01_shifted_idx = max01_idx > 512 ? max01_idx -1024 : max01_idx;
-        int max02_shifted_idx = max02_idx > 512 ? max02_idx -1024 : max02_idx;
-        int max03_shifted_idx = max03_idx > 512 ? max03_idx -1024 : max03_idx;
-        int max12_shifted_idx = max02_shifted_idx - max01_shifted_idx;
-        int max13_shifted_idx = max03_shifted_idx - max01_shifted_idx;
-        int max23_shifted_idx = max03_shifted_idx - max02_shifted_idx;
-
-        Serial.printf("%lu: max01_value: %.2f at %5d, max02_value: %.2f at %5d, max03_value: %.2f at %5d \n", 
-                      millis()/1000, 
-                      max01_value, max01_shifted_idx, 
-                      max02_value, max02_shifted_idx, 
-                      max03_value, max03_shifted_idx);
-
-
-        if(max01_shifted_idx < 0 && max02_shifted_idx < 0 && max03_shifted_idx < 0) {
-          digitalWrite(MIC1_LED, HIGH); 
-        } else if(max01_shifted_idx > 0 &&  max12_shifted_idx < 0 && max13_shifted_idx < 0 ) {
-          digitalWrite(MIC2_LED, HIGH); 
-        } else if(max02_shifted_idx > 0 &&  max12_shifted_idx > 0 && max23_shifted_idx < 0 ) {
-          digitalWrite(MIC3_LED, HIGH); 
-        }
-      
-      
-      }
-
-      /*
-      *
-      *
-      *
-      */
-    } else if( debug_mode == 3) {
-      //float amplitude = peak0.read();
-        float _peak0 = peak0.read();
-        float _peak1 = peak1.read();
-        float _peak2 = peak2.read();
-        float _peak3 = peak3.read();
-        if( _peak0 > 0.1 || _peak1 > 0.1 || _peak2 > 0.1 || _peak3 > 0.1) {
-          Serial.printf("%lu: peak0: %.2f, peak1: %.2f, peak2: %.2f, peak3: %.2f \n", 
-                        millis()/1000, _peak0, _peak1, _peak2, _peak3);
+      }  else if(debug_mode == EYE_MODE || debug_mode == GAME_MODE ) {
+        float mic01_max_value    = -1; int mic01_max_idx    = -1; 
+        float mic01_second_value = -1; int mic01_second_idx = -1;
+        float mic23_max_value    = -1; int mic23_max_idx    = -1; 
+        float mic23_second_value = -1; int mic23_second_idx = -1;
  
+        // Find peak and second peak in correlation results
+        for(int i = 0; i < FFT_SIZE; i++) {
+          if(correlation_result01[i] > mic01_max_value) {
+            mic01_second_value = mic01_max_value;
+            mic01_second_idx = mic01_max_idx;
+            mic01_max_value =  correlation_result01[i];
+            mic01_max_idx = i;
+          } else if(correlation_result01[i] > mic01_second_value && correlation_result01[i] != mic01_max_value) {
+            mic01_second_value = correlation_result01[i];
+            mic01_second_idx = i;
+          }
+
+          if(correlation_result23[i] > mic23_max_value) {
+            mic23_second_value = mic23_max_value;
+            mic23_second_idx = mic23_max_idx;
+            mic23_max_value =  correlation_result23[i];
+            mic23_max_idx = i;
+          } else if(correlation_result23[i] > mic23_second_value && correlation_result23[i] != mic23_max_value) {
+            mic23_second_value = correlation_result23[i];
+            mic23_second_idx = i;
+          }
         }
 
-      /*
-      *
-      *
-      *
-      */
-    } else if(debug_mode == 4) { // eye tracking mode
-      float mic01_max_value    = -1; int mic01_max_idx    = -1; 
-      float mic01_second_value = -1; int mic01_second_idx = -1;
-      float mic23_max_value    = -1; int mic23_max_idx    = -1; 
-      float mic23_second_value = -1; int mic23_second_idx = -1;
- 
-
-      for(int i = 0; i < FFT_SIZE; i++) {
-        if(correlation_result01[i] > mic01_max_value) {
-          mic01_second_value = mic01_max_value;
-          mic01_second_idx = mic01_max_idx;
-          mic01_max_value =  correlation_result01[i];
-          mic01_max_idx = i;
-        } else if(correlation_result01[i] > mic01_second_value && correlation_result01[i] != mic01_max_value) {
-          mic01_second_value = correlation_result01[i];
-          mic01_second_idx = i;
-        }
-
-        if(correlation_result23[i] > mic23_max_value) {
-          mic23_second_value = mic23_max_value;
-          mic23_second_idx = mic23_max_idx;
-          mic23_max_value =  correlation_result23[i];
-          mic23_max_idx = i;
-        } else if(correlation_result23[i] > mic23_second_value && correlation_result23[i] != mic23_max_value) {
-          mic23_second_value = correlation_result23[i];
-          mic23_second_idx = i;
-        }
-
-        // if(correlation_result23[i] > mic23_max_value) {
-        //   mic23_max_value =  correlation_result23[i];
-        //   mic23_max_idx = i;
-        // } 
-      }
-
-      //float threshold = 0.15;
-      //if (mic01_max_value > threshold && mic23_max_value > threshold) {
+        // Calculate Peak-to-Sidelobe Ratio for signal quality
+        float psr01 = psr(correlation_result01, mic01_max_idx, FFT_SIZE); 
+        float psr23 = psr(correlation_result23, mic23_max_idx, FFT_SIZE); 
+        
+        //float threshold = 0.15;
+        //if (mic01_max_value > threshold && mic23_max_value > threshold) {
+        
+        // Shift indices to represent negative delays (indices > 512 represent negative delays)
         int mic01_max_shifted_idx = mic01_max_idx > 512 ? mic01_max_idx -1024 : mic01_max_idx;
         int mic01_second_shifted_idx = mic01_second_idx > 512 ? mic01_second_idx -1024 : mic01_second_idx;
         int mic23_max_shifted_idx = mic23_max_idx > 512 ? mic23_max_idx -1024 : mic23_max_idx;
         int mic23_second_shifted_idx = mic23_second_idx > 512 ? mic23_second_idx -1024 : mic23_second_idx;
  
-        Serial.println("PHAT_START");
-        Serial.printf("%.6f, %5d, %.6f, %5d, %.6f, %5d, %.6f, %5d\n", 
-          mic01_max_value, mic01_max_shifted_idx, mic01_second_value, mic01_second_shifted_idx,
-          mic23_max_value, mic23_max_shifted_idx, mic23_second_value, mic23_second_shifted_idx);
-        Serial.println("PHAT_END");
+        Serial.println("PHAT_START"); // Start marker for PHAT data packet
+        // Send: peak_value, peak_idx, second_value, second_idx, psr for both mic pairs
+        Serial.printf("%.6f, %5d, %.6f, %5d, %.6f, %.6f, %5d, %.6f, %5d, %.6f\n", 
+          mic01_max_value, mic01_max_shifted_idx, mic01_second_value, mic01_second_shifted_idx, psr01, 
+          mic23_max_value, mic23_max_shifted_idx, mic23_second_value, mic23_second_shifted_idx, psr23);
+        Serial.println("PHAT_END"); // End marker for PHAT data packet
 
-      //}
-    }
+        //}
+      } 
 
-    fft_ready = false;  // Reset flag
+      fft_ready = false;  // Reset flag
   } // if (fft_ready)
 } // void loop_gcc_phat()
