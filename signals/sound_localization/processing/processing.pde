@@ -2,6 +2,16 @@ import processing.serial.*; //<>//
 
 Serial myPort;
 boolean newFrameAvailable = false; 
+
+// MODE SWITCHING: Current mode and mode transition state
+int currentMode = 2; // 0=FFT, 1=CORR, 2=EYE, 3=GAME
+int requestedMode = -1; // -1 means no mode change requested
+boolean waitingForAck = false; // Waiting for acknowledgment from Teensy
+boolean modeChanging = false; // In the process of changing modes
+String modeChangeStatus = ""; // Status message to display
+ArrayList<String> debugMessages = new ArrayList<String>(); // Store debug messages
+int maxDebugMessages = 10; // Keep last 10 messages
+
 // Eye class for demo mode - DEFINED FIRST
 class Eye {
   int x, y;
@@ -46,21 +56,139 @@ class Eye {
   }
 }
 
+// GAME MODE: Mosquito class for mosquito hunting game
+class Mosquito {
+  float x, y;
+  float size;
+  boolean alive;
+  float wingAngle;
+  float wingSpeed;
+  float hoverOffsetX, hoverOffsetY;
+  float hoverAngle;
+  
+  Mosquito() {
+    respawn();
+    wingAngle = 0;
+    wingSpeed = 0.3;
+    hoverAngle = random(TWO_PI);
+  }
+  
+  void respawn() {
+    // Spawn in random location (with margins)
+    x = random(150, width - 150);
+    y = random(150, height - 150);
+    size = 30;
+    alive = true;
+  }
+  
+  void update() {
+    if (!alive) return;
+    
+    // Animate wings
+    wingAngle += wingSpeed;
+    
+    // Hovering motion
+    hoverAngle += 0.05;
+    hoverOffsetX = cos(hoverAngle) * 10;
+    hoverOffsetY = sin(hoverAngle * 1.3) * 8;
+  }
+  
+  void display() {
+    if (!alive) return;
+    
+    pushMatrix();
+    translate(x + hoverOffsetX, y + hoverOffsetY);
+    
+    // Body (dark gray/black)
+    fill(50);
+    stroke(30);
+    strokeWeight(1);
+    ellipse(0, 0, size * 0.4, size * 0.8); // Elongated body
+    
+    // Head
+    fill(60);
+    ellipse(0, -size * 0.4, size * 0.35, size * 0.35);
+    
+    // Eyes (red for evil look)
+    fill(255, 0, 0);
+    noStroke();
+    ellipse(-size * 0.08, -size * 0.42, size * 0.1, size * 0.1);
+    ellipse(size * 0.08, -size * 0.42, size * 0.1, size * 0.1);
+    
+    // Wings (animated)
+    stroke(150, 150, 200, 100);
+    strokeWeight(1);
+    fill(200, 200, 255, 80);
+    
+    // Left wing
+    pushMatrix();
+    rotate(sin(wingAngle) * 0.3);
+    ellipse(-size * 0.25, 0, size * 0.6, size * 0.3);
+    popMatrix();
+    
+    // Right wing
+    pushMatrix();
+    rotate(-sin(wingAngle) * 0.3);
+    ellipse(size * 0.25, 0, size * 0.6, size * 0.3);
+    popMatrix();
+    
+    // Legs (thin lines)
+    stroke(50);
+    strokeWeight(1);
+    line(0, size * 0.3, -size * 0.15, size * 0.5);
+    line(0, size * 0.3, size * 0.15, size * 0.5);
+    
+    popMatrix();
+  }
+  
+  // Check if clap position is near mosquito
+  boolean checkHit(float clapX, float clapY, float threshold) {
+    if (!alive) return false;
+    
+    float distance = dist(x, y, clapX, clapY);
+    return distance < threshold;
+  }
+  
+  void kill() {
+    alive = false;
+  }
+}
+
+// GAME MODE: Game state variables
+Mosquito mosquito;
+int gameScore = 0;
+int killDistance = 100; // How close the clap needs to be
+ArrayList<String> gameMessages = new ArrayList<String>();
+int lastClapX = -1, lastClapY = -1;
+long lastClapTime = 0;
+
 // FFT data storage
-float[] correlation_data = new float[1024];
+float[] fft_data = new float[512]; // MODE: FFT - 512 magnitude bins
+float[] correlation_data = new float[1024]; // MODE: CORR - 1024 correlation samples
 float[] corr_roated = new float[1024];
 //float[] mic1_phase = new float[512];
 //float[] mic2_magnitude = new float[512];
 //float[] mic2_phase = new float[512];
 
+// ANTI-FLICKER: PGraphics buffers for smooth rendering
+PGraphics fftBuffer;
+PGraphics corrBuffer;
+PGraphics waterfallBuffer; // Waterfall for FFT mode
+boolean fftBufferReady = false;
+boolean corrBufferReady = false;
+
+// Waterfall parameters for FFT mode
+final int FFT_GRAPH_HEIGHT = 300;
+final int WATERFALL_HEIGHT = 300;
+int waterfallRows;
+
 //int displayBins = 20;  // Only display first 24 bins (0-1000 Hz)
- int displayBins = 1024;  // Only display first 24 bins (0-1000 Hz)
+int displayBins = 1024;  // Only display first 24 bins (0-1000 Hz)
 
 boolean showEyes = false;  // Toggle between FFT display and eyes demo
 String sure_signal = "";
 
 Eye e1, e2 ;
-
 
 // Timing diagnostics
 long lastFrameTime = 0;
@@ -81,10 +209,13 @@ float mic01_phat_peak_value = -1;
 float mic01_phat_peak_idx = -10;
 float mic01_phat_second_value = -1;
 float mic01_phat_second_idx = -10;
+float mic01_psr = 0;
+
 float mic23_phat_peak_value = -1;
 float mic23_phat_peak_idx = -10;
 float mic23_phat_second_value = -1;
 float mic23_phat_second_idx = -10;
+float mic23_psr = 0;
 
 float last_max_value = 0;
 int  last_max_idx = 0;
@@ -95,6 +226,20 @@ void setup() {
 
   e1 = new Eye(820, 430, 220);
   e2 = new Eye(420, 430, 220);
+  
+  // GAME MODE: Initialize mosquito
+  mosquito = new Mosquito();
+  
+  // ANTI-FLICKER: Initialize PGraphics buffers
+  fftBuffer = createGraphics(width, height);
+  corrBuffer = createGraphics(width, height);
+  
+  // Initialize waterfall buffer for FFT mode
+  waterfallRows = WATERFALL_HEIGHT;
+  waterfallBuffer = createGraphics(512, waterfallRows);
+  waterfallBuffer.beginDraw();
+  waterfallBuffer.background(0);
+  waterfallBuffer.endDraw();
 
   println("Available ports:");
   printArray(Serial.list());
@@ -133,233 +278,727 @@ watch that section of the video walkthrough.
 512 mag, 512 phase for both mic1 and 2 --> about 60 msec
 */
 
-
-void serialEvent(Serial myPort) {
+// MODE SWITCHING: Send mode change request to Teensy
+// HANDSHAKE: Sends command and sets flag to wait for acknowledgment
+void requestModeChange(int newMode) {
+  if (waitingForAck || modeChanging) {
+    println("WARNING: Already changing mode, ignoring request");
+    return; // Don't send if already waiting for response
+  }
   
-  // serialEvent_phat(myPort);
-  serialEvent_Eyes(myPort);
+  requestedMode = newMode;
+  waitingForAck = true;
+  modeChanging = true;
   
+  // Send mode command to Teensy
+  String command = "";
+  if (newMode == 0) {
+    command = "MODE_FFT\n";
+    modeChangeStatus = "Requesting FFT mode...";
+  } else if (newMode == 1) {
+    command = "MODE_CORR\n";
+    modeChangeStatus = "Requesting CORR mode...";
+  } else if (newMode == 2) {
+    command = "MODE_EYE\n";
+    modeChangeStatus = "Requesting EYE mode...";
+  } else if (newMode == 3) {
+    command = "MODE_GAME\n";
+    modeChangeStatus = "Requesting GAME mode...";
+  }
+  
+  myPort.write(command); // Send command to Teensy
+  println("SENT: " + command.trim());
 }
 
-void serialEvent_Eyes(Serial myPort) {
-  
+void serialEvent(Serial myPort) {
   if (myPort == null) return;
 
   String data = myPort.readStringUntil('\n');
   if (data != null) {
     data = trim(data);
-
-    if (data.equals("PHAT_START")) {
-      receivingData = true;
-      
-      // Record timing: new frame arrived
-      long currentTime = millis();
-      if (lastFrameTime > 0) {
-        timeBetweenFrames = (currentTime - lastFrameTime);
+    
+    // DEBUG: Capture debug messages from Teensy
+    if (data.startsWith("DEBUG:")) {
+      addDebugMessage(data);
+      println(data);
+      return;
+    }
+    
+    // DEBUG: Capture heartbeat messages from Teensy
+    if (data.startsWith("HEARTBEAT:")) {
+      addDebugMessage("Teensy alive: " + data.substring(10));
+      println(data);
+      return;
+    }
+    
+    // HANDSHAKE: Check for acknowledgment from Teensy
+    if (data.startsWith("ACK:MODE_")) {
+      if (waitingForAck) {
+        modeChangeStatus = "Received acknowledgment: " + data;
+        addDebugMessage("ACK received: " + data);
+        println("RECEIVED: " + data);
+        waitingForAck = false; // Got the acknowledgment
+        
+        // BUFFER CORRUPTION PREVENTION: Clear serial buffer to discard any old data
+        myPort.clear();
+        
+        // BUFFER CORRUPTION PREVENTION: Reset receiving state to ignore partial packets
+        receivingData = false;
+        currentMic = "";
       }
-      frameArrivalTime = currentTime;
-      lastFrameTime = currentTime;
-      frameCount++;
-      
       return;
     }
-
-    if (data.equals("PHAT_END")) {
+    
+    // HANDSHAKE: Check for mode change confirmation from Teensy
+    if (data.startsWith("MODE_CHANGED:")) {
+      int newMode = int(data.substring(13));
+      currentMode = newMode; // Update our current mode
+      modeChanging = false; // Mode change complete
+      requestedMode = -1;
+      modeChangeStatus = "Mode changed successfully to: " + getModeNameForDisplay(currentMode);
+      addDebugMessage("Mode change complete: " + getModeNameForDisplay(currentMode));
+      println("RECEIVED: " + data + " - Mode change complete!");
+      
+      // BUFFER CORRUPTION PREVENTION: Clear any old data after mode change
+      myPort.clear();
       receivingData = false;
-            // Record timing: frame fully received
-      long receiveEndTime = millis();
-      float receiveTime = receiveEndTime - frameArrivalTime;
       
       return;
     }
+    
+    // Route to appropriate serial event handler based on current mode
+    // BUFFER CORRUPTION PREVENTION: Only process data if not changing modes
+    if (!modeChanging) {
+      if (currentMode == 0) {
+        serialEvent_fft(data); // FFT mode
+      } else if (currentMode == 1) {
+        serialEvent_corr(data); // CORR mode
+      } else if (currentMode == 2 || currentMode == 3) {
+        serialEvent_Eyes(data); // EYE or GAME mode
+      }
+    } else {
+      // BUFFER CORRUPTION PREVENTION: Ignore data during mode transition
+      if (data.equals("FFT_START") || data.equals("CORR_START") || data.equals("PHAT_START")) {
+        addDebugMessage("IGNORED: Data packet during mode transition");
+        println("IGNORED: Data packet during mode transition");
+      }
+    }
+  }
+}
 
- 
-    if (receivingData) {
-      // Parse magnitude and phase data (interleaved: mag0,phase0,mag1,phase1,...)
-      String[] values = split(data, ',');
-      // println( values[0] + "; " + values[1] + "; " + values[2] + "; " + values[3] );
-      mic01_phat_peak_value = float(values[0]);
-      mic01_phat_peak_idx = float(values[1]);
-      mic01_phat_second_value = float(values[2]);
-      mic01_phat_second_idx = float(values[3]); 
-      
-      mic23_phat_peak_value = float(values[4]);
-      mic23_phat_peak_idx =float(values[5]);
-      mic23_phat_second_value = float(values[6]);
-      mic23_phat_second_idx =float(values[7]);
-      
-      sure_signal = "";
-      if(mic01_phat_peak_value/mic01_phat_second_value > 1.5 && mic01_phat_peak_value > 0.2) sure_signal = "1";
-      if(mic23_phat_peak_value/mic23_phat_second_value > 1.5 && mic23_phat_peak_value > 0.2) sure_signal += "2";
-      
-      println(String.format("INFO: mic01 %10.6f %5d, %10.6f %5d (%10.6f); mic23 %10.6f %5d, %10.6f %5d (%10.6f);  %s",
+// Add debug message to list (keep only last N messages)
+void addDebugMessage(String msg) {
+  debugMessages.add(millis() + ": " + msg);
+  while (debugMessages.size() > maxDebugMessages) {
+    debugMessages.remove(0); // Remove oldest
+  }
+}
+
+// MODE: FFT - Receive 512 FFT magnitude bins
+void serialEvent_fft(String data) {
+  // Check for data markers
+  if (data.equals("FFT_START")) {
+    receivingData = true; // Start receiving FFT data packet
+
+    // Record timing: new frame arrived
+    long currentTime = millis();
+    if (lastFrameTime > 0) {
+      timeBetweenFrames = (currentTime - lastFrameTime);
+    }
+    frameArrivalTime = currentTime;
+    lastFrameTime = currentTime;
+    frameCount++;
+    
+    modeChangeStatus = "Receiving FFT data..."; // Update status message
+
+    return;
+  }
+
+  if (data.equals("FFT_END")) {
+    receivingData = false; // End of FFT data packet
+
+    // Record timing: frame fully received
+    long receiveEndTime = millis();
+    float receiveTime = receiveEndTime - frameArrivalTime;
+    
+    modeChangeStatus = "FFT data received correctly"; // Update status message
+    
+    // ANTI-FLICKER: Render FFT to buffer immediately when data arrives
+    renderFFTToBuffer();
+    fftBufferReady = true;
+    
+    newFrameAvailable = true; // Flag that we have new data to draw
+
+    return;
+  }
+
+  if (receivingData) {
+    // Parse FFT magnitude data (comma-separated values)
+    String[] values = split(data, ',');
+
+    if (values.length == 512) {
+      for (int i = 0; i < 512; i++) {
+        try {
+          fft_data[i] = float(values[i]); // Parse magnitude values
+        } catch (Exception e) {
+          // Skip invalid values
+        }
+      }
+    } else {
+      println("WARNING: Expected 512 FFT values, got " + values.length);
+    }
+  }
+}
+
+// MODE: CORR - Receive 1024 correlation samples
+void serialEvent_corr(String data) {
+  // Check for data markers
+  if (data.equals("CORR_START")) {
+    receivingData = true; // Start receiving correlation data packet
+
+    // Record timing: new frame arrived
+    long currentTime = millis();
+    if (lastFrameTime > 0) {
+      timeBetweenFrames = (currentTime - lastFrameTime);
+    }
+    frameArrivalTime = currentTime;
+    lastFrameTime = currentTime;
+    frameCount++;
+    
+    modeChangeStatus = "Receiving CORR data..."; // Update status message
+
+    return;
+  }
+
+  if (data.equals("CORR_END")) {
+    receivingData = false; // End of correlation data packet
+
+    // Record timing: frame fully received
+    long receiveEndTime = millis();
+    float receiveTime = receiveEndTime - frameArrivalTime;
+    
+    modeChangeStatus = "CORR data received correctly (sparse)"; // Update status message
+    
+    // ANTI-FLICKER: Render correlation to buffer immediately when data arrives
+    renderCorrToBuffer();
+    corrBufferReady = true;
+    
+    newFrameAvailable = true; // Flag that we have new data to draw
+
+    return;
+  }
+
+  if (receivingData) {
+    // OPTIMIZATION: Parse sparse correlation data (only 21 values around peak)
+    // Format: peak_idx, peak_value, left_count, [left_values...], right_count, [right_values...]
+    String[] values = split(data, ',');
+
+    if (values.length >= 5) { // At minimum: peak_idx, peak_value, left_count, right_count, and at least one value
+      try {
+        // Clear correlation array (all zeros by default)
+        for (int i = 0; i < 1024; i++) {
+          correlation_data[i] = 0.0;
+        }
+        
+        int idx = 0;
+        
+        // Parse peak index and value
+        max_idx = int(values[idx++]);
+        max_value = float(values[idx++]);
+        correlation_data[max_idx] = max_value; // Set peak value
+        
+        // Parse left values
+        int left_count = int(values[idx++]);
+        int left_start_idx = max_idx - left_count;
+        for (int i = 0; i < left_count; i++) {
+          correlation_data[left_start_idx + i] = float(values[idx++]);
+        }
+        
+        // Parse right values
+        int right_count = int(values[idx++]);
+        for (int i = 0; i < right_count; i++) {
+          correlation_data[max_idx + 1 + i] = float(values[idx++]);
+        }
+        
+        println("Received sparse CORR: peak at " + max_idx + " = " + nf(max_value, 0, 6) + 
+                " with " + left_count + " left, " + right_count + " right values");
+        
+      } catch (Exception e) {
+        println("ERROR parsing sparse CORR data: " + e.getMessage());
+      }
+    } else {
+      println("WARNING: Expected sparse CORR format, got " + values.length + " values");
+    }
+  }
+}
+
+// MODE: EYE and GAME - Receive PHAT peak detection data
+void serialEvent_Eyes(String data) {
+  if (data.equals("PHAT_START")) {
+    receivingData = true; // Start receiving PHAT data packet
+    
+    // Record timing: new frame arrived
+    long currentTime = millis();
+    if (lastFrameTime > 0) {
+      timeBetweenFrames = (currentTime - lastFrameTime);
+    }
+    frameArrivalTime = currentTime;
+    lastFrameTime = currentTime;
+    frameCount++;
+    
+    modeChangeStatus = "Receiving PHAT data..."; // Update status message
+    
+    return;
+  }
+
+  if (data.equals("PHAT_END")) {
+    receivingData = false; // End of PHAT data packet
+    
+    // Record timing: frame fully received
+    long receiveEndTime = millis();
+    float receiveTime = receiveEndTime - frameArrivalTime;
+    
+    modeChangeStatus = "PHAT data received correctly"; // Update status message
+    newFrameAvailable = true; // Flag that we have new data to draw
+    
+    return;
+  }
+
+  if (receivingData) {
+    // Parse magnitude and phase data (interleaved: mag0,phase0,mag1,phase1,...)
+    String[] values = split(data, ',');
+    // println( values[0] + "; " + values[1] + "; " + values[2] + "; " + values[3] );
+    mic01_phat_peak_value = float(values[0]);
+    mic01_phat_peak_idx = float(values[1]);
+    mic01_phat_second_value = float(values[2]);
+    mic01_phat_second_idx = float(values[3]); 
+    mic01_psr = float(values[4]);
+    
+    mic23_phat_peak_value = float(values[5]);
+    mic23_phat_peak_idx =float(values[6]);
+    mic23_phat_second_value = float(values[7]);
+    mic23_phat_second_idx =float(values[8]);
+    mic23_psr = float(values[9]);
+    
+    sure_signal = "";
+    //if(mic01_phat_peak_value/mic01_phat_second_value > 1.5 && mic01_phat_peak_value > 0.2) sure_signal = "1";
+    //if(mic23_phat_peak_value/mic23_phat_second_value > 1.5 && mic23_phat_peak_value > 0.2) sure_signal += "2";
+    if(mic01_phat_peak_value/mic01_phat_second_value > 1.5 && mic01_phat_peak_value > 0.2 && mic01_psr > 6.0f) sure_signal = "1";
+    if(mic23_phat_peak_value/mic23_phat_second_value > 1.5 && mic23_phat_peak_value > 0.2 && mic23_psr > 6.0f) sure_signal += "2";    
+    
+    if(! sure_signal.equals("")) {
+      println(String.format("INFO: mic01 %10.6f %5d, %10.6f %5d (%10.6f) %10.6f; mic23 %10.6f %5d, %10.6f %5d (%10.6f) %10.6f;  %s",
           mic01_phat_peak_value, (int)mic01_phat_peak_idx, 
           mic01_phat_second_value, (int)mic01_phat_second_idx,
           mic01_phat_peak_value/mic01_phat_second_value,
+          mic01_psr,
           mic23_phat_peak_value, (int)mic23_phat_peak_idx,
           mic23_phat_second_value, (int)mic23_phat_second_idx,
           mic23_phat_peak_value/mic23_phat_second_value,
-          sure_signal));
-
+          mic23_psr,
+          sure_signal)); 
     }
- 
   }
-  
-  newFrameAvailable = true; 
-
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-void serialEvent_phat(Serial myPort) {
-  if (myPort == null) return;
-
-  String data = myPort.readStringUntil('\n');
-  if (data != null) {
-    data = trim(data);
-
-    // Check for data markers
-    if (data.equals("FFT_DATA_START")) {
-      receivingData = true;
-
-      // Record timing: new frame arrived
-      long currentTime = millis();
-      if (lastFrameTime > 0) {
-        timeBetweenFrames = (currentTime - lastFrameTime);
-      }
-      frameArrivalTime = currentTime;
-      lastFrameTime = currentTime;
-      frameCount++;
-
-      return;
-    }
-
-    if (data.equals("FFT_DATA_END")) {
-      receivingData = false;
-
-      // Record timing: frame fully received
-      long receiveEndTime = millis();
-      float receiveTime = receiveEndTime - frameArrivalTime;
-
-      //println("Frame " + frameCount +
-      //        " | Between frames: " + nf(timeBetweenFrames, 0, 1) + " ms" +
-      //        " | Receive time: " + nf(receiveTime, 0, 1) + " ms");
-
-      return;
-    }
-
-    if (receivingData) {
-      // Check which mic data this is
-      if (data.startsWith("CORR:")) {
-        currentMic = "CORR";
-        data = data.substring(5); // Remove prefix
-      } else if (data.startsWith("MIC2:")) {
-        currentMic = "MIC2";
-        data = data.substring(5); // Remove   prefix
-      } else {
-        return; // Skip if no prefix
-      }
-
-      // Parse magnitude and phase data (interleaved: mag0,phase0,mag1,phase1,...)
-      String[] values = split(data, ',');
-
-      if (currentMic.equals("CORR")) {
-        for (int i = 0; i < 1024; i++) {
-          try {
-            // 512 floats * 4 bytes/float = 2048 bytes (2 KB) of data.
-            correlation_data[i] = float(values[i]);
-          } catch (Exception e) {
-            // Skip invalid values
-          }
-        }
-      } 
-    }
-    
-    max_value = -1;
-    max_idx = -1;
-    for (int i = 0; i < 1024; i++) {
-      if( correlation_data[i] > max_value) {
-        max_value = correlation_data[i];
-        max_idx = i;
-      }
-    }
-    
-    // println("mouseX: " + mouseX + " mouseY: " + mouseY + " max_idx: " + max_idx + " max_value: " + max_value);
-  
-  }
-  
-  newFrameAvailable = true; 
-
+// Helper function to get mode name for display
+String getModeNameForDisplay(int mode) {
+  if (mode == 0) return "FFT";
+  if (mode == 1) return "CORR";
+  if (mode == 2) return "EYE";
+  if (mode == 3) return "GAME";
+  return "UNKNOWN";
 }
-
-
   
 void draw() {
   long drawStartTime = millis();
-    // Check if we have valid data
-
   
   background(20, 25, 35);
+  
   // Debug info - TIMING DIAGNOSTICS
   fill(255, 255, 0);
   textSize(14);
   textAlign(LEFT);
-  text("Receiving: " + receivingData + " | Current: " + currentMic + " | Frame: " + frameCount, 20, 20);
+  text("Mode: " + getModeNameForDisplay(currentMode) + " | Receiving: " + receivingData + " | Frame: " + frameCount, 20, 20);
 
   fill(255, 100, 100);
   text("Time between frames: " + nf(timeBetweenFrames, 0, 1) + " ms", 20, 40);
 
   fill(100, 255, 100);
   text("Time to draw frame: " + nf(timeToDrawFrame, 0, 1) + " ms", 20, 60);
-
-  if(max_value > 0.25) {
-    last_max_value = max_value;
-    last_max_idx = max_idx;
+  
+  // MODE SWITCHING: Display mode change status
+  if (modeChanging || modeChangeStatus.length() > 0) {
+    if (modeChanging) {
+      fill(255, 200, 0); // Yellow for in-progress
+    } else {
+      fill(100, 255, 100); // Green for complete
+    }
+    textSize(16);
+    text("Status: " + modeChangeStatus, 20, 90);
   }
   
-  fill(100, 255, 100);
-  text("max idx: " + nf(last_max_idx, 0, 1), 20, 80);
-  
-  fill(100, 255, 100);
-  text("max value: " + nf(last_max_value, 0, 1), 20, 100);
-
-  //if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12")) {
-    fill(100, 255, 100);
-    text("eyeX: " + nf(e1.eyex, 0, 1), 20, 120);
-    
-    fill(100, 255, 100);
-    text("eyeY: " + nf(e1.eyey, 0, 1), 20, 140);
-  //}
-
-
-
-
-  // Check mode and draw accordingly
-  if (showEyes) {
-    drawEyesDemo();
-  } else {
-    drawFFTDisplay();
+  // DEBUG: Display debug messages from Teensy
+  fill(150, 150, 255);
+  textSize(12);
+  textAlign(LEFT);
+  text("Debug Messages (last " + maxDebugMessages + "):", 20, 120);
+  for (int i = 0; i < debugMessages.size(); i++) {
+    text(debugMessages.get(i), 20, 140 + i * 15);
   }
+
+  // Draw appropriate visualization based on current mode
+  if (currentMode == 0) {
+    drawFFTMode(); // MODE: FFT
+  } else if (currentMode == 1) {
+    drawCorrMode(); // MODE: CORR
+  } else if (currentMode == 2) {
+    drawEyesMode(); // MODE: EYE
+  } else if (currentMode == 3) {
+    drawGameMode(); // MODE: GAME (same as EYE for now)
+  }
+  
+  // Draw mode selection instructions
+  fill(255, 255, 0);
+  textSize(18);
+  textAlign(CENTER);
+  text("Press '1' for FFT | '2' for EYE | '3' for CORR | '4' for GAME", width/2, height - 20);
+  
   // Calculate and store draw time
   long drawEndTime = millis();
   timeToDrawFrame = drawEndTime - drawStartTime;
 }
 
-void drawEyesDemo() {
+// ANTI-FLICKER: Render FFT to off-screen buffer
+void renderFFTToBuffer() {
+  fftBuffer.beginDraw();
+  fftBuffer.clear();
   
+  int fftTop = 350; // Start FFT graph lower to make room for waterfall
+  int fftBottom = fftTop + FFT_GRAPH_HEIGHT;
+  int graphWidth = width - 100;
+  
+  // Find max for scaling
+  float maxMag = 0;
+  for (int i = 0; i < 512; i++) {
+    if (fft_data[i] > maxMag) maxMag = fft_data[i];
+  }
+  
+  // Draw axes
+  fftBuffer.stroke(255);
+  fftBuffer.strokeWeight(2);
+  fftBuffer.line(50, fftBottom, width - 50, fftBottom); // X-axis
+  fftBuffer.line(50, fftTop, 50, fftBottom); // Y-axis
+  
+  // X-axis labels (frequency) - 0 to 22050 Hz
+  fftBuffer.fill(255);
+  fftBuffer.textAlign(CENTER, TOP);
+  fftBuffer.textSize(14);
+  
+  fftBuffer.text("0 Hz", 50, fftBottom + 5);
+  fftBuffer.text("5512 Hz", 50 + graphWidth/4, fftBottom + 5);
+  fftBuffer.text("11025 Hz", 50 + graphWidth/2, fftBottom + 5);
+  fftBuffer.text("16537 Hz", 50 + 3*graphWidth/4, fftBottom + 5);
+  fftBuffer.text("22050 Hz", width - 50, fftBottom + 5);
+  
+  // Y-axis labels (magnitude)
+  fftBuffer.textAlign(RIGHT, CENTER);
+  fftBuffer.textSize(12);
+  for (int i = 0; i <= 5; i++) {
+    float yPos = fftBottom - i * FFT_GRAPH_HEIGHT / 5.0;
+    float val = maxMag * i / 5.0;
+    
+    if (maxMag < 0.01) {
+      fftBuffer.text(nf(val, 0, 6), 45, yPos);
+    } else if (maxMag < 1.0) {
+      fftBuffer.text(nf(val, 0, 4), 45, yPos);
+    } else {
+      fftBuffer.text(nf(val, 0, 2), 45, yPos);
+    }
+    
+    // Grid lines
+    fftBuffer.stroke(80, 80, 100);
+    fftBuffer.strokeWeight(1);
+    fftBuffer.line(50, yPos, width - 50, yPos);
+  }
+  
+  // Draw FFT line graph
+  fftBuffer.stroke(100, 200, 255);
+  fftBuffer.strokeWeight(2);
+  fftBuffer.noFill();
+  fftBuffer.beginShape();
+  
+  for (int i = 0; i < 512; i++) {
+    float x = map(i, 0, 511, 50, width - 50);
+    float y = map(fft_data[i], 0, maxMag, fftBottom, fftTop);
+    fftBuffer.vertex(x, y);
+  }
+  
+  fftBuffer.endShape();
+  
+  // Display info
+  fftBuffer.fill(255);
+  fftBuffer.textAlign(LEFT, TOP);
+  fftBuffer.textSize(12);
+  fftBuffer.text("FFT Size: 1024", 60, fftTop + 10);
+  fftBuffer.text("Freq Resolution: 43.07 Hz/bin", 60, fftTop + 30);
+  fftBuffer.text("Max Magnitude: " + nf(maxMag, 0, 4), 60, fftTop + 50);
+  
+  fftBuffer.endDraw();
+  
+  // Update waterfall
+  updateWaterfallFFT();
+}
 
+// Update waterfall spectrogram for FFT mode
+void updateWaterfallFFT() {
+  // Find max value for color scaling
+  float maxVal = 0;
+  for (int i = 0; i < 512; i++) {
+    if (fft_data[i] > maxVal) {
+      maxVal = fft_data[i];
+    }
+  }
+  if (maxVal == 0) maxVal = 1; // Prevent division by zero
+  
+  // Scroll waterfall down by copying pixels
+  waterfallBuffer.beginDraw();
+  waterfallBuffer.copy(0, 0, 512, waterfallRows - 1, 0, 1, 512, waterfallRows - 1);
+  
+  // Add new row at top
+  for (int i = 0; i < 512; i++) {
+    // Normalize to 0-1 range
+    float normalized = fft_data[i] / maxVal;
+    
+    // Apply sqrt scaling for better visualization
+    normalized = sqrt(normalized);
+    
+    // Convert to color
+    int colorValue = getColorForFFTValue(normalized);
+    
+    waterfallBuffer.set(i, 0, colorValue);
+  }
+  
+  waterfallBuffer.endDraw();
+}
 
- 
+// Color mapping for FFT waterfall
+int getColorForFFTValue(float normalized) {
+  normalized = constrain(normalized, 0, 1);
+  
+  int r, g, b;
+  
+  if (normalized < 0.2) {
+    // Black to blue
+    float t = normalized / 0.2;
+    r = 0;
+    g = 0;
+    b = int(t * 255);
+  } else if (normalized < 0.4) {
+    // Blue to cyan
+    float t = (normalized - 0.2) / 0.2;
+    r = 0;
+    g = int(t * 255);
+    b = 255;
+  } else if (normalized < 0.6) {
+    // Cyan to green
+    float t = (normalized - 0.4) / 0.2;
+    r = 0;
+    g = 255;
+    b = int((1 - t) * 255);
+  } else if (normalized < 0.8) {
+    // Green to yellow
+    float t = (normalized - 0.6) / 0.2;
+    r = int(t * 255);
+    g = 255;
+    b = 0;
+  } else {
+    // Yellow to red
+    float t = (normalized - 0.8) / 0.2;
+    r = 255;
+    g = int((1 - t) * 255);
+    b = 0;
+  }
+  
+  return color(r, g, b);
+}
+
+// ANTI-FLICKER: Render correlation to off-screen buffer
+void renderCorrToBuffer() {
+  corrBuffer.beginDraw();
+  corrBuffer.clear();
+  
+  // Draw correlation as line graph
+  int graphBottom = height - 200;
+  int graphHeight = 400;
+  
+  // Y-axis scale is fixed from 0 to 1 (correlation values are normalized)
+  float minScale = 0.0;
+  float maxScale = 1.0;
+  
+  // Draw line graph
+  corrBuffer.stroke(255, 150, 100);
+  corrBuffer.strokeWeight(2);
+  corrBuffer.noFill();
+  corrBuffer.beginShape();
+  for (int i = 0; i < 1024; i++) {
+    float x = map(i, 0, 1023, 50, width - 50);
+    // Map correlation data from 0 to 1 scale
+    float y = map(correlation_data[i], minScale, maxScale, graphBottom, graphBottom - graphHeight);
+    y = constrain(y, graphBottom - graphHeight, graphBottom); // Clamp to graph bounds
+    corrBuffer.vertex(x, y);
+  }
+  corrBuffer.endShape();
+  
+  // Draw vertical line at peak
+  if (max_value > 0) {
+    float peakX = map(max_idx, 0, 1023, 50, width - 50);
+    float peakY = map(max_value, minScale, maxScale, graphBottom, graphBottom - graphHeight);
+    
+    // Vertical line from bottom to peak
+    corrBuffer.stroke(255, 255, 0); // Yellow for peak marker
+    corrBuffer.strokeWeight(2);
+    corrBuffer.line(peakX, graphBottom, peakX, peakY);
+    
+    // Circle at peak
+    corrBuffer.fill(255, 255, 0);
+    corrBuffer.noStroke();
+    corrBuffer.ellipse(peakX, peakY, 10, 10);
+    
+    // Peak label above the peak
+    corrBuffer.fill(255, 255, 0);
+    corrBuffer.textSize(16);
+    corrBuffer.textAlign(CENTER);
+    corrBuffer.text("Peak: " + nf(max_value, 0, 4), peakX, peakY - 15);
+    corrBuffer.text("Index: " + max_idx, peakX, peakY - 35);
+  }
+  
+  // Draw axes
+  corrBuffer.stroke(255);
+  corrBuffer.strokeWeight(1);
+  corrBuffer.line(50, graphBottom, width - 50, graphBottom); // X-axis
+  corrBuffer.line(50, graphBottom - graphHeight, 50, graphBottom); // Y-axis
+  
+  // Draw Y-axis grid lines and labels
+  corrBuffer.stroke(80, 80, 100);
+  corrBuffer.strokeWeight(1);
+  corrBuffer.fill(180);
+  corrBuffer.textSize(12);
+  corrBuffer.textAlign(RIGHT);
+  for (int i = 0; i <= 5; i++) {
+    float yValue = i * 0.2; // 0.0, 0.2, 0.4, 0.6, 0.8, 1.0
+    float yPos = map(yValue, minScale, maxScale, graphBottom, graphBottom - graphHeight);
+    
+    // Grid line
+    corrBuffer.line(50, yPos, width - 50, yPos);
+    
+    // Y-axis label
+    corrBuffer.text(nf(yValue, 0, 1), 45, yPos + 5);
+  }
+  
+  // X-axis labels (0 to 1023)
+  corrBuffer.fill(180);
+  corrBuffer.textSize(14);
+  corrBuffer.textAlign(LEFT);
+  corrBuffer.text("0", 50, graphBottom + 20);
+  corrBuffer.textAlign(CENTER);
+  corrBuffer.text("256", 50 + (width - 100) * 0.25, graphBottom + 20);
+  corrBuffer.text("512", 50 + (width - 100) * 0.5, graphBottom + 20);
+  corrBuffer.text("768", 50 + (width - 100) * 0.75, graphBottom + 20);
+  corrBuffer.textAlign(RIGHT);
+  corrBuffer.text("1023", width - 50, graphBottom + 20);
+  corrBuffer.textAlign(CENTER);
+  
+  // Overall peak info
+  corrBuffer.fill(255);
+  corrBuffer.textSize(14);
+  corrBuffer.text("Peak: " + nf(max_value, 0, 6) + " at index " + max_idx, width/2, graphBottom + 40);
+  
+  corrBuffer.endDraw();
+}
+
+// MODE: FFT - Simple FFT magnitude display
+void drawFFTMode() {
+  fill(255);
+  textSize(24);
+  textAlign(CENTER);
+  text("FFT MODE - Frequency Spectrum", width/2, 140);
+  
+  // ANTI-FLICKER: Draw from buffer if available
+  if (fftBufferReady) {
+    image(fftBuffer, 0, 0);
+    
+    // Draw waterfall spectrogram
+    int waterfallTop = 680;
+    image(waterfallBuffer, 50, waterfallTop, width - 100, WATERFALL_HEIGHT);
+    
+    // Draw frame around waterfall
+    noFill();
+    stroke(255);
+    strokeWeight(2);
+    rect(50, waterfallTop, width - 100, WATERFALL_HEIGHT);
+    
+    // X-axis labels for waterfall (same as FFT)
+    fill(255);
+    textAlign(CENTER, TOP);
+    textSize(14);
+    int plotWidth = width - 100;
+    int labelY = waterfallTop + WATERFALL_HEIGHT + 5;
+    
+    text("0 Hz", 50, labelY);
+    text("5512 Hz", 50 + plotWidth/4, labelY);
+    text("11025 Hz", 50 + plotWidth/2, labelY);
+    text("16537 Hz", 50 + 3*plotWidth/4, labelY);
+    text("22050 Hz", width - 50, labelY);
+    
+    // Waterfall title
+    textAlign(LEFT, TOP);
+    textSize(14);
+    fill(255);
+    text("Waterfall Spectrogram", 60, waterfallTop - 25);
+    
+    // Time axis label
+    textAlign(CENTER, CENTER);
+    pushMatrix();
+    translate(20, waterfallTop + WATERFALL_HEIGHT/2);
+    rotate(-HALF_PI);
+    text("Time (newest at top)", 0, 0);
+    popMatrix();
+  }
+}
+
+// MODE: CORR - Simple correlation display
+void drawCorrMode() {
+  fill(255);
+  textSize(24);
+  textAlign(CENTER);
+  text("CORR MODE - Correlation Result", width/2, 140);
+  
+  // ANTI-FLICKER: Draw from buffer if available
+  if (corrBufferReady) {
+    image(corrBuffer, 0, 0);
+    
+    // Update stored max values (draw over the buffer)
+    if(max_value > 0.25) {
+      last_max_value = max_value;
+      last_max_idx = max_idx;
+    }
+    
+    // Display last significant peak (draw over the buffer)
+    fill(100, 255, 100);
+    textAlign(LEFT);
+    textSize(14);
+    text("Last peak idx: " + nf(last_max_idx, 0, 1), 20, 300);
+    text("Last peak value: " + nf(last_max_value, 0, 4), 20, 320);
+  }
+}
+
+// MODE: EYE - Eyes tracking display
+void drawEyesMode() {
+  fill(255);
+  textSize(24);
+  textAlign(CENTER);
+  text("EYE MODE - Eye Tracking", width/2, 100);
   
   noStroke();  // Eyes should have no stroke
   
@@ -368,148 +1007,132 @@ void drawEyesDemo() {
   int upY = 130;
   int downY = 830;
   
-//INFO: mic01 0.289768 38.0, 0.282878 37.0; mic23 0.186098 -3.0, 0.182395 37.0   mic01 peak/second         1.0243568  mic23 peak/second          1.020302 
-//INFO: mic01 0.114807 22.0, 0.108704 486.0; mic23 0.111058 -124.0, 0.105166 150.0   mic01 peak/second         1.0561433  mic23 peak/second          1.0560256 
-//INFO: mic01 0.113225 -52.0, 0.10392 36.0; mic23 0.098039 -28.0, 0.093445 370.0   mic01 peak/second         1.08954  mic23 peak/second          1.0491626 
-//INFO: mic01 0.124512 -9.0, 0.099909 26.0; mic23 0.106888 235.0, 0.103654 9.0   mic01 peak/second         1.2462541  mic23 peak/second          1.0312 
-//INFO: mic01 0.100658 -270.0, 0.087885 22.0; mic23 0.120031 -34.0, 0.097734 140.0   mic01 peak/second         1.1453377  mic23 peak/second          1.2281396 
-//INFO: mic01 0.199516 5.0, 0.115253 -4.0; mic23 0.110936 24.0, 0.106729 -11.0   mic01 peak/second         1.7311132  mic23 peak/second          1.0394176 1
-//sure_signal 1
-//sure_signal 1
-//INFO: mic01 0.107744 -32.0, 0.091673 218.0; mic23 0.109209 -137.0, 0.107717 -189.0   mic01 peak/second         1.1753079  mic23 peak/second          1.0138512 
-//INFO: mic01 0.092765 31.0, 0.092462 -49.0; mic23 0.093404 -40.0, 0.090495 -130.0   mic01 peak/second         1.0032771  mic23 peak/second          1.0321455 
-//INFO: mic01 0.106199 -89.0, 0.099672 -233.0; mic23 0.098694 109.0, 0.096115 63.0   mic01 peak/second         1.0654848  mic23 peak/second          1.0268323 
-//INFO: mic01 0.114302 65.0, 0.101658 15.0; mic23 0.10024 -103.0, 0.092965 330.0   mic01 peak/second         1.1243778  mic23 peak/second          1.0782553 
-//INFO: mic01 0.100437 -20.0, 0.099048 343.0; mic23 0.097852 188.0, 0.087988 459.0   mic01 peak/second         1.0140234  mic23 peak/second          1.1121062 
-//INFO: mic01 0.088287 64.0, 0.082093 30.0; mic23 0.11991 12.0, 0.093093 -243.0   mic01 peak/second         1.075451  mic23 peak/second          1.2880667 
-//INFO: mic01 0.099985 27.0, 0.096472 25.0; mic23 0.112528 6.0, 0.102204 -172.0   mic01 peak/second         1.0364147  mic23 peak/second          1.1010135 
-//INFO: mic01 0.126729 30.0, 0.122697 -381.0; mic23 0.133395 7.0, 0.128345 8.0   mic01 peak/second         1.0328614  mic23 peak/second          1.039347 
-//INFO: mic01 0.138063 58.0, 0.111843 34.0; mic23 0.104382 12.0, 0.096786 -299.0   mic01 peak/second         1.2344358  mic23 peak/second          1.0784824 
-//INFO: mic01 0.12668 22.0, 0.086161 26.0; mic23 0.094789 -14.0, 0.092553 152.0   mic01 peak/second         1.4702708  mic23 peak/second          1.0241592 
-//INFO: mic01 0.117732 -50.0, 0.106614 -37.0; mic23 0.103826 -21.0, 0.102412 -22.0   mic01 peak/second         1.1042827  mic23 peak/second          1.0138069 
-//INFO: mic01 0.099507 -53.0, 0.095157 33.0; mic23 0.097043 -40.0, 0.094192 -406.0   mic01 peak/second         1.0457139  mic23 peak/second          1.030268 
-//INFO: mic01 0.103044 28.0, 0.09224 3.0; mic23 0.103376 43.0, 0.099734 146.0   mic01 peak/second         1.1171293  mic23 peak/second          1.0365171 
-//INFO: mic01 0.099389 10.0, 0.098649 455.0; mic23 0.132888 27.0, 0.098126 4.0   mic01 peak/second         1.0075014  mic23 peak/second          1.3542588 
-//INFO: mic01 0.099365 -79.0, 0.097605 27.0; mic23 0.098986 65.0, 0.097586 464.0   mic01 peak/second         1.018032  mic23 peak/second          1.0143464 
-//INFO: mic01 0.107805 33.0, 0.105151 -23.0; mic23 0.098396 131.0, 0.086819 159.0   mic01 peak/second         1.02524  mic23 peak/second          1.1333464 
-//INFO: mic01 0.105436 30.0, 0.102349 -71.0; mic23 0.127693 175.0, 0.1011 14.0   mic01 peak/second         1.0301615  mic23 peak/second          1.2630366 
-//INFO: mic01 0.104685 484.0, 0.086263 45.0; mic23 0.153382 8.0, 0.090384 128.0   mic01 peak/second         1.2135562  mic23 peak/second          1.697004 2
-//INFO: mic01 0.091128 -2.0, 0.083634 -397.0; mic23 0.102533 42.0, 0.092249 76.0   mic01 peak/second         1.0896047  mic23 peak/second          1.1114808 
-
   if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12")) {
-    println("sure_signal " + sure_signal);
-    //if(mic01_phat_peak_idx < 0 && mic23_phat_peak_idx < 0) {
-    //  e1.update(leftX, upY);
-    //  e2.update(leftX, upY);
-    //} else if(mic01_phat_peak_idx > 0 && mic23_phat_peak_idx < 0) {
-    //  e1.update(rightX, upY);
-    //  e2.update(rightX, upY);
-    //} else if(mic01_phat_peak_idx < 0 && mic23_phat_peak_idx > 0) {
-    //  e1.update(leftX, downY);
-    //  e2.update(leftX, downY);
-    //} else if(mic01_phat_peak_idx > 0 && mic23_phat_peak_idx > 0) {
-    //  e1.update(rightX, downY);
-    //  e2.update(rightX, downY);
-    //}
-    
     e1.update(3*(int)mic01_phat_peak_idx, 3*(int)mic23_phat_peak_idx);
     e2.update(3*(int)mic01_phat_peak_idx, 3*(int)mic23_phat_peak_idx);
-    //println(String.format("INFO:X  %5d, Y %5d ", 3*(int)mic01_phat_peak_idx, 3*(int)mic23_phat_peak_idx));
-          
   }
  
   e1.display();
   e2.display();
-
-
-  // Mode indicator
-  fill(255, 255, 0);
-  textSize(24);
-  textAlign(CENTER);
-  text("EYES DEMO MODE - Press '2' to return to FFT", width/2, height - 40);
-}
-
-void drawFFTDisplay() {
-
-
-
-  // Debug info - TIMING DIAGNOSTICS
-  fill(255, 255, 0);
+  
+  // Display eye position info
+  fill(100, 255, 100);
   textSize(14);
   textAlign(LEFT);
-  text("Receiving: " + receivingData + " | Current: " + currentMic + " | Frame: " + frameCount, 20, 20);
-
-  fill(255, 100, 100);
-  text("Time between frames: " + nf(timeBetweenFrames, 0, 1) + " ms", 20, 40);
-
-  fill(100, 255, 100);
-  text("Time to draw frame: " + nf(timeToDrawFrame, 0, 1) + " ms", 20, 60);
-  
-  //// Check if we have valid data
-  //float max_value = 0;
-  //float max_idx = 0;
-  //for (int i = 0; i < 1024; i++) {
-  //  if( correlation_data[i] > max_value) {
-  //    max_value = correlation_data[i];
-  //    max_idx = i;
-  //  }
-  //  //max_value += correlation_data[i];
-  //  //max_idx += mic2_magnitude[i];
-  //}
-  //fill(150, 150, 255);
-  //text("corr max: " + nf(max_value, 0, 4) + " | max index: " + nf(max_idx, 0, 4), 400, 20);
-
-  // Title
-  fill(100, 200, 255);
-  textSize(28);
-  textAlign(CENTER);
-  text("MIC1 & MIC2 - FFT MAGNITUDE & PHASE", width/2, 100);
-
-  // Subtitle
-  fill(150, 180, 255);
-  textSize(16);
-  text("MIC2 is delayed by 0.3ms (13 samples) from MIC1 | Displaying 0-1000 Hz (24 bins)", width/2, 125);
-
-  int margin = 80;
-  int graphWidth = width - margin * 2;
-  int graphHeight = 160;
-  int spacing = 220;
-
-  // Draw MIC1 Magnitude
-  drawFFTGraph(correlation_data, null, margin, 150, graphWidth, graphHeight,
-               "MIC1 - MAGNITUDE", color(100, 255, 200), false);
-
-  //// Draw MIC1 Phase
-  //drawFFTGraph(null, mic1_phase, margin, 150 + spacing, graphWidth, graphHeight,
-  //             "MIC1 - PHASE", color(100, 255, 200), true);
-
-  //// Draw MIC2 Magnitude
-  //drawFFTGraph(mic2_magnitude, null, margin, 150 + spacing * 2, graphWidth, graphHeight,
-  //             "MIC2 - MAGNITUDE (Delayed)", color(255, 150, 100), false);
-
-  //// Draw MIC2 Phase
-  //drawFFTGraph(null, mic2_phase, margin, 150 + spacing * 3, graphWidth, graphHeight,
-  //             "MIC2 - PHASE (Delayed)", color(255, 150, 100), true);
-
-  // Connection indicator
-  float pulse = sin(frameCount * 0.1) * 0.3 + 0.7;
-  fill(100, 255, 150, 255 * pulse);
-  noStroke();
-  ellipse(width - 40, 80, 24, 24);
-  fill(100, 255, 150);
-  ellipse(width - 40, 80, 16, 16);
-
+  text("eyeX: " + nf(e1.eyex, 0, 1), 20, 120);
+  text("eyeY: " + nf(e1.eyey, 0, 1), 20, 140);
 }
 
-//void rotateLeftInPlace(float[] magData, float[] magDataRotated, int MAX_LAG) {
-//  //int N = magData.length;
-
-//  for (int i = 0; i < MAX_LAG; i++) {
-//    magDataRotated[i] = magData[i + MAX_LAG];
-//    magDataRotated[i + MAX_LAG] = magData[i];
-//  }
-//  magDataRotated[MAX_LAG] = magData[MAX_LAG];
-//}
+// MODE: GAME - Game display (same as EYE for now)
+void drawGameMode() {
+  fill(255);
+  textSize(32);
+  textAlign(CENTER);
+  text("MOSQUITO HUNTER - Clap to Kill!", width/2, 60);
+  
+  // Display score
+  fill(255, 255, 0);
+  textSize(48);
+  text("Score: " + gameScore, width/2, 120);
+  
+  // Display instructions
+  fill(200);
+  textSize(16);
+  text("Clap near the mosquito to kill it! (within " + killDistance + " pixels)", width/2, 160);
+  
+  // GAME MODE: Update and display mosquito
+  mosquito.update();
+  mosquito.display();
+  
+  // GAME MODE: Check for clap and handle hit detection
+  if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12")) {
+    // Calculate clap position from microphone data
+    // mic01_phat_peak_idx and mic23_phat_peak_idx range from approximately -30 to +30
+    // Scale to cover the playable area where mosquitoes spawn (150 to width-150, 150 to height-150)
+    float clapX = map(mic01_phat_peak_idx, -30, 30, 150, width - 150);
+    float clapY = map(mic23_phat_peak_idx, -30, 30, 150, height - 150);
+    
+    // Constrain to screen bounds
+    clapX = constrain(clapX, 0, width);
+    clapY = constrain(clapY, 0, height);
+    
+    // Store clap position and time for visualization
+    lastClapX = int(clapX);
+    lastClapY = int(clapY);
+    lastClapTime = millis();
+    
+    // Check if mosquito was hit
+    if (mosquito.checkHit(clapX, clapY, killDistance)) {
+      mosquito.kill();
+      gameScore += 10; // Award points
+      
+      // Add success message
+      String msg = millis() + ": HIT! +10 points";
+      gameMessages.add(msg);
+      if (gameMessages.size() > 5) gameMessages.remove(0);
+      
+      println("MOSQUITO KILLED! Score: " + gameScore);
+      
+      // Respawn mosquito after a short delay
+      delay(500); // Brief pause to show kill
+      mosquito.respawn();
+    } else {
+      // Add miss message
+      float distance = dist(mosquito.x, mosquito.y, clapX, clapY);
+      String msg = millis() + ": Miss by " + nf(distance, 0, 0) + " pixels";
+      gameMessages.add(msg);
+      if (gameMessages.size() > 5) gameMessages.remove(0);
+    }
+  }
+  
+  // GAME MODE: Draw clap position indicator (fades over time)
+  if (lastClapTime > 0 && (millis() - lastClapTime) < 1000) {
+    float alpha = map(millis() - lastClapTime, 0, 1000, 255, 0);
+    
+    // Draw crosshair at clap position
+    stroke(255, 0, 0, alpha);
+    strokeWeight(3);
+    noFill();
+    
+    // Crosshair
+    line(lastClapX - 20, lastClapY, lastClapX + 20, lastClapY);
+    line(lastClapX, lastClapY - 20, lastClapX, lastClapY + 20);
+    
+    // Circle showing kill radius
+    stroke(255, 255, 0, alpha * 0.5);
+    strokeWeight(2);
+    ellipse(lastClapX, lastClapY, killDistance * 2, killDistance * 2);
+  }
+  
+  // GAME MODE: Draw game messages
+  fill(100, 255, 100);
+  textSize(14);
+  textAlign(LEFT);
+  text("Game Log:", 20, 200);
+  for (int i = 0; i < gameMessages.size(); i++) {
+    text(gameMessages.get(i), 20, 220 + i * 20);
+  }
+  
+  // Display current clap detection info
+  fill(150, 150, 255);
+  textSize(12);
+  text("Clap Detection (range: -30 to +30):", 20, 350);
+  text("mic01_idx: " + nf(mic01_phat_peak_idx, 0, 1) + " → X: " + nf(lastClapX, 0, 0) + ", PSR: " + nf(mic01_psr, 0, 2), 20, 370);
+  text("mic23_idx: " + nf(mic23_phat_peak_idx, 0, 1) + " → Y: " + nf(lastClapY, 0, 0) + ", PSR: " + nf(mic23_psr, 0, 2), 20, 390);
+  text("Sure signal: " + sure_signal, 20, 410);
+  
+  // Draw mosquito position for debugging
+  if (mosquito.alive) {
+    fill(255, 100, 100);
+    text("Mosquito at: (" + nf(mosquito.x, 0, 0) + ", " + nf(mosquito.y, 0, 0) + ")", 20, 440);
+  }
+  
+  // Draw playable area boundary for reference
+  noFill();
+  stroke(100, 100, 100, 100);
+  strokeWeight(1);
+  rect(150, 150, width - 300, height - 300);
+}
 
 void shiftIntoNewBuffer(float[] src, float[] dst, int MAX_LAG) {
   int N = src.length;
@@ -536,170 +1159,27 @@ void shiftIntoNewBuffer(float[] src, float[] dst, int MAX_LAG) {
   }
 }
 
-void drawFFTGraph(float[] magData, float[] phaseData, int x, int y, int w, int h,
-                  String label, color col, boolean isPhase) {
-  pushMatrix();
-  translate(x, y);
-
-  // Title
-  fill(255);
-  textSize(18);
-  textAlign(LEFT);
-  text(label, 0, -10);
-
-  // Draw axes
-  stroke(100, 100, 120);
-  strokeWeight(2);
-
-  if (isPhase) {
-    // Phase graph: zero line in middle
-    line(0, h/2, w, h/2);
-    line(0, 0, 0, h);
-    line(0, h, w, h);
-
-    // Grid lines
-    stroke(60, 60, 80);
-    strokeWeight(1);
-    line(0, h/4, w, h/4);     // +π/2
-    line(0, 3*h/4, w, 3*h/4); // -π/2
-
-    // Y-axis labels (phase in radians)
-    fill(180);
-    textSize(12);
-    textAlign(RIGHT);
-    text("+π", -10, 5);
-    text("+π/2", -10, h/4 + 5);
-    text("0", -10, h/2 + 5);
-    text("-π/2", -10, 3*h/4 + 5);
-    text("-π", -10, h + 5);
-  } else {
-    // Magnitude graph
-    line(0, h, w, h);
-    line(0, 0, 0, h);
-
-    // Grid lines
-    stroke(60, 60, 80);
-    strokeWeight(1);
-    for (int i = 1; i <= 4; i++) {
-      float yPos = h - (h / 4) * i;
-      line(0, yPos, w, yPos);
-    }
-
-    // Y-axis labels (magnitude)
-    fill(180);
-    textSize(12);
-    textAlign(RIGHT);
-    text("1.0", -10, 5);
-    text("0.75", -10, h/4 + 5);
-    text("0.5", -10, h/2 + 5);
-    text("0.25", -10, 3*h/4 + 5);
-    text("0", -10, h + 5);
-  }
-
-  // X-axis labels (frequency in Hz for 0-1000 Hz)
-  fill(180);
-  textSize(11);
-  textAlign(CENTER);
-  for (int i = 0; i <= 10; i++) {
-    float freq = (1000.0 / 10) * i;  // 0 to 1000 Hz
-    float xPos = (w / 10.0) * i;
-    text(nf(freq, 0, 0) + "Hz", xPos, h + 20);
-  }
-
-  // Draw the FFT data - ONLY FIRST 24 BINS
-  noFill();
-  stroke(col);
-  strokeWeight(2);
-  beginShape();
-  float minDecibel = -60.0;
-  if (magData != null) {
-    
-    // the inplace rotation is called twice if draw is called twice given a frame
-    // thus, it should be guarded to do once per frame
-    //if (newFrameAvailable) {
-    //  rotateLeftInPlace(magData, displayBins / 2);
-    //  newFrameAvailable = false;   // VERY IMPORTANT
-    //}
-    
-    shiftIntoNewBuffer(magData, corr_roated, displayBins / 2);
-    
-    for (int i = 0; i < displayBins; i++) {
-      float px = map(i, 0, displayBins - 1, 0, w);
-      float py = map(corr_roated[i], 0, 1.0, h, 0);
-
-      //// Map the dB value: from minDecibel to 0dB -> to screen height h to 0
-      //// 0dB (loudest) maps to the top (0 y-coordinate)
-      //// minDecibel (quietest visible) maps to the bottom (h y-coordinate)
-      //float dB = (float) ( 20 * Math.log10(max(corr_roated[i], 0.00001))); // Use max() to avoid log(0)
-      //float py = map(dB, minDecibel, 0, h, 0);
-
-
-      py = constrain(py, 0, h);
-      vertex(px, py);
-      if(corr_roated[i] > 0.5) {
-        println("i:"  + i  + " px:"  + px + " py:" + py + " w:" + w + " h:" + h + " corr_roated: " + corr_roated[i]);
-      }
- 
-
-    }
-    
-  } 
-
-  endShape();
-
-
-  if (corr_roated != null) {
-    int peakBin = 0;
-    float peakVal = 0;
-    for (int i = 0; i < displayBins; i++) {
-      if (corr_roated[i] > peakVal) {
-        peakVal = corr_roated[i];
-        peakBin = i;
-      }
-    }
-
-    if (peakVal > 0.25) {
-      float peakX = map(peakBin, 0, displayBins - 1, 0, w);
-      float peakY = map(peakVal, 0, 1.0, h, 0);
-
-      // Vertical line at peak
-      stroke(255, 200, 100, 150);
-      strokeWeight(2);
-      line(peakX, h, peakX, peakY);
-
-      // Peak marker
-      fill(255, 200, 100);
-      noStroke();
-      ellipse(peakX, peakY, 10, 10);
-
-      // TDOA label
-      float peakFreq = 30; // (peakBin * 44100.0) / 1024.0;
-      if(peakBin < 512) {
-        peakFreq = -1*  (( 512.0f - peakBin ) / 44100.0f * 1000.0f);
-      } else {
-        peakFreq =  ((peakBin - 512.0f ) / 44100.0f * 1000.0f);
-      }
-
-      fill(255, 200, 100);
-      textSize(22);
-      textAlign(CENTER);
-      text(nf(peakFreq, 0, 3) + " ms", peakX, peakY - 15);
-      
-      println("peakBin:"  + peakBin  + " peakVal:"  + peakVal + " peakFreq:" + peakFreq);
-    }
-  }
-
-  popMatrix();
-}
-
 void keyPressed() {
   if (key == 's' || key == 'S') {
     saveFrame("fft_snapshot_####.png");
     println("Screenshot saved!");
   }
 
-  if (key == '2') {
-    showEyes = !showEyes;  // Toggle between modes
-    println("Mode switched to: " + (showEyes ? "Eyes Demo" : "FFT Display"));
+  // MODE SWITCHING: Handle key presses for mode changes
+  if (key == '1') {
+    println("KEY PRESSED: Requesting FFT mode");
+    requestModeChange(0); // Request FFT mode
+  }
+  else if (key == '2') {
+    println("KEY PRESSED: Requesting EYE mode");
+    requestModeChange(2); // Request EYE mode
+  }
+  else if (key == '3') {
+    println("KEY PRESSED: Requesting CORR mode");
+    requestModeChange(1); // Request CORR mode
+  }
+  else if (key == '4') {
+    println("KEY PRESSED: Requesting GAME mode");
+    requestModeChange(3); // Request GAME mode
   }
 }
