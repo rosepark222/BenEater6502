@@ -1,7 +1,23 @@
 import processing.serial.*; //<>//
+import processing.sound.*;
+
+
+final int MODE_FFT = 0;
+final int MODE_CORR_01 = 1;
+final int MODE_EYE = 2;
+final int MODE_GAME = 3;
+final int MODE_CORR_23 = 4;
+
+final int FFT_SIZE = 1024;
+final int FFT_BINS = 512;
+
+
+SoundFile hitSound;
 
 Serial myPort;
 boolean newFrameAvailable = false; 
+PrintWriter output;
+boolean recording = false;
 
 // MODE SWITCHING: Current mode and mode transition state
 int currentMode = 2; // 0=FFT, 1=CORR, 2=EYE, 3=GAME
@@ -60,6 +76,7 @@ class Eye {
 class Mosquito {
   float x, y;
   float size;
+  float baseSize; // Base size before scaling
   boolean alive;
   float wingAngle;
   float wingSpeed;
@@ -67,6 +84,7 @@ class Mosquito {
   float hoverAngle;
   
   Mosquito() {
+    baseSize = 30; // Default base size
     respawn();
     wingAngle = 0;
     wingSpeed = 0.3;
@@ -77,7 +95,7 @@ class Mosquito {
     // Spawn in random location (with margins)
     x = random(150, width - 150);
     y = random(150, height - 150);
-    size = 30;
+    size = baseSize * mosquitoScale; // Apply scaling factor
     alive = true;
   }
   
@@ -89,8 +107,8 @@ class Mosquito {
     
     // Hovering motion
     hoverAngle += 0.05;
-    hoverOffsetX = cos(hoverAngle) * 10;
-    hoverOffsetY = sin(hoverAngle * 1.3) * 8;
+    hoverOffsetX = cos(hoverAngle) * 10 * mosquitoScale; // Scale hover motion
+    hoverOffsetY = sin(hoverAngle * 1.3) * 8 * mosquitoScale;
   }
   
   void display() {
@@ -142,11 +160,15 @@ class Mosquito {
   }
   
   // Check if clap position is near mosquito
+  // The killDistance check now considers the mosquito's actual scaled size
   boolean checkHit(float clapX, float clapY, float threshold) {
     if (!alive) return false;
     
     float distance = dist(x, y, clapX, clapY);
-    return distance < threshold;
+    // Subtract half the mosquito size from the threshold to account for mosquito body
+    // This makes the hitbox match the visual size of the mosquito
+    float effectiveThreshold = threshold + (size * 0.5);
+    return distance < effectiveThreshold;
   }
   
   void kill() {
@@ -157,23 +179,27 @@ class Mosquito {
 // GAME MODE: Game state variables
 Mosquito mosquito;
 int gameScore = 0;
-int killDistance = 100; // How close the clap needs to be
+int killDistance = 100; // Kill distance stays constant (not scaled)
+float mosquitoScale = 5.0; // MOSQUITO SIZE SCALE: Change this to make mosquito larger/smaller (e.g., 5.0 = 5x larger)
 ArrayList<String> gameMessages = new ArrayList<String>();
 int lastClapX = -1, lastClapY = -1;
 long lastClapTime = 0;
+long killAnimationTime = 0; // Track when mosquito was killed for animation
+boolean showKillAnimation = false;
 
 // FFT data storage
-float[] fft_data = new float[512]; // MODE: FFT - 512 magnitude bins
-float[] correlation_data = new float[1024]; // MODE: CORR - 1024 correlation samples
-float[] corr_roated = new float[1024];
-//float[] mic1_phase = new float[512];
-//float[] mic2_magnitude = new float[512];
-//float[] mic2_phase = new float[512];
+float[] fft_data = new float[FFT_BINS]; // MODE: FFT - 512 magnitude bins
+float[] correlation_data = new float[FFT_SIZE]; // MODE: CORR - 1024 correlation samples
+float[] corr_roated = new float[FFT_SIZE];
+//float[] mic1_phase = new float[FFT_BINS];
+//float[] mic2_magnitude = new float[FFT_BINS];
+//float[] mic2_phase = new float[FFT_BINS];
 
 // ANTI-FLICKER: PGraphics buffers for smooth rendering
 PGraphics fftBuffer;
 PGraphics corrBuffer;
 PGraphics waterfallBuffer; // Waterfall for FFT mode
+PGraphics corrWaterfallBuffer; // Waterfall for CORR mode
 boolean fftBufferReady = false;
 boolean corrBufferReady = false;
 
@@ -182,8 +208,13 @@ final int FFT_GRAPH_HEIGHT = 300;
 final int WATERFALL_HEIGHT = 300;
 int waterfallRows;
 
+// Waterfall parameters for CORR mode
+final int CORR_GRAPH_HEIGHT = 300;
+final int CORR_WATERFALL_HEIGHT = 300;
+int corrWaterfallRows;
+
 //int displayBins = 20;  // Only display first 24 bins (0-1000 Hz)
-int displayBins = 1024;  // Only display first 24 bins (0-1000 Hz)
+int displayBins = FFT_SIZE;  // Only display first 24 bins (0-1000 Hz)
 
 boolean showEyes = false;  // Toggle between FFT display and eyes demo
 String sure_signal = "";
@@ -224,6 +255,9 @@ void setup() {
   size(1400, 1000);
   smooth();
 
+
+  hitSound = new SoundFile(this, "242664__reitanna__quack.wav");
+   
   e1 = new Eye(820, 430, 220);
   e2 = new Eye(420, 430, 220);
   
@@ -236,10 +270,17 @@ void setup() {
   
   // Initialize waterfall buffer for FFT mode
   waterfallRows = WATERFALL_HEIGHT;
-  waterfallBuffer = createGraphics(512, waterfallRows);
+  waterfallBuffer = createGraphics(FFT_BINS, waterfallRows);
   waterfallBuffer.beginDraw();
   waterfallBuffer.background(0);
   waterfallBuffer.endDraw();
+  
+  // Initialize waterfall buffer for CORR mode
+  corrWaterfallRows = CORR_WATERFALL_HEIGHT;
+  corrWaterfallBuffer = createGraphics(FFT_SIZE, corrWaterfallRows);
+  corrWaterfallBuffer.beginDraw();
+  corrWaterfallBuffer.background(0);
+  corrWaterfallBuffer.endDraw();
 
   println("Available ports:");
   printArray(Serial.list());
@@ -289,21 +330,24 @@ void requestModeChange(int newMode) {
   requestedMode = newMode;
   waitingForAck = true;
   modeChanging = true;
-  
+ 
   // Send mode command to Teensy
   String command = "";
-  if (newMode == 0) {
+  if (newMode == MODE_FFT) {
     command = "MODE_FFT\n";
     modeChangeStatus = "Requesting FFT mode...";
-  } else if (newMode == 1) {
-    command = "MODE_CORR\n";
+  } else if (newMode == MODE_CORR_01) {
+    command = "MODE_CORR_01\n";
     modeChangeStatus = "Requesting CORR mode...";
-  } else if (newMode == 2) {
+  } else if (newMode == MODE_EYE) {
     command = "MODE_EYE\n";
     modeChangeStatus = "Requesting EYE mode...";
-  } else if (newMode == 3) {
+  } else if (newMode == MODE_GAME) {
     command = "MODE_GAME\n";
     modeChangeStatus = "Requesting GAME mode...";
+  } else if (newMode == MODE_CORR_23) {
+    command = "MODE_CORR_23\n";
+    modeChangeStatus = "Requesting SANITY mode...";
   }
   
   myPort.write(command); // Send command to Teensy
@@ -365,15 +409,15 @@ void serialEvent(Serial myPort) {
       
       return;
     }
-    
+ 
     // Route to appropriate serial event handler based on current mode
     // BUFFER CORRUPTION PREVENTION: Only process data if not changing modes
     if (!modeChanging) {
-      if (currentMode == 0) {
+      if (currentMode == MODE_FFT) {
         serialEvent_fft(data); // FFT mode
-      } else if (currentMode == 1) {
+      } else if (currentMode == MODE_CORR_01 || currentMode == MODE_CORR_23) {
         serialEvent_corr(data); // CORR mode
-      } else if (currentMode == 2 || currentMode == 3) {
+      } else if (currentMode == MODE_EYE || currentMode == MODE_GAME) {
         serialEvent_Eyes(data); // EYE or GAME mode
       }
     } else {
@@ -436,8 +480,8 @@ void serialEvent_fft(String data) {
     // Parse FFT magnitude data (comma-separated values)
     String[] values = split(data, ',');
 
-    if (values.length == 512) {
-      for (int i = 0; i < 512; i++) {
+    if (values.length == FFT_BINS) {
+      for (int i = 0; i < FFT_BINS; i++) {
         try {
           fft_data[i] = float(values[i]); // Parse magnitude values
         } catch (Exception e) {
@@ -496,7 +540,7 @@ void serialEvent_corr(String data) {
     if (values.length >= 5) { // At minimum: peak_idx, peak_value, left_count, right_count, and at least one value
       try {
         // Clear correlation array (all zeros by default)
-        for (int i = 0; i < 1024; i++) {
+        for (int i = 0; i < FFT_SIZE; i++) {
           correlation_data[i] = 0.0;
         }
         
@@ -587,7 +631,7 @@ void serialEvent_Eyes(String data) {
     if(mic23_phat_peak_value/mic23_phat_second_value > 1.5 && mic23_phat_peak_value > 0.2 && mic23_psr > 6.0f) sure_signal += "2";    
     
     if(! sure_signal.equals("")) {
-      println(String.format("INFO: mic01 %10.6f %5d, %10.6f %5d (%10.6f) %10.6f; mic23 %10.6f %5d, %10.6f %5d (%10.6f) %10.6f;  %s",
+      println(String.format("INFO: mic01 p0:%10.6f []:%5d, p1:%10.6f []:%5d (p0/p1:%10.6f <> 1.5, psr:%10.6f <> 6.0); mic23 %10.6f %5d, %10.6f %5d (%10.6f) %10.6f;  %s",
           mic01_phat_peak_value, (int)mic01_phat_peak_idx, 
           mic01_phat_second_value, (int)mic01_phat_second_idx,
           mic01_phat_peak_value/mic01_phat_second_value,
@@ -646,15 +690,15 @@ void draw() {
   for (int i = 0; i < debugMessages.size(); i++) {
     text(debugMessages.get(i), 20, 140 + i * 15);
   }
-
+ 
   // Draw appropriate visualization based on current mode
-  if (currentMode == 0) {
+  if (currentMode == MODE_FFT) {
     drawFFTMode(); // MODE: FFT
-  } else if (currentMode == 1) {
-    drawCorrMode(); // MODE: CORR
-  } else if (currentMode == 2) {
+  } else if (currentMode == MODE_CORR_01 || currentMode == MODE_CORR_23) {
+    drawCorrMode(currentMode); // MODE: CORR
+  } else if (currentMode == MODE_EYE) {
     drawEyesMode(); // MODE: EYE
-  } else if (currentMode == 3) {
+  } else if (currentMode == MODE_GAME) {
     drawGameMode(); // MODE: GAME (same as EYE for now)
   }
   
@@ -662,7 +706,7 @@ void draw() {
   fill(255, 255, 0);
   textSize(18);
   textAlign(CENTER);
-  text("Press '1' for FFT | '2' for EYE | '3' for CORR | '4' for GAME", width/2, height - 20);
+  text("Press '1' for FFT | '2' for EYE | '9 or 0' for CORR | '4' for GAME", width/2, height - 20);
   
   // Calculate and store draw time
   long drawEndTime = millis();
@@ -680,7 +724,7 @@ void renderFFTToBuffer() {
   
   // Find max for scaling
   float maxMag = 0;
-  for (int i = 0; i < 512; i++) {
+  for (int i = 0; i < FFT_BINS; i++) {
     if (fft_data[i] > maxMag) maxMag = fft_data[i];
   }
   
@@ -728,7 +772,7 @@ void renderFFTToBuffer() {
   fftBuffer.noFill();
   fftBuffer.beginShape();
   
-  for (int i = 0; i < 512; i++) {
+  for (int i = 0; i < FFT_BINS; i++) {
     float x = map(i, 0, 511, 50, width - 50);
     float y = map(fft_data[i], 0, maxMag, fftBottom, fftTop);
     fftBuffer.vertex(x, y);
@@ -754,7 +798,7 @@ void renderFFTToBuffer() {
 void updateWaterfallFFT() {
   // Find max value for color scaling
   float maxVal = 0;
-  for (int i = 0; i < 512; i++) {
+  for (int i = 0; i < FFT_BINS; i++) {
     if (fft_data[i] > maxVal) {
       maxVal = fft_data[i];
     }
@@ -763,10 +807,10 @@ void updateWaterfallFFT() {
   
   // Scroll waterfall down by copying pixels
   waterfallBuffer.beginDraw();
-  waterfallBuffer.copy(0, 0, 512, waterfallRows - 1, 0, 1, 512, waterfallRows - 1);
+  waterfallBuffer.copy(0, 0, FFT_BINS, waterfallRows - 1, 0, 1, FFT_BINS, waterfallRows - 1);
   
   // Add new row at top
-  for (int i = 0; i < 512; i++) {
+  for (int i = 0; i < FFT_BINS; i++) {
     // Normalize to 0-1 range
     float normalized = fft_data[i] / maxVal;
     
@@ -829,8 +873,9 @@ void renderCorrToBuffer() {
   corrBuffer.clear();
   
   // Draw correlation as line graph
-  int graphBottom = height - 200;
-  int graphHeight = 400;
+  int corrTop = 350; // Start correlation graph lower to make room for waterfall
+  int graphBottom = corrTop + CORR_GRAPH_HEIGHT;
+  int graphWidth = width - 100;
   
   // Y-axis scale is fixed from 0 to 1 (correlation values are normalized)
   float minScale = 0.0;
@@ -841,19 +886,19 @@ void renderCorrToBuffer() {
   corrBuffer.strokeWeight(2);
   corrBuffer.noFill();
   corrBuffer.beginShape();
-  for (int i = 0; i < 1024; i++) {
-    float x = map(i, 0, 1023, 50, width - 50);
+  for (int i = 0; i < FFT_SIZE; i++) {
+    float x = map(i, 0, FFT_SIZE-1, 50, width - 50);
     // Map correlation data from 0 to 1 scale
-    float y = map(correlation_data[i], minScale, maxScale, graphBottom, graphBottom - graphHeight);
-    y = constrain(y, graphBottom - graphHeight, graphBottom); // Clamp to graph bounds
+    float y = map(correlation_data[i], minScale, maxScale, graphBottom, corrTop);
+    y = constrain(y, corrTop, graphBottom); // Clamp to graph bounds
     corrBuffer.vertex(x, y);
   }
   corrBuffer.endShape();
   
   // Draw vertical line at peak
   if (max_value > 0) {
-    float peakX = map(max_idx, 0, 1023, 50, width - 50);
-    float peakY = map(max_value, minScale, maxScale, graphBottom, graphBottom - graphHeight);
+    float peakX = map(max_idx, 0, FFT_SIZE-1, 50, width - 50);
+    float peakY = map(max_value, minScale, maxScale, graphBottom, corrTop);
     
     // Vertical line from bottom to peak
     corrBuffer.stroke(255, 255, 0); // Yellow for peak marker
@@ -870,14 +915,15 @@ void renderCorrToBuffer() {
     corrBuffer.textSize(16);
     corrBuffer.textAlign(CENTER);
     corrBuffer.text("Peak: " + nf(max_value, 0, 4), peakX, peakY - 15);
-    corrBuffer.text("Index: " + max_idx, peakX, peakY - 35);
+    int display_idx = max_idx < FFT_BINS ? max_idx : max_idx - FFT_SIZE;
+    corrBuffer.text("Index: " + display_idx, peakX, peakY - 35);
   }
   
   // Draw axes
   corrBuffer.stroke(255);
   corrBuffer.strokeWeight(1);
   corrBuffer.line(50, graphBottom, width - 50, graphBottom); // X-axis
-  corrBuffer.line(50, graphBottom - graphHeight, 50, graphBottom); // Y-axis
+  corrBuffer.line(50, corrTop, 50, graphBottom); // Y-axis
   
   // Draw Y-axis grid lines and labels
   corrBuffer.stroke(80, 80, 100);
@@ -887,7 +933,7 @@ void renderCorrToBuffer() {
   corrBuffer.textAlign(RIGHT);
   for (int i = 0; i <= 5; i++) {
     float yValue = i * 0.2; // 0.0, 0.2, 0.4, 0.6, 0.8, 1.0
-    float yPos = map(yValue, minScale, maxScale, graphBottom, graphBottom - graphHeight);
+    float yPos = map(yValue, minScale, maxScale, graphBottom, corrTop);
     
     // Grid line
     corrBuffer.line(50, yPos, width - 50, yPos);
@@ -902,9 +948,9 @@ void renderCorrToBuffer() {
   corrBuffer.textAlign(LEFT);
   corrBuffer.text("0", 50, graphBottom + 20);
   corrBuffer.textAlign(CENTER);
-  corrBuffer.text("256", 50 + (width - 100) * 0.25, graphBottom + 20);
-  corrBuffer.text("512", 50 + (width - 100) * 0.5, graphBottom + 20);
-  corrBuffer.text("768", 50 + (width - 100) * 0.75, graphBottom + 20);
+  corrBuffer.text("256", 50 + graphWidth * 0.25, graphBottom + 20);
+  corrBuffer.text("512", 50 + graphWidth * 0.5, graphBottom + 20);
+  corrBuffer.text("768", 50 + graphWidth * 0.75, graphBottom + 20);
   corrBuffer.textAlign(RIGHT);
   corrBuffer.text("1023", width - 50, graphBottom + 20);
   corrBuffer.textAlign(CENTER);
@@ -914,7 +960,78 @@ void renderCorrToBuffer() {
   corrBuffer.textSize(14);
   corrBuffer.text("Peak: " + nf(max_value, 0, 6) + " at index " + max_idx, width/2, graphBottom + 40);
   
+  // Display info
+  corrBuffer.fill(255);
+  corrBuffer.textAlign(LEFT, TOP);
+  corrBuffer.textSize(12);
+  corrBuffer.text("Correlation Result (sparse: 21 values)", 60, corrTop + 10);
+  
   corrBuffer.endDraw();
+  
+  // Update waterfall
+  updateWaterfallCorr();
+}
+
+// Update waterfall spectrogram for CORR mode
+void updateWaterfallCorr() {
+  // Scroll waterfall down by copying pixels
+  corrWaterfallBuffer.beginDraw();
+  corrWaterfallBuffer.copy(0, 0, FFT_SIZE, corrWaterfallRows - 1, 0, 1, FFT_SIZE, corrWaterfallRows - 1);
+  
+  // Add new row at top (correlation data)
+  // Color based on correlation strength (0 to 1)
+  for (int i = 0; i < FFT_SIZE; i++) {
+    float value = correlation_data[i];
+    
+    // Convert to color
+    int colorValue = getColorForCorrValue(value);
+    
+    corrWaterfallBuffer.set(i, 0, colorValue);
+  }
+  
+  corrWaterfallBuffer.endDraw();
+}
+
+// Color mapping for CORR waterfall (similar to FFT but different scheme)
+int getColorForCorrValue(float value) {
+  // Correlation values are 0 to 1
+  value = constrain(value, 0, 1);
+  
+  int r, g, b;
+  
+  if (value < 0.2) {
+    // Black to blue
+    float t = value / 0.2;
+    r = 0;
+    g = 0;
+    b = int(t * 255);
+  } else if (value < 0.4) {
+    // Blue to cyan
+    float t = (value - 0.2) / 0.2;
+    r = 0;
+    g = int(t * 255);
+    b = 255;
+  } else if (value < 0.6) {
+    // Cyan to green
+    float t = (value - 0.4) / 0.2;
+    r = 0;
+    g = 255;
+    b = int((1 - t) * 255);
+  } else if (value < 0.8) {
+    // Green to yellow
+    float t = (value - 0.6) / 0.2;
+    r = int(t * 255);
+    g = 255;
+    b = 0;
+  } else {
+    // Yellow to red
+    float t = (value - 0.8) / 0.2;
+    r = 255;
+    g = int((1 - t) * 255);
+    b = 0;
+  }
+  
+  return color(r, g, b);
 }
 
 // MODE: FFT - Simple FFT magnitude display
@@ -968,15 +1085,57 @@ void drawFFTMode() {
 }
 
 // MODE: CORR - Simple correlation display
-void drawCorrMode() {
+void drawCorrMode(int mode) {
   fill(255);
   textSize(24);
   textAlign(CENTER);
-  text("CORR MODE - Correlation Result", width/2, 140);
+  if(mode == MODE_CORR_01) {
+      text("CORR MODE - Correlation mic0, mic1", width/2, 140);
+  } else if(mode == MODE_CORR_23) {
+      text("CORR MODE - Correlation mic2, mic3", width/2, 140);
+  }
+
   
   // ANTI-FLICKER: Draw from buffer if available
   if (corrBufferReady) {
     image(corrBuffer, 0, 0);
+    
+    // Draw waterfall spectrogram for correlation
+    int waterfallTop = 680;
+    image(corrWaterfallBuffer, 50, waterfallTop, width - 100, CORR_WATERFALL_HEIGHT);
+    
+    // Draw frame around waterfall
+    noFill();
+    stroke(255);
+    strokeWeight(2);
+    rect(50, waterfallTop, width - 100, CORR_WATERFALL_HEIGHT);
+    
+    // X-axis labels for waterfall (0 to 1023)
+    fill(255);
+    textAlign(CENTER, TOP);
+    textSize(14);
+    int plotWidth = width - 100;
+    int labelY = waterfallTop + CORR_WATERFALL_HEIGHT + 5;
+    
+    text("0", 50, labelY);
+    text("256", 50 + plotWidth * 0.25, labelY);
+    text("512", 50 + plotWidth * 0.5, labelY);
+    text("768", 50 + plotWidth * 0.75, labelY);
+    text("1023", width - 50, labelY);
+    
+    // Waterfall title
+    textAlign(LEFT, TOP);
+    textSize(14);
+    fill(255);
+    text("Correlation Waterfall", 60, waterfallTop - 25);
+    
+    // Time axis label
+    textAlign(CENTER, CENTER);
+    pushMatrix();
+    translate(20, waterfallTop + CORR_WATERFALL_HEIGHT/2);
+    rotate(-HALF_PI);
+    text("Time (newest at top)", 0, 0);
+    popMatrix();
     
     // Update stored max values (draw over the buffer)
     if(max_value > 0.25) {
@@ -1010,6 +1169,11 @@ void drawEyesMode() {
   if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12")) {
     e1.update(3*(int)mic01_phat_peak_idx, 3*(int)mic23_phat_peak_idx);
     e2.update(3*(int)mic01_phat_peak_idx, 3*(int)mic23_phat_peak_idx);
+    
+    // Save data to file if recording
+    if (recording && output != null) {
+      output.println(millis() + "," + sure_signal + "," + mic01_phat_peak_idx + "," + mic23_phat_peak_idx);
+    }
   }
  
   e1.display();
@@ -1039,10 +1203,17 @@ void drawGameMode() {
   fill(200);
   textSize(16);
   text("Clap near the mosquito to kill it! (within " + killDistance + " pixels)", width/2, 160);
+  text("Mosquito scale: " + nf(mosquitoScale, 0, 1) + "x", width/2, 180);
   
   // GAME MODE: Update and display mosquito
   mosquito.update();
   mosquito.display();
+  
+  // Check if kill animation should end and respawn mosquito
+  if (showKillAnimation && (millis() - killAnimationTime) > 500) {
+    showKillAnimation = false;
+    mosquito.respawn();
+  }
   
   // GAME MODE: Check for clap and handle hit detection
   if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12")) {
@@ -1061,10 +1232,15 @@ void drawGameMode() {
     lastClapY = int(clapY);
     lastClapTime = millis();
     
-    // Check if mosquito was hit
-    if (mosquito.checkHit(clapX, clapY, killDistance)) {
+    // Check if mosquito was hit (hitbox considers mosquito's scaled size)
+    if (mosquito.checkHit(clapX, clapY, killDistance) && !showKillAnimation) {
       mosquito.kill();
       gameScore += 10; // Award points
+      
+      if(hitSound != null) { hitSound.play(); }
+      // Start kill animation (non-blocking)
+      showKillAnimation = true;
+      killAnimationTime = millis();
       
       // Add success message
       String msg = millis() + ": HIT! +10 points";
@@ -1073,10 +1249,8 @@ void drawGameMode() {
       
       println("MOSQUITO KILLED! Score: " + gameScore);
       
-      // Respawn mosquito after a short delay
-      delay(500); // Brief pause to show kill
-      mosquito.respawn();
-    } else {
+      // NO MORE delay() - animation happens in draw loop!
+    } else if (!showKillAnimation) {
       // Add miss message
       float distance = dist(mosquito.x, mosquito.y, clapX, clapY);
       String msg = millis() + ": Miss by " + nf(distance, 0, 0) + " pixels";
@@ -1098,10 +1272,29 @@ void drawGameMode() {
     line(lastClapX - 20, lastClapY, lastClapX + 20, lastClapY);
     line(lastClapX, lastClapY - 20, lastClapX, lastClapY + 20);
     
-    // Circle showing kill radius
+    // Circle showing kill radius (fixed at 100px regardless of mosquito scale)
     stroke(255, 255, 0, alpha * 0.5);
     strokeWeight(2);
     ellipse(lastClapX, lastClapY, killDistance * 2, killDistance * 2);
+  }
+  
+  // GAME MODE: Draw kill animation effect
+  if (showKillAnimation) {
+    float animProgress = (millis() - killAnimationTime) / 500.0; // 0 to 1
+    float alpha = map(animProgress, 0, 1, 255, 0);
+    
+    // Explosion effect
+    stroke(255, 255, 0, alpha);
+    strokeWeight(3);
+    noFill();
+    float explosionSize = map(animProgress, 0, 1, mosquito.size, mosquito.size * 3);
+    ellipse(mosquito.x, mosquito.y, explosionSize, explosionSize);
+    
+    // Draw "SPLAT!" text
+    fill(255, 0, 0, alpha);
+    textSize(32);
+    textAlign(CENTER);
+    text("SPLAT!", mosquito.x, mosquito.y - 50);
   }
   
   // GAME MODE: Draw game messages
@@ -1121,10 +1314,19 @@ void drawGameMode() {
   text("mic23_idx: " + nf(mic23_phat_peak_idx, 0, 1) + " → Y: " + nf(lastClapY, 0, 0) + ", PSR: " + nf(mic23_psr, 0, 2), 20, 390);
   text("Sure signal: " + sure_signal, 20, 410);
   
-  // Draw mosquito position for debugging
+  // Draw mosquito position and size info
   if (mosquito.alive) {
     fill(255, 100, 100);
     text("Mosquito at: (" + nf(mosquito.x, 0, 0) + ", " + nf(mosquito.y, 0, 0) + ")", 20, 440);
+    text("Mosquito size: " + nf(mosquito.size, 0, 1) + " (scale: " + nf(mosquitoScale, 0, 1) + "x)", 20, 460);
+    text("Kill distance: " + killDistance + "px (fixed) + mosquito radius", 20, 480);
+    
+    // Draw mosquito hitbox visualization (for debugging)
+    noFill();
+    stroke(255, 100, 100, 100);
+    strokeWeight(1);
+    float effectiveHitbox = killDistance + (mosquito.size * 0.5);
+    ellipse(mosquito.x, mosquito.y, effectiveHitbox * 2, effectiveHitbox * 2);
   }
   
   // Draw playable area boundary for reference
@@ -1168,18 +1370,40 @@ void keyPressed() {
   // MODE SWITCHING: Handle key presses for mode changes
   if (key == '1') {
     println("KEY PRESSED: Requesting FFT mode");
-    requestModeChange(0); // Request FFT mode
+    requestModeChange(MODE_FFT); // Request FFT mode
   }
   else if (key == '2') {
     println("KEY PRESSED: Requesting EYE mode");
-    requestModeChange(2); // Request EYE mode
+    requestModeChange(MODE_EYE); // Request EYE mode
   }
-  else if (key == '3') {
+  else if (key == '9') {
     println("KEY PRESSED: Requesting CORR mode");
-    requestModeChange(1); // Request CORR mode
+    requestModeChange(MODE_CORR_01); // Request CORR mode
   }
   else if (key == '4') {
     println("KEY PRESSED: Requesting GAME mode");
-    requestModeChange(3); // Request GAME mode
+    requestModeChange(MODE_GAME); // Request GAME mode
+  }  
+  else if (key == '0') {
+    println("KEY PRESSED: Requesting SANITY mode");
+    requestModeChange(MODE_CORR_23); // Request GAME mode
+  }
+    // DATA RECORDING: Press 'R' to start/stop recording
+  else if (key == 'r' || key == 'R') {
+    if (!recording) {
+      // Start recording
+      String filename = "eye_data_" + year() + nf(month(), 2) + nf(day(), 2) + "_" + 
+                        nf(hour(), 2) + nf(minute(), 2) + nf(second(), 2) + ".csv";
+      output = createWriter(filename);
+      output.println("timestamp,sure_signal,mic01_phat_peak_idx,mic23_phat_peak_idx"); // CSV header
+      recording = true;
+      println("Started recording to: " + filename);
+    } else {
+      // Stop recording
+      output.flush(); // Write remaining data
+      output.close(); // Close file
+      recording = false;
+      println("Recording stopped and file saved!");
+    }
   }
 }
