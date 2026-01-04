@@ -5,10 +5,11 @@
 #include <arm_math.h>
 #include <math.h>
 
-#define FFT_MODE 0
-#define CORR_MODE 1
-#define EYE_MODE 2
-#define GAME_MODE 3
+#define MODE_FFT 0
+#define MODE_CORR_01 1
+#define MODE_EYE 2
+#define MODE_GAME 3
+#define MODE_CORR_23 4
 
 // ------------------ Pins ------------------
 const int MIC1_LED = 13;
@@ -16,7 +17,7 @@ const int MIC2_LED = 14;
 const int MIC3_LED = 15;
 
 // MODE SWITCHING: Current mode and pending mode change
-int debug_mode = EYE_MODE;
+int debug_mode = MODE_EYE;
 int pending_mode = -1; // -1 means no pending mode change
 
 // MODE SWITCHING: Buffer management for receiving commands from host
@@ -25,7 +26,7 @@ bool newCommand = false;
 
 // DEBUG: Heartbeat to show Teensy is alive
 unsigned long lastHeartbeat = 0;
-const unsigned long HEARTBEAT_INTERVAL = 2000; // 2 seconds
+const unsigned long HEARTBEAT_INTERVAL = 200000; // 200 seconds
 
 // ------------------ Audio objects ------------------
 AudioInputI2SQuad      i2s_quad;  
@@ -325,24 +326,29 @@ void processCommand() {
   
   // HANDSHAKE: Parse command and set pending mode change
   if (commandBuffer == "MODE_FFT") {
-    pending_mode = FFT_MODE; // Don't switch immediately - wait for frame to complete
+    pending_mode = MODE_FFT; // Don't switch immediately - wait for frame to complete
     Serial.println("ACK:MODE_FFT"); // Send acknowledgment to host
-    Serial.println("DEBUG:Set pending_mode to FFT_MODE");
+    Serial.println("DEBUG:Set pending_mode to MODE_FFT");
   } 
-  else if (commandBuffer == "MODE_CORR") {
-    pending_mode = CORR_MODE;
-    Serial.println("ACK:MODE_CORR");
-    Serial.println("DEBUG:Set pending_mode to CORR_MODE");
+  else if (commandBuffer == "MODE_CORR_01") {
+    pending_mode = MODE_CORR_01;
+    Serial.println("ACK:MODE_CORR_01");
+    Serial.println("DEBUG:Set pending_mode to MODE_CORR_01");
   }
   else if (commandBuffer == "MODE_EYE") {
-    pending_mode = EYE_MODE;
+    pending_mode = MODE_EYE;
     Serial.println("ACK:MODE_EYE");
-    Serial.println("DEBUG:Set pending_mode to EYE_MODE");
+    Serial.println("DEBUG:Set pending_mode to MODE_EYE");
   }
   else if (commandBuffer == "MODE_GAME") {
-    pending_mode = GAME_MODE;
+    pending_mode = MODE_GAME;
     Serial.println("ACK:MODE_GAME");
-    Serial.println("DEBUG:Set pending_mode to GAME_MODE");
+    Serial.println("DEBUG:Set pending_mode to MODE_GAME");
+  }
+  else if (commandBuffer == "MODE_CORR_23") {
+    pending_mode = MODE_CORR_23;
+    Serial.println("ACK:MODE_CORR_23");
+    Serial.println("DEBUG:Set pending_mode to MODE_CORR_23");
   }
   else if (commandBuffer == "STATUS") {
     // Report current mode without changing anything
@@ -354,7 +360,7 @@ void processCommand() {
     Serial.println("ERROR:UNKNOWN_COMMAND");
     Serial.print("DEBUG:Unknown command length: ");
     Serial.println(commandBuffer.length());
-    Serial.println("VALID_COMMANDS: MODE_FFT, MODE_CORR, MODE_EYE, MODE_GAME, STATUS");
+    Serial.println("VALID_COMMANDS: MODE_FFT, MODE_CORR_??, MODE_EYE, MODE_GAME, STATUS");
   }
   
   // BUFFER CORRUPTION PREVENTION: Clear command buffer and flag immediately after processing
@@ -498,10 +504,10 @@ void loop_gcc_phat() {
       }
 
       /*
-      *  MODE: FFT_MODE - Send 512 FFT magnitude bins
+      *  MODE: MODE_FFT - Send 512 FFT magnitude bins
       *
       */
-      if(debug_mode == FFT_MODE) {      
+      if(debug_mode == MODE_FFT) {      
         Serial.println("FFT_START"); // Start marker for FFT data packet
         for(int i = 0; i < FFT_BINS; i++) {
           Serial.print(mic0_magnitude[i], 6); // Send magnitude with 6 decimal places
@@ -514,16 +520,23 @@ void loop_gcc_phat() {
         Serial.println("FFT_END"); // End marker for FFT data packet
       
       /*
-      *  MODE: CORR_MODE - Send only 21 values around peak (optimization)
+      *  MODE: MODE_CORR_01 - Send only 21 values around peak (optimization)
       *
       */
-      } else if(debug_mode == CORR_MODE) {
+      } else if(debug_mode == MODE_CORR_01 || debug_mode == MODE_CORR_23) {
+        float *p = NULL;
+        if(debug_mode == MODE_CORR_01) {
+          p = correlation_result01;
+        } else if (debug_mode == MODE_CORR_23) {
+          p = correlation_result23;
+        }
+
         // Find peak in correlation result first
         float corr_max_value = -1;
         int corr_max_idx = -1;
         for(int i = 0; i < FFT_SIZE; i++) {
-          if(correlation_result01[i] > corr_max_value) {
-            corr_max_value = correlation_result01[i];
+          if(p[i] > corr_max_value) {
+            corr_max_value = p[i];
             corr_max_idx = i;
           }
         }
@@ -542,7 +555,7 @@ void loop_gcc_phat() {
         Serial.print(left_count); // How many left values
         for(int i = left_start; i < corr_max_idx; i++) {
           Serial.print(",");
-          Serial.print(correlation_result01[i], 6);
+          Serial.print(p[i], 6);
         }
         
         // Send 10 values to the right of peak (or less if near boundary)
@@ -552,17 +565,17 @@ void loop_gcc_phat() {
         Serial.print(right_count); // How many right values
         for(int i = corr_max_idx + 1; i <= right_end; i++) {
           Serial.print(",");
-          Serial.print(correlation_result01[i], 6);
+          Serial.print(p[i], 6);
         }
         
         Serial.println(); // End of data line
         Serial.println("CORR_END"); // End marker for correlation data packet
       
       /*
-      *  MODE: EYE_MODE and GAME_MODE - Send PHAT peak detection data
+      *  MODE: MODE_EYE and MODE_GAME - Send PHAT peak detection data
       *
       */
-      }  else if(debug_mode == EYE_MODE || debug_mode == GAME_MODE ) {
+      }  else if(debug_mode == MODE_EYE || debug_mode == MODE_GAME ) {
         float mic01_max_value    = -1; int mic01_max_idx    = -1; 
         float mic01_second_value = -1; int mic01_second_idx = -1;
         float mic23_max_value    = -1; int mic23_max_idx    = -1; 
