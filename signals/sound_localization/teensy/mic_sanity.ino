@@ -4,13 +4,23 @@
 #include <U8g2lib.h>
 #include <arm_math.h>
 
+
+enum MODE {
+  TEST1,
+  TEST2,
+  TEST3,
+  TEST4,
+  TEST5,
+} state;
+
+
 // ------------------ Pins ------------------
 const int MIC1_LED = 13;
 const int MIC2_LED = 14;
 const int MIC3_LED = 15;
 
-
-int debug_mode = 1; // 1: send to processing, 2: print max_value and index, 
+bool serial_monitor = false; // true -- serial plotter
+int debug_mode = 1; // 1: send to processing in loop_gcc_phat, 2: print max_value and index in loop_gcc_phat, 
 // ------------------ Audio objects ------------------
 AudioInputI2SQuad      i2s_quad;  
 
@@ -244,6 +254,7 @@ Total	104 blocks
   */
   AudioMemory(128);  // mic2 added - Increased from 20 to 30 for dual channel recording
   
+  state = TEST1;
   // Initialize ARM FFT
   arm_rfft_fast_init_f32(&fft_inst, FFT_SIZE);
   
@@ -280,12 +291,18 @@ Total	104 blocks
 }
 
 void loop() {
-   //loop_digital_life_check_test();  // test 1
-   //loop_DC_offset_stuck_bit_test(); // test 2
-   //loop_1khz_tone_injection_test(); // test 3
-   //loop_check_clock_sanity_by_fft_sum_test(); // test 4
-
-   loop_sanity_fft_draw();
+  if(state == TEST1) {
+    loop_digital_life_check_test();
+  } else if(state == TEST2) {
+    loop_DC_offset_stuck_bit_test();  
+  } else if(state == TEST3) {
+    loop_1khz_tone_injection_test();  
+  } else if(state == TEST4) {
+    loop_check_clock_sanity_by_fft_sum_test();
+  } else if(state == TEST5) {
+    loop_sanity_fft_draw(); // this is only test sending fft data to processing
+  }  
+ 
 }
 
 
@@ -551,8 +568,22 @@ That’s fine for FFT batching, but not for timing comparison with peak.
     float p1 = peak1.read();
     float p2 = peak2.read();
     float p3 = peak3.read();
-    Serial.printf("peak: %.6f, %.6f, %.6f, %.6f  ", p0, p1, p2, p3);
-    Serial.printf("max : %.6f, %.6f, %.6f, %.6f \r\n", mic0_max, mic1_max, mic2_max, mic3_max);
+
+
+    if(serial_monitor) {
+      Serial.printf("peak: %.6f, %.6f, %.6f, %.6f  ", p0, p1, p2, p3);
+      Serial.printf("max : %.6f, %.6f, %.6f, %.6f \r\n", mic0_max, mic1_max, mic2_max, mic3_max);
+    } else { // serial plotter
+      Serial.print(p0, 6);
+      Serial.print(",");
+      Serial.print(p1, 6);
+      Serial.print(",");
+      Serial.print(p2, 6);
+      Serial.print(",");
+      Serial.println(p3, 6);
+    }
+
+
 
     queueMic0.freeBuffer();
     queueMic1.freeBuffer();  // mic2 added - Free right channel buffer
@@ -1158,10 +1189,7 @@ void loop_cross_correlation() {
 
 void loop_sanity_fft_draw() {
  //Serial.printf("loop_check_clock_sanity_by_fft_sum_test\r\n" );
-  float mic0_fft_sum=0; 
-  float mic1_fft_sum=0; 
-  float mic2_fft_sum=0; 
-  float mic3_fft_sum=0; 
+
   while (queueMic0.available() && queueMic1.available()  && queueMic2.available() && queueMic3.available()) {
 
     int16_t *buffer0 = queueMic0.readBuffer();
@@ -1215,224 +1243,4 @@ void loop_sanity_fft_draw() {
  
     fft_ready = false; // allow while loop collect 1024 samples
   }  
-}
-
- 
-
-
-void loop_gcc_phat() {
-  // Continuous draining mic1 queue - prevents audio buffer overflow
-  // We must always read available buffers even while processing FFT
-  // mic2 added - Now processing both left and right channels simultaneously
-  while (queueMic0.available() && queueMic1.available()  && queueMic2.available() && queueMic3.available()) {  // mic2 added - Check both queues
-    int16_t *buffer0 = queueMic0.readBuffer();  // mic2 added - Left channel buffer
-    int16_t *buffer1 = queueMic1.readBuffer();  // mic2 added - Right channel buffer
-    int16_t *buffer2 = queueMic2.readBuffer();  // mic2 added - Left channel buffer
-    int16_t *buffer3 = queueMic3.readBuffer();  // mic2 added - Right channel buffer
-
-
-    for (int i = 0; i < 128; i++) {
-      if (sample_count < FFT_SIZE) {
-
-        // The data is divided by 32768.0f to normalize the raw audio samples from a 16-bit signed integer range into a floating-point range of -1.0 to 1.0.
-
-        mic0_time[sample_count] = buffer0[i] / 32768.0f;  // mic2 added - Direct left channel data
-        mic1_time[sample_count] = buffer1[i] / 32768.0f;  // mic2 added - Direct right channel data (no delay needed)
-        mic2_time[sample_count] = buffer2[i] / 32768.0f;  // mic2 added - Direct left channel data
-        mic3_time[sample_count] = buffer3[i] / 32768.0f;  // mic2 added - Direct right channel data (no delay needed)
-        
-        // mic2 added - Delay buffer update no longer needed
-        // delayBuffer[delayIndex] = buffer[i];
-        // delayIndex = (delayIndex + 1) % DELAY_SAMPLES;
-        
-        sample_count++;
-      }
-    }
-    
-    queueMic0.freeBuffer();
-    queueMic1.freeBuffer();  // mic2 added - Free right channel buffer
-    queueMic2.freeBuffer();
-    queueMic3.freeBuffer(); 
-
-    // When buffer is full, mark ready for FFT processing
-    if (sample_count >= FFT_SIZE && !fft_ready) {
-      digitalWrite(MIC1_LED, LOW); 
-      digitalWrite(MIC2_LED, LOW); 
-      digitalWrite(MIC3_LED, LOW); 
-
-      computeFFTAndPhase(mic0_time, mic0_fft, mic0_magnitude, mic0_phase);
-      computeFFTAndPhase(mic1_time, mic1_fft, mic1_magnitude, mic1_phase);
-      computeFFTAndPhase(mic2_time, mic2_fft, mic2_magnitude, mic2_phase);
-      computeFFTAndPhase(mic3_time, mic3_fft, mic3_magnitude, mic3_phase);
-
-      run_gcc_phat(mic0_fft, mic1_fft, cross_spectrum01, correlation_result01);
-      run_gcc_phat(mic0_fft, mic2_fft, cross_spectrum02, correlation_result02);
-      run_gcc_phat(mic0_fft, mic3_fft, cross_spectrum03, correlation_result03);
-
-      fft_ready = true;
-      sample_count = 0;  // Reset immediately to start collecting next frame
-    }
-  }
-  
-  // Original display code - runs when both FFTs are available
-  //if (peak.available() && fft.available() && fft_ready) {
-  if (fft_ready) {
-
-    
-    // if (amplitude < MIN_AMPLITUDE) {
-    //   volumeLevel = 0; brightness = 0;
-    // } 
-    // else if (amplitude <= QUIET_THRESH) {
-    //   volumeLevel = 1; brightness = 80;
-    // }
-    // else if (amplitude <= TALKING_THRESH) {
-    //   volumeLevel = 2; brightness = 140;
-    // }
-    // else if (amplitude <= CLAPPING_THRESH) {
-    //   volumeLevel = 3; brightness = 200;
-    // }
-    // else if (amplitude <= BANGING_THRESH) {
-    //   volumeLevel = 4; brightness = 240;
-    // }
-    // else {
-    //   volumeLevel = 5; brightness = 255;
-    // }
-    // analogWrite(MIC1_LED, brightness);
-    
-    //float dominantFreq = 0;
-
- 
-      /*
-      *
-      *
-      *
-      */
-    if(debug_mode == 1) {
-      // Send data to serial - now using ARM FFT results
-      // Format: MIC1_MAG,MIC1_PHASE,MIC2_MAG,MIC2_PHASE (alternating)
-      Serial.println("FFT_DATA_START");
-      
-      // Send Mic1 FFT (magnitude and phase interleaved)
-      Serial.print("CORR:");
-      // float mic_mag[FFT_SIZE];
-
-      // for(int i = 0; i < NUM_FFT_BINS ; i++) {
-      //   Serial.print(mic1_magnitude[i], 6);
-      //   Serial.print(",");
-      // }
-      // for(int i = 0; i < NUM_FFT_BINS ; i++) {
-      //   Serial.print(mic1_magnitude[i], 6);
-      //   // Serial.print(mic2_magnitude[i], 6);
-      //   //if(i < NUM_FFT_BINS  - 1) {
-      //     Serial.print(",");
-      //   //}
-      // }
-      for(int i = 0; i < FFT_SIZE; i++) {
-        Serial.print(correlation_result01[i], 6);
-        // Serial.print(mic1_magnitude[i], 6);
-        // Serial.print(mic2_magnitude[i], 6);
-        //Serial.print(",");
-        //Serial.print(mic1_phase[i], 6);
-        if(i < FFT_SIZE - 1) {
-          Serial.print(",");
-        }
-      }
-
-      
-      Serial.println();
-      
-      // // Send Mic2 FFT (magnitude and phase interleaved)
-      // Serial.print("MIC2:");
-      // for(int i = 0; i < NUM_FFT_BINS; i++) {
-      //   Serial.print(correlation_result[i+512], 6);
-      //   //Serial.print(mic2_magnitude[i], 6);
-      //   //Serial.print(",");
-      //   //Serial.print(mic2_phase[i], 6);
-      //   if(i < NUM_FFT_BINS - 1) {
-      //     Serial.print(",");
-      //   }
-      // }
-      // Serial.println();
-      
-      Serial.println("FFT_DATA_END");
-
-      /*
-      *
-      *
-      *
-      */
-    } else if(debug_mode == 2) {
-      float max01_value = -1; int max01_idx = -1;
-      float max02_value = -1; int max02_idx = -1;
-      float max03_value = -1; int max03_idx = -1;
-
-      for(int i = 0; i < FFT_SIZE; i++) {
-        if(correlation_result01[i] > max01_value) {
-          max01_value =  correlation_result01[i];
-          max01_idx = i;
-        } 
-        if(correlation_result02[i] > max02_value) {
-          max02_value =  correlation_result02[i];
-          max02_idx = i;
-        } 
-        if(correlation_result03[i] > max03_value) {
-          max03_value =  correlation_result03[i];
-          max03_idx = i;
-        } 
-      }
-
-        //  Serial.printf("max01_value: %.2f at %5d, max02_value: %.2f at %5d, max03_value: %.2f at %5d \n", 
-        //                max01_value, max01_idx, 
-        //                max02_value, max02_idx, 
-        //                max03_value, max03_idx);
-    // after wiring of quadpus legs 
-    //max01_value: 0.28 at   -20, max02_value: 0.32 at   -38, max03_value: 0.55 at   -51 
-    // 20 sample distance is 0.4535 msec --- 15.56 cm ( 343 m/s * 0.4535 msec = 155.55 mm = 15.5 cm)
-
-      if (max01_value > 0.25 && max02_value > 0.25 && max03_value > 0.25) {
-        int max01_shifted_idx = max01_idx > 512 ? max01_idx -1024 : max01_idx;
-        int max02_shifted_idx = max02_idx > 512 ? max02_idx -1024 : max02_idx;
-        int max03_shifted_idx = max03_idx > 512 ? max03_idx -1024 : max03_idx;
-        int max12_shifted_idx = max02_shifted_idx - max01_shifted_idx;
-        int max13_shifted_idx = max03_shifted_idx - max01_shifted_idx;
-        int max23_shifted_idx = max03_shifted_idx - max02_shifted_idx;
-
-        Serial.printf("%lu: max01_value: %.2f at %5d, max02_value: %.2f at %5d, max03_value: %.2f at %5d \n", 
-                      millis()/1000, 
-                      max01_value, max01_shifted_idx, 
-                      max02_value, max02_shifted_idx, 
-                      max03_value, max03_shifted_idx);
-
-
-        if(max01_shifted_idx < 0 && max02_shifted_idx < 0 && max03_shifted_idx < 0) {
-          digitalWrite(MIC1_LED, HIGH); 
-        } else if(max01_shifted_idx > 0 &&  max12_shifted_idx < 0 && max13_shifted_idx < 0 ) {
-          digitalWrite(MIC2_LED, HIGH); 
-        } else if(max02_shifted_idx > 0 &&  max12_shifted_idx > 0 && max23_shifted_idx < 0 ) {
-          digitalWrite(MIC3_LED, HIGH); 
-        }
-      
-      
-      }
-
-      /*
-      *
-      *
-      *
-      */
-    } else if( debug_mode == 3) {
-      //float amplitude = peak0.read();
-        float _peak0 = peak0.read();
-        float _peak1 = peak1.read();
-        float _peak2 = peak2.read();
-        float _peak3 = peak3.read();
-        if( _peak0 > 0.1 || _peak1 > 0.1 || _peak2 > 0.1 || _peak3 > 0.1) {
-          Serial.printf("%lu: peak0: %.2f, peak1: %.2f, peak2: %.2f, peak3: %.2f \n", 
-                        millis()/1000, _peak0, _peak1, _peak2, _peak3);
- 
-        }
-
-    }
-    fft_ready = false;  // Reset flag
-  }
 }
