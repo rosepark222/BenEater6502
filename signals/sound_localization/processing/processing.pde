@@ -12,6 +12,7 @@ final int FFT_SIZE = 1024;
 final int FFT_BINS = 512;
 
 
+
 SoundFile hitSound;
 
 Serial myPort;
@@ -26,7 +27,7 @@ boolean waitingForAck = false; // Waiting for acknowledgment from Teensy
 boolean modeChanging = false; // In the process of changing modes
 String modeChangeStatus = ""; // Status message to display
 ArrayList<String> debugMessages = new ArrayList<String>(); // Store debug messages
-int maxDebugMessages = 10; // Keep last 10 messages
+int maxDebugMessages = 1; // 10; // Keep last 10 messages
 
 // Eye class for demo mode - DEFINED FIRST
 class Eye {
@@ -83,18 +84,24 @@ class Mosquito {
   float hoverOffsetX, hoverOffsetY;
   float hoverAngle;
   
+  int leftright_margin;
+  int topbottom_margin;
+  
   Mosquito() {
     baseSize = 30; // Default base size
     respawn();
     wingAngle = 0;
     wingSpeed = 0.3;
     hoverAngle = random(TWO_PI);
+    leftright_margin = 150;
+    topbottom_margin = 300;
   }
   
   void respawn() {
     // Spawn in random location (with margins)
-    x = random(150, width - 150);
-    y = random(150, height - 150);
+    x = random(leftright_margin, width - leftright_margin);
+    //y = random(150, height - 150);
+    y = random(topbottom_margin, height - topbottom_margin); // make y direction smaller for m to show up
     size = baseSize * mosquitoScale; // Apply scaling factor
     alive = true;
   }
@@ -180,7 +187,7 @@ class Mosquito {
 Mosquito mosquito;
 int gameScore = 0;
 int killDistance = 100; // Kill distance stays constant (not scaled)
-float mosquitoScale = 5.0; // MOSQUITO SIZE SCALE: Change this to make mosquito larger/smaller (e.g., 5.0 = 5x larger)
+float mosquitoScale = 4.0; // MOSQUITO SIZE SCALE: Change this to make mosquito larger/smaller (e.g., 5.0 = 5x larger)
 ArrayList<String> gameMessages = new ArrayList<String>();
 int lastClapX = -1, lastClapY = -1;
 long lastClapTime = 0;
@@ -235,6 +242,7 @@ String currentMic = "";
 
 float max_value = 0;
 int  max_idx = 0;
+float draw_vertical_line_threshold = 0.2;
 
 float mic01_phat_peak_value = -1;
 float mic01_phat_peak_idx = -10;
@@ -881,22 +889,24 @@ void renderCorrToBuffer() {
   float minScale = 0.0;
   float maxScale = 1.0;
   
-  // Draw line graph
-  corrBuffer.stroke(255, 150, 100);
-  corrBuffer.strokeWeight(2);
-  corrBuffer.noFill();
-  corrBuffer.beginShape();
-  for (int i = 0; i < FFT_SIZE; i++) {
-    float x = map(i, 0, FFT_SIZE-1, 50, width - 50);
-    // Map correlation data from 0 to 1 scale
-    float y = map(correlation_data[i], minScale, maxScale, graphBottom, corrTop);
-    y = constrain(y, corrTop, graphBottom); // Clamp to graph bounds
-    corrBuffer.vertex(x, y);
+  if (max_value > draw_vertical_line_threshold) {
+    // Draw line graph
+    corrBuffer.stroke(255, 150, 100);
+    corrBuffer.strokeWeight(2);
+    corrBuffer.noFill();
+    corrBuffer.beginShape();
+    for (int i = 0; i < FFT_SIZE; i++) {
+      float x = map(i, 0, FFT_SIZE-1, 50, width - 50);
+      // Map correlation data from 0 to 1 scale
+      float y = map(correlation_data[i], minScale, maxScale, graphBottom, corrTop);
+      y = constrain(y, corrTop, graphBottom); // Clamp to graph bounds
+      corrBuffer.vertex(x, y);
+    }
+    corrBuffer.endShape();
   }
-  corrBuffer.endShape();
   
   // Draw vertical line at peak
-  if (max_value > 0) {
+  if (max_value > draw_vertical_line_threshold) {
     float peakX = map(max_idx, 0, FFT_SIZE-1, 50, width - 50);
     float peakY = map(max_value, minScale, maxScale, graphBottom, corrTop);
     
