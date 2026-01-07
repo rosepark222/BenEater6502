@@ -7,11 +7,26 @@ final int MODE_CORR_01 = 1;
 final int MODE_EYE = 2;
 final int MODE_GAME = 3;
 final int MODE_CORR_23 = 4;
+final int MODE_CORR_02 = 5;
+final int MODE_CORR_03 = 6;
+final int MODE_3D_LOCATION = 7;
 
 final int FFT_SIZE = 1024;
 final int FFT_BINS = 512;
 
+PVector[] mics = new PVector[4];
+PVector soundPos = new PVector(0, 0, 0);
 
+  // X-axis: RED (255, 80, 80)   // Y-axis: GREEN (80, 255, 80)   // Z-axis: BLUE (80, 80, 255)
+
+float rotX = -0.349;     // No tilt
+float rotY = 0.349;  // Rotate 20° to the right (makes Y point left)
+float zoom = 300;
+float sceneScale = 10.0; // Scale factor for 3D objects (adjust this value)
+// Mouse interaction variables
+float prevMouseX = 0;
+float prevMouseY = 0;
+boolean isDragging = false;
 
 SoundFile hitSound;
 
@@ -88,13 +103,15 @@ class Mosquito {
   int topbottom_margin;
   
   Mosquito() {
+    // move the marge before respawn so that it will be applied
+    leftright_margin = 150;
+    topbottom_margin = 250; // prevent duck from respawning too high or too low
     baseSize = 30; // Default base size
     respawn();
     wingAngle = 0;
     wingSpeed = 0.3;
     hoverAngle = random(TWO_PI);
-    leftright_margin = 150;
-    topbottom_margin = 300;
+
   }
   
   void respawn() {
@@ -250,6 +267,19 @@ float mic01_phat_second_value = -1;
 float mic01_phat_second_idx = -10;
 float mic01_psr = 0;
 
+float mic02_phat_peak_value = -1;
+float mic02_phat_peak_idx = -10;
+float mic02_phat_second_value = -1;
+float mic02_phat_second_idx = -10;
+float mic02_psr = 0;
+
+float mic03_phat_peak_value = -1;
+float mic03_phat_peak_idx = -10;
+float mic03_phat_second_value = -1;
+float mic03_phat_second_idx = -10;
+float mic03_psr = 0;
+
+
 float mic23_phat_peak_value = -1;
 float mic23_phat_peak_idx = -10;
 float mic23_phat_second_value = -1;
@@ -258,12 +288,258 @@ float mic23_psr = 0;
 
 float last_max_value = 0;
 int  last_max_idx = 0;
+
+void drawAxes(float len) {
+  strokeWeight(2);
+
+  stroke(255, 80, 80);
+  line(0, 0, 0, len, 0, 0);
+
+  stroke(80, 255, 80);
+  line(0, 0, 0, 0, len, 0);
+
+  stroke(80, 80, 255);
+  line(0, 0, 0, 0, 0, len);
+}
+
+void drawMics(PVector[] mics) {
+  noStroke();
+  fill(80, 160, 255);
+  for (PVector m : mics) {
+    pushMatrix();
+    translate(m.x, m.y, m.z);
+    sphere(2.5);
+    popMatrix();
+  }
+}
+
+void drawSound(PVector p) {
+  if (p == null) return;
+  noStroke();
+  fill(255, 80, 80);
+  pushMatrix();
+  translate(p.x, p.y, p.z);
+  sphere(3.5);
+  popMatrix();
+}
+
+void drawConnections(PVector[] mics, PVector p) {
+  if (p == null) return;
+  stroke(150, 150, 150, 120);
+  strokeWeight(1);
+  for (PVector m : mics) {
+    line(m.x, m.y, m.z, p.x, p.y, p.z);
+  }
+}
+ 
+void drawMicAndSoundScene(
+  PVector[] mics,
+  PVector soundPos,
+  float rotX, float rotY, float zoom
+) {
   
+  float xyz_scale = 1000;
+  scene3DBuffer.beginDraw();
+  //scene3DBuffer.background(20); The key change is replacing scene3DBuffer.background(20) with scene3DBuffer.clear(). This makes the buffer transparent, so when you draw it on top of the main screen (which already has the text), the text will show through.
+  scene3DBuffer.clear(); // The key change is replacing scene3DBuffer.background(20) with scene3DBuffer.clear(). This makes the buffer transparent, so when you draw it on top of the main screen (which already has the text), the text will show through.
+  scene3DBuffer.pushMatrix();
+  scene3DBuffer.translate(width/2, height/2);
+  
+
+
+scene3DBuffer.rotateX(HALF_PI); // Make Z vertical
+scene3DBuffer.rotateX(rotX);    // Tilt (none in this case)
+scene3DBuffer.rotateZ(rotY);    // Rotate around vertical Z-axis
+
+  scene3DBuffer.lights();
+
+ 
+  // X-axis: RED (255, 80, 80)   // Y-axis: GREEN (80, 255, 80)   // Z-axis: BLUE (80, 80, 255)
+  scene3DBuffer.stroke(255, 80, 80);
+  scene3DBuffer.line(0, 0, 0, 50 * sceneScale, 0, 0);
+  scene3DBuffer.stroke(80, 255, 80);
+  scene3DBuffer.line(0, 0, 0, 0, 50 * sceneScale, 0);
+  scene3DBuffer.stroke(80, 80, 255);
+  scene3DBuffer.line(0, 0, 0, 0, 0, 50 * sceneScale);
+  
+  // Draw mics - scaled
+  scene3DBuffer.noStroke();
+  
+  color[] micColors = {
+    color(255, 0, 255),   // Mic 0: Red
+    color(80, 255, 80),   // Mic 1: Green
+    color(80, 80, 255),   // Mic 2: Blue
+    color(255, 255, 80)   // Mic 3: Yellow
+  };
+  for (int i = 0; i < mics.length; i++) {
+    scene3DBuffer.fill(micColors[i]);
+    scene3DBuffer.pushMatrix();
+    scene3DBuffer.translate(xyz_scale*mics[i].x, xyz_scale*mics[i].y, xyz_scale*mics[i].z);
+    scene3DBuffer.sphere(2.5 * sceneScale/2);
+    scene3DBuffer.popMatrix();
+  }
+  
+  // Draw sound position - scaled
+  if (soundPos != null) {
+    scene3DBuffer.noStroke();
+    scene3DBuffer.fill(255, 80, 80);
+    scene3DBuffer.pushMatrix();
+    scene3DBuffer.translate(xyz_scale*soundPos.x, xyz_scale*soundPos.y, xyz_scale*soundPos.z);
+    scene3DBuffer.sphere(3.5 * sceneScale/2);
+    scene3DBuffer.popMatrix();
+    
+    // Draw connections - scaled
+    scene3DBuffer.stroke(150, 150, 150, 120);
+    scene3DBuffer.strokeWeight(1);
+    for (PVector m : mics) {
+      scene3DBuffer.line(xyz_scale*m.x, xyz_scale*m.y, xyz_scale*m.z, xyz_scale*soundPos.x, xyz_scale*soundPos.y, xyz_scale*soundPos.z);
+    }
+  }
+
+  scene3DBuffer.popMatrix();
+  scene3DBuffer.endDraw();
+  
+  scene3DBufferReady = true;
+}
+
+boolean locateSound3DFromGCC(
+  PVector mic0, PVector mic1,
+  PVector mic2, PVector mic3,
+  int peak01, int peak02, int peak03,
+  PVector outPos
+) {
+  final float fs = 44100.0f;
+  final float c  = 343.0f;
+  final int   N  = 1024;
+
+  /*--------------------------------------------------
+    Peak index → signed sample delay
+  --------------------------------------------------*/
+  //float dn01 = (peak01 <= 512) ? peak01 : peak01 - N;
+  //float dn02 = (peak02 <= 512) ? peak02 : peak02 - N;
+  //float dn03 = (peak03 <= 512) ? peak03 : peak03 - N;
+
+  float d1 = c * (peak01 / fs);
+  float d2 = c * (peak02 / fs);
+  float d3 = c * (peak03 / fs);
+
+  /*--------------------------------------------------
+    Geometry deltas (relative to mic0)
+  --------------------------------------------------*/
+  float dx10 = mic1.x - mic0.x;
+
+  float dx20 = mic2.x - mic0.x;
+  float dy20 = mic2.y - mic0.y;
+  float dz20 = mic2.z - mic0.z;
+
+  float dx30 = mic3.x - mic0.x;
+  float dy30 = mic3.y - mic0.y;
+  float dz30 = mic3.z - mic0.z;
+
+  /*--------------------------------------------------
+    x = ax*r0 + bx   (from mic1)
+  --------------------------------------------------*/
+  if (abs(dx10) < 1e-6f) return false;
+
+  float ax = -(2.0f * d1) / (2.0f * dx10);
+  float bx = -((d1*d1) + (mic1.x*mic1.x - mic0.x*mic0.x))
+             / (2.0f * dx10);
+
+  /*--------------------------------------------------
+    Linear equations for y and z
+  --------------------------------------------------*/
+  float A1 = 2.0f * dy20;
+  float B1 = 2.0f * dz20;
+  float C1r = 2.0f * d2 + 2.0f * dx20 * ax;
+  float C1c = d2*d2
+            + (mic2.x*mic2.x + mic2.y*mic2.y + mic2.z*mic2.z)
+            - (mic0.x*mic0.x + mic0.y*mic0.y + mic0.z*mic0.z)
+            + 2.0f * dx20 * bx;
+
+  float A2 = 2.0f * dy30;
+  float B2 = 2.0f * dz30;
+  float C2r = 2.0f * d3 + 2.0f * dx30 * ax;
+  float C2c = d3*d3
+            + (mic3.x*mic3.x + mic3.y*mic3.y + mic3.z*mic3.z)
+            - (mic0.x*mic0.x + mic0.y*mic0.y + mic0.z*mic0.z)
+            + 2.0f * dx30 * bx;
+
+  /*--------------------------------------------------
+    Solve 2×2 → y = ay*r0 + by , z = az*r0 + bz
+  --------------------------------------------------*/
+  float det = A1*B2 - A2*B1;
+  if (abs(det) < 1e-6f) return false;
+
+  float ay = ( C1r*B2 - C2r*B1 ) / det;
+  float by = ( C1c*B2 - C2c*B1 ) / det;
+
+  float az = ( A1*C2r - A2*C1r ) / det;
+  float bz = ( A1*C2c - A2*C1c ) / det;
+
+  /*--------------------------------------------------
+    Quadratic constraint
+  --------------------------------------------------*/
+  float Ax = ax;
+  float Bx = bx - mic0.x;
+
+  float Ay = ay;
+  float By = by - mic0.y;
+
+  float Az = az;
+  float Bz = bz - mic0.z;
+
+  float qa = Ax*Ax + Ay*Ay + Az*Az - 1.0f;
+  float qb = 2.0f*(Ax*Bx + Ay*By + Az*Bz);
+  float qc = Bx*Bx + By*By + Bz*Bz;
+
+  float disc = qb*qb - 4.0f*qa*qc;
+  if (disc < 0.0f) return false;
+
+  float r0 = (-qb + sqrt(disc)) / (2.0f * qa);
+  if (r0 <= 0.0f)
+    r0 = (-qb - sqrt(disc)) / (2.0f * qa);
+  if (r0 <= 0.0f) return false;
+
+  /*--------------------------------------------------
+    Recover position
+  --------------------------------------------------*/
+  outPos.set(
+    ax*r0 + bx,
+    ay*r0 + by,
+    az*r0 + bz
+  );
+
+  return true;
+}
+PGraphics scene3DBuffer; // 3D scene rendering
+boolean scene3DBufferReady = false;
+
 void setup() {
-  size(1400, 1000);
+  // size(1400, 1000); //RuntimeException: createGraphics() with P3D or OPENGL requires size() to use P2D or P3D
+  size(1400, 1000, P3D);
   smooth();
 
-
+    // mic2 at green
+    //mics[0] = new PVector(-0.15, 0, 0);
+    //mics[1] = new PVector( 0.15, 0, 0);
+    //// mics[2] = new PVector(  0,-0.10, 0.09);
+    //mics[2] = new PVector(  0,-0.17, 0.0);
+    //mics[3] = new PVector(  0, 0.065,-0.10);
+    
+    // mic2 at tetrohedron
+    mics[0] = new PVector(0.15, 0, 0);
+    mics[1] = new PVector(-0.15, 0, 0);
+    mics[2] = new PVector(  0,-0.17, 0.0);
+    mics[3] = new PVector(  0, 0.065,-0.10);
+    
+    // mic2 above gree
+    //mics[0] = new PVector(0.15, 0, 0);
+    //mics[1] = new PVector(-0.15, 0, 0);
+    //mics[2] = new PVector(  0,-0.12, 0.17);
+    //mics[3] = new PVector(  0, 0.065,-0.10);
+    
+    
+  scene3DBuffer = createGraphics(width, height, P3D); // P3D for 3D rendering
   hitSound = new SoundFile(this, "242664__reitanna__quack.wav");
    
   e1 = new Eye(820, 430, 220);
@@ -355,7 +631,16 @@ void requestModeChange(int newMode) {
     modeChangeStatus = "Requesting GAME mode...";
   } else if (newMode == MODE_CORR_23) {
     command = "MODE_CORR_23\n";
-    modeChangeStatus = "Requesting SANITY mode...";
+    modeChangeStatus = "Requesting MODE_CORR_23 mode...";
+  } else if (newMode == MODE_CORR_02) {
+    command = "MODE_CORR_02\n";
+    modeChangeStatus = "Requesting MODE_CORR_02 mode...";
+  } else if (newMode == MODE_CORR_03) {
+    command = "MODE_CORR_03\n";
+    modeChangeStatus = "Requesting MODE_CORR_03 mode...";
+  } else if (newMode == MODE_3D_LOCATION) {
+    command = "MODE_3D_LOCATION\n";
+    modeChangeStatus = "Requesting MODE_3D_LOCATION mode...";
   }
   
   myPort.write(command); // Send command to Teensy
@@ -423,11 +708,13 @@ void serialEvent(Serial myPort) {
     if (!modeChanging) {
       if (currentMode == MODE_FFT) {
         serialEvent_fft(data); // FFT mode
-      } else if (currentMode == MODE_CORR_01 || currentMode == MODE_CORR_23) {
+      } else if (currentMode == MODE_CORR_01 || currentMode == MODE_CORR_23 || currentMode == MODE_CORR_02 || currentMode == MODE_CORR_03) {
         serialEvent_corr(data); // CORR mode
       } else if (currentMode == MODE_EYE || currentMode == MODE_GAME) {
         serialEvent_Eyes(data); // EYE or GAME mode
-      }
+      }else if (currentMode == MODE_3D_LOCATION) {
+        serialEvent_3D(data);
+      } 
     } else {
       // BUFFER CORRUPTION PREVENTION: Ignore data during mode transition
       if (data.equals("FFT_START") || data.equals("CORR_START") || data.equals("PHAT_START")) {
@@ -653,6 +940,90 @@ void serialEvent_Eyes(String data) {
   }
 }
 
+// MODE: EYE and GAME - Receive PHAT peak detection data
+void serialEvent_3D(String data) {
+  if (data.equals("3D_START")) {
+    receivingData = true; // Start receiving PHAT data packet
+    
+    // Record timing: new frame arrived
+    long currentTime = millis();
+    if (lastFrameTime > 0) {
+      timeBetweenFrames = (currentTime - lastFrameTime);
+    }
+    frameArrivalTime = currentTime;
+    lastFrameTime = currentTime;
+    frameCount++;
+    
+    modeChangeStatus = "Receiving 3D data..."; // Update status message
+    
+    return;
+  }
+
+  if (data.equals("3D_END")) {
+    receivingData = false; // End of PHAT data packet
+    
+    // Record timing: frame fully received
+    long receiveEndTime = millis();
+    float receiveTime = receiveEndTime - frameArrivalTime;
+    
+    modeChangeStatus = "3D data received correctly"; // Update status message
+    newFrameAvailable = true; // Flag that we have new data to draw
+    
+    return;
+  }
+
+  if (receivingData) {
+    // Parse magnitude and phase data (interleaved: mag0,phase0,mag1,phase1,...)
+    String[] values = split(data, ',');
+    // println( values[0] + "; " + values[1] + "; " + values[2] + "; " + values[3] );
+    mic01_phat_peak_value = float(values[0]);
+    mic01_phat_peak_idx = float(values[1]);
+    mic01_phat_second_value = float(values[2]);
+    mic01_phat_second_idx = float(values[3]); 
+    mic01_psr = float(values[4]);
+    
+    mic02_phat_peak_value = float(values[5]);
+    mic02_phat_peak_idx =float(values[6]);
+    mic02_phat_second_value = float(values[7]);
+    mic02_phat_second_idx =float(values[8]);
+    mic02_psr = float(values[9]);
+    
+    mic03_phat_peak_value = float(values[10]);
+    mic03_phat_peak_idx =float(values[11]);
+    mic03_phat_second_value = float(values[12]);
+    mic03_phat_second_idx =float(values[13]);
+    mic03_psr = float(values[14]);
+    
+    sure_signal = "";
+    //if(mic01_phat_peak_value/mic01_phat_second_value > 1.5 && mic01_phat_peak_value > 0.2) sure_signal = "1";
+    //if(mic23_phat_peak_value/mic23_phat_second_value > 1.5 && mic23_phat_peak_value > 0.2) sure_signal += "2";
+    if(mic01_phat_peak_value/mic01_phat_second_value > 1.5 && mic01_phat_peak_value > 0.2 && mic01_psr > 6.0f) sure_signal = "1";
+    if(mic02_phat_peak_value/mic02_phat_second_value > 1.5 && mic02_phat_peak_value > 0.2 && mic02_psr > 6.0f) sure_signal += "2";    
+    if(mic03_phat_peak_value/mic03_phat_second_value > 1.5 && mic03_phat_peak_value > 0.2 && mic03_psr > 6.0f) sure_signal += "3";   
+    
+    if(! sure_signal.equals("")) {
+      float dd01 = mic01_phat_peak_idx * 1/44100 * 343 * 100;
+      float dd02 = mic02_phat_peak_idx * 1/44100 * 343 * 100; 
+      float dd03 = mic03_phat_peak_idx * 1/44100 * 343 * 100; // cm
+      println(String.format("INFO: mic01 p0:%4.2f []:%5d, p1:%4.2f []:%5d (p0/p1:%4.2f <> 1.5, psr:%5.2f <> 6.0) || mic02 %4.2f %3d, %4.2f %5d (%5.2f) %5.2f || mic03 %4.2f %3d, %4.2f %5d (%5.2f) %5.2f || (%5.1f, %5.1f, %5.1f) || %s",
+          mic01_phat_peak_value, (int)mic01_phat_peak_idx, 
+          mic01_phat_second_value, (int)mic01_phat_second_idx,
+          mic01_phat_peak_value/mic01_phat_second_value,
+          mic01_psr,
+          mic02_phat_peak_value, (int)mic02_phat_peak_idx,
+          mic02_phat_second_value, (int)mic02_phat_second_idx,
+          mic02_phat_peak_value/mic02_phat_second_value,
+          mic02_psr,
+          mic03_phat_peak_value, (int)mic03_phat_peak_idx,
+          mic03_phat_second_value, (int)mic03_phat_second_idx,
+          mic03_phat_peak_value/mic03_phat_second_value,
+          mic03_psr,
+          dd01, dd02, dd03,
+          sure_signal)); 
+    }
+  }
+}
+
 // Helper function to get mode name for display
 String getModeNameForDisplay(int mode) {
   if (mode == 0) return "FFT";
@@ -702,12 +1073,14 @@ void draw() {
   // Draw appropriate visualization based on current mode
   if (currentMode == MODE_FFT) {
     drawFFTMode(); // MODE: FFT
-  } else if (currentMode == MODE_CORR_01 || currentMode == MODE_CORR_23) {
+  } else if (currentMode == MODE_CORR_01 || currentMode == MODE_CORR_23 || currentMode == MODE_CORR_02 || currentMode == MODE_CORR_03) {
     drawCorrMode(currentMode); // MODE: CORR
   } else if (currentMode == MODE_EYE) {
     drawEyesMode(); // MODE: EYE
   } else if (currentMode == MODE_GAME) {
     drawGameMode(); // MODE: GAME (same as EYE for now)
+  } else if (currentMode == MODE_3D_LOCATION) {
+    draw3DMode();
   }
   
   // Draw mode selection instructions
@@ -1103,6 +1476,10 @@ void drawCorrMode(int mode) {
       text("CORR MODE - Correlation mic0, mic1", width/2, 140);
   } else if(mode == MODE_CORR_23) {
       text("CORR MODE - Correlation mic2, mic3", width/2, 140);
+  } else if(mode == MODE_CORR_02) {
+      text("CORR MODE - Correlation mic0, mic2", width/2, 140);
+  } else if(mode == MODE_CORR_03) {
+      text("CORR MODE - Correlation mic0, mic3", width/2, 140);
   }
 
   
@@ -1195,6 +1572,63 @@ void drawEyesMode() {
   textAlign(LEFT);
   text("eyeX: " + nf(e1.eyex, 0, 1), 20, 120);
   text("eyeY: " + nf(e1.eyey, 0, 1), 20, 140);
+}
+
+
+
+// MODE: EYE - Eyes tracking display
+void draw3DMode() {
+  //fill(255);
+  textSize(24);
+  textAlign(CENTER);
+  text("3D MODE - Location Tracking", width/2, 100);
+  
+  noStroke();  // Eyes should have no stroke
+  
+  int leftX = 92;
+  int rightX = 1113;
+  int upY = 130;
+  int downY = 830;
+  
+  if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12") || sure_signal.equals("123")) {
+    
+    //mics[0] = new PVector(-0.15, 0, 0);
+    //mics[1] = new PVector( 0.15, 0, 0);
+    //mics[2] = new PVector(  0,-0.10, 0.09);
+    //mics[3] = new PVector(  0, 0.065,-0.10);
+    // Display eye position info
+    fill(100, 255, 100);
+    textSize(14);
+    textAlign(LEFT);
+    text("dt01: " + nf(1/44100*mic01_phat_peak_idx, 0, 6), 20, 120);
+    text("dt02: " + nf(1/44100*mic02_phat_peak_idx, 0, 6), 20, 140);
+    text("dt03: " + nf(1/44100*mic03_phat_peak_idx, 0, 6), 20, 160);
+    
+    locateSound3DFromGCC(
+      mics[0], mics[1], mics[2], mics[3],
+      (int)mic01_phat_peak_idx, (int)mic02_phat_peak_idx, (int)mic03_phat_peak_idx,
+      soundPos
+    );
+
+    drawMicAndSoundScene(
+      mics,
+      soundPos,
+      rotX, rotY, zoom
+    );
+    
+ 
+    // Save data to file if recording
+    if (recording && output != null) {
+      output.println(millis() + "," + sure_signal + "," + mic01_phat_peak_idx + "," + mic23_phat_peak_idx);
+    }
+  }
+ 
+  // ANTI-FLICKER: Draw from buffer if available (MOVED OUTSIDE if statement otherwise, it will erate if sure_signale condition is not met)
+  if (scene3DBufferReady) {
+    image(scene3DBuffer, 0, 0);
+  }
+  
+
 }
 
 // MODE: GAME - Game display (same as EYE for now)
@@ -1327,9 +1761,10 @@ void drawGameMode() {
   // Draw mosquito position and size info
   if (mosquito.alive) {
     fill(255, 100, 100);
-    text("Mosquito at: (" + nf(mosquito.x, 0, 0) + ", " + nf(mosquito.y, 0, 0) + ")", 20, 440);
+    text("Mosquito at: (" + nf(mosquito.x, 0, 2) + ", " + nf(mosquito.y, 0, 2) + ")", 20, 440);
     text("Mosquito size: " + nf(mosquito.size, 0, 1) + " (scale: " + nf(mosquitoScale, 0, 1) + "x)", 20, 460);
     text("Kill distance: " + killDistance + "px (fixed) + mosquito radius", 20, 480);
+    text("Game: width " + width + " height " + height, 20, 500);
     
     // Draw mosquito hitbox visualization (for debugging)
     noFill();
@@ -1386,17 +1821,31 @@ void keyPressed() {
     println("KEY PRESSED: Requesting EYE mode");
     requestModeChange(MODE_EYE); // Request EYE mode
   }
-  else if (key == '9') {
+
+  else if (key == '3') {
+    println("KEY PRESSED: Requesting GAME mode");
+    requestModeChange(MODE_GAME); // Request GAME mode
+  }
+
+  else if (key == '7') {
     println("KEY PRESSED: Requesting CORR mode");
     requestModeChange(MODE_CORR_01); // Request CORR mode
   }
-  else if (key == '4') {
-    println("KEY PRESSED: Requesting GAME mode");
-    requestModeChange(MODE_GAME); // Request GAME mode
-  }  
+  else if (key == '8') {
+    println("KEY PRESSED: Requesting CORR mode");
+    requestModeChange(MODE_CORR_02); // Request CORR mode
+  }
+  else if (key == '9') {
+    println("KEY PRESSED: Requesting CORR mode");
+    requestModeChange(MODE_CORR_03); // Request CORR mode
+  }
   else if (key == '0') {
     println("KEY PRESSED: Requesting SANITY mode");
-    requestModeChange(MODE_CORR_23); // Request GAME mode
+    requestModeChange(MODE_CORR_23); // Request CORR mode
+  }
+  else if (key == '4') {
+    println("KEY PRESSED: Requesting 3D mode");
+    requestModeChange(MODE_3D_LOCATION); // Request MODE_3D_LOCATION mode
   }
     // DATA RECORDING: Press 'R' to start/stop recording
   else if (key == 'r' || key == 'R') {
@@ -1415,5 +1864,43 @@ void keyPressed() {
       recording = false;
       println("Recording stopped and file saved!");
     }
+  }
+}
+
+void mousePressed() {
+  // Only enable rotation in 3D mode
+  if (currentMode == MODE_3D_LOCATION) {
+    isDragging = true;
+    prevMouseX = mouseX;
+    prevMouseY = mouseY;
+  }
+}
+
+void mouseReleased() {
+  isDragging = false;
+}
+
+void mouseDragged() {
+  // Only rotate in 3D mode when dragging
+  if (currentMode == MODE_3D_LOCATION && isDragging) {
+    float dx = mouseX - prevMouseX;
+    float dy = mouseY - prevMouseY;
+    
+    // Update rotation based on mouse movement
+    rotY += dx * 0.01; // Horizontal mouse movement rotates around Y-axis
+    rotX += dy * 0.01; // Vertical mouse movement rotates around X-axis
+    
+    // Store current mouse position for next frame
+    prevMouseX = mouseX;
+    prevMouseY = mouseY;
+  }
+}
+
+void mouseWheel(MouseEvent event) {
+  // Only zoom in 3D mode
+  if (currentMode == MODE_3D_LOCATION) {
+    float e = event.getCount();
+    zoom += e * 10; // Adjust zoom speed as needed
+    zoom = constrain(zoom, 50, 1000); // Limit zoom range
   }
 }
