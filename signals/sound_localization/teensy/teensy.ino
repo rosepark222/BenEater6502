@@ -10,6 +10,20 @@
 #define MODE_EYE 2
 #define MODE_GAME 3
 #define MODE_CORR_23 4
+#define MODE_CORR_02 5
+#define MODE_CORR_03 6
+#define MODE_3D_LOCATION 7
+
+
+//erp029
+// Define a struct to hold related data
+struct CorrStatistics {
+    float p1;
+    int p1_idx;
+    float p2;
+    int p2_idx;
+    float psr;
+};
 
 // ------------------ Pins ------------------
 const int MIC1_LED = 13;
@@ -279,6 +293,32 @@ float psr(float *correlation_result, int max_idx, int fft_size)
     return (correlation_result[max_idx] - mean) / std;
 }
 
+
+
+
+CorrStatistics corr_stat(float *correlation_result) {
+  float mic_max_value    = -1; int mic_max_idx    = -1; 
+  float mic_second_value = -1; int mic_second_idx = -1;
+  for(int i = 0; i < FFT_SIZE; i++) {
+    if(correlation_result[i] > mic_max_value) {
+      mic_second_value = mic_max_value;
+      mic_second_idx = mic_max_idx;
+      mic_max_value =  correlation_result[i];
+      mic_max_idx = i;
+    } else if(correlation_result[i] > mic_second_value && correlation_result[i] != mic_max_value) {
+      mic_second_value = correlation_result[i];
+      mic_second_idx = i;
+    }
+  } 
+  float psr_val = psr(correlation_result, mic_max_idx, FFT_SIZE); 
+
+  int mic_max_shifted_idx = mic_max_idx > 512 ? mic_max_idx -1024 : mic_max_idx;
+  int mic_second_shifted_idx = mic_second_idx > 512 ? mic_second_idx -1024 : mic_second_idx;
+
+  CorrStatistics stat = {mic_max_value, mic_max_shifted_idx, mic_second_value, mic_second_shifted_idx, psr_val}; 
+  return stat;
+}
+
 // MODE SWITCHING: Check for incoming serial commands (non-blocking)
 // This reads characters from serial and buffers them until newline is received
 void checkSerialCommand() {
@@ -349,6 +389,21 @@ void processCommand() {
     pending_mode = MODE_CORR_23;
     Serial.println("ACK:MODE_CORR_23");
     Serial.println("DEBUG:Set pending_mode to MODE_CORR_23");
+  }
+  else if (commandBuffer == "MODE_CORR_02") {
+    pending_mode = MODE_CORR_02;
+    Serial.println("ACK:MODE_CORR_02");
+    Serial.println("DEBUG:Set pending_mode to MODE_CORR_02");
+  }
+  else if (commandBuffer == "MODE_CORR_03") {
+    pending_mode = MODE_CORR_03;
+    Serial.println("ACK:MODE_CORR_03");
+    Serial.println("DEBUG:Set pending_mode to MODE_CORR_03");
+  }
+  else if (commandBuffer == "MODE_3D_LOCATION") {
+    pending_mode = MODE_3D_LOCATION;
+    Serial.println("ACK:MODE_3D_LOCATION");
+    Serial.println("DEBUG:Set pending_mode to MODE_3D_LOCATION");
   }
   else if (commandBuffer == "STATUS") {
     // Report current mode without changing anything
@@ -523,12 +578,16 @@ void loop_gcc_phat() {
       *  MODE: MODE_CORR_01 - Send only 21 values around peak (optimization)
       *
       */
-      } else if(debug_mode == MODE_CORR_01 || debug_mode == MODE_CORR_23) {
+      } else if(debug_mode == MODE_CORR_01 || debug_mode == MODE_CORR_23 || debug_mode == MODE_CORR_02 || debug_mode == MODE_CORR_03) {
         float *p = NULL;
         if(debug_mode == MODE_CORR_01) {
           p = correlation_result01;
         } else if (debug_mode == MODE_CORR_23) {
           p = correlation_result23;
+        } else if (debug_mode == MODE_CORR_02) {
+          p = correlation_result02;
+        } else if (debug_mode == MODE_CORR_03) {
+          p = correlation_result03;
         }
 
         // Find peak in correlation result first
@@ -625,6 +684,21 @@ void loop_gcc_phat() {
         Serial.println("PHAT_END"); // End marker for PHAT data packet
 
         //}
+      } else if(debug_mode == MODE_3D_LOCATION ) {
+ 
+        CorrStatistics corr_stat01 = corr_stat(correlation_result01);
+        CorrStatistics corr_stat02 = corr_stat(correlation_result02);
+        CorrStatistics corr_stat03 = corr_stat(correlation_result03);
+ 
+ 
+        Serial.println("3D_START"); // Start marker for PHAT data packet
+        // Send: peak_value, peak_idx, second_value, second_idx, psr for both mic pairs
+        Serial.printf("%.6f, %5d, %.6f, %5d, %.6f, %.6f, %5d, %.6f, %5d, %.6f, %.6f, %5d, %.6f, %5d, %.6f\n", 
+          corr_stat01.p1, corr_stat01.p1_idx, corr_stat01.p2, corr_stat01.p2_idx, corr_stat01.psr, 
+          corr_stat02.p1, corr_stat02.p1_idx, corr_stat02.p2, corr_stat02.p2_idx, corr_stat02.psr, 
+          corr_stat03.p1, corr_stat03.p1_idx, corr_stat03.p2, corr_stat03.p2_idx, corr_stat03.psr );
+        Serial.println("3D_END"); // End marker for PHAT data packet
+ 
       } 
 
       fft_ready = false;  // Reset flag
