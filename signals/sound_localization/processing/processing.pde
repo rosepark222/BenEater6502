@@ -29,6 +29,7 @@ float prevMouseY = 0;
 boolean isDragging = false;
 
 SoundFile hitSound;
+SoundFile dingSound;
 
 Serial myPort;
 boolean newFrameAvailable = false; 
@@ -210,6 +211,11 @@ int lastClapX = -1, lastClapY = -1;
 long lastClapTime = 0;
 long killAnimationTime = 0; // Track when mosquito was killed for animation
 boolean showKillAnimation = false;
+// Timer variables
+long gameStartTime = 0;
+int gameDuration = 60000; // 60 seconds in milliseconds
+boolean gameActive = false;
+boolean showRestartDialog = false;
 
 // FFT data storage
 float[] fft_data = new float[FFT_BINS]; // MODE: FFT - 512 magnitude bins
@@ -514,10 +520,93 @@ boolean locateSound3DFromGCC(
 PGraphics scene3DBuffer; // 3D scene rendering
 boolean scene3DBufferReady = false;
 
+
+class HighScore {
+  String name;
+  int score;
+  
+  HighScore(String name, int score) {
+    this.name = name;
+    this.score = score;
+  }
+}
+
+ArrayList<HighScore> highScores = new ArrayList<HighScore>();
+String playerName = "";
+boolean isEnteringName = false;
+boolean isNewHighScore = false;
+String highScoreFilename = "highscores.txt";
+
+void loadHighScores() {
+  highScores.clear();
+  try {
+    String[] lines = loadStrings(highScoreFilename);
+    if (lines != null) {
+      for (String line : lines) {
+        String[] parts = split(line, ',');
+        if (parts.length == 2) {
+          String name = parts[0];
+          int score = int(parts[1]);
+          highScores.add(new HighScore(name, score));
+        }
+      }
+    }
+  } catch (Exception e) {
+    println("No high scores file found, starting fresh.");
+  }
+  
+  // Sort by score (highest first)
+  sortHighScores();
+  
+  println("Loaded " + highScores.size() + " high scores");
+}
+
+void saveHighScores() {
+  String[] lines = new String[highScores.size()];
+  for (int i = 0; i < highScores.size(); i++) {
+    lines[i] = highScores.get(i).name + "," + highScores.get(i).score;
+  }
+  saveStrings(highScoreFilename, lines);
+  println("High scores saved!");
+}
+
+void sortHighScores() {
+  // Simple bubble sort (good enough for 10 items)
+  for (int i = 0; i < highScores.size() - 1; i++) {
+    for (int j = 0; j < highScores.size() - i - 1; j++) {
+      if (highScores.get(j).score < highScores.get(j + 1).score) {
+        HighScore temp = highScores.get(j);
+        highScores.set(j, highScores.get(j + 1));
+        highScores.set(j + 1, temp);
+      }
+    }
+  }
+}
+
+boolean isTopTenScore(int score) {
+  if (highScores.size() < 10) return true;
+  return score > highScores.get(9).score;
+}
+
+void addHighScore(String name, int score) {
+  highScores.add(new HighScore(name, score));
+  sortHighScores();
+  
+  // Keep only top 10
+  while (highScores.size() > 10) {
+    highScores.remove(highScores.size() - 1);
+  }
+  
+  saveHighScores();
+}
+
 void setup() {
   // size(1400, 1000); //RuntimeException: createGraphics() with P3D or OPENGL requires size() to use P2D or P3D
   size(1400, 1000, P3D);
+  surface.setLocation(500, 5);
   smooth();
+
+  loadHighScores();
 
     // mic2 at green
     //mics[0] = new PVector(-0.15, 0, 0);
@@ -541,6 +630,7 @@ void setup() {
     
   scene3DBuffer = createGraphics(width, height, P3D); // P3D for 3D rendering
   hitSound = new SoundFile(this, "242664__reitanna__quack.wav");
+  dingSound = new SoundFile(this, "573381__ammaro__ding.wav");
    
   e1 = new Eye(820, 430, 220);
   e2 = new Eye(420, 430, 220);
@@ -1632,16 +1722,43 @@ void draw3DMode() {
 }
 
 // MODE: GAME - Game display (same as EYE for now)
+// MODE: GAME - Game display (same as EYE for now)
 void drawGameMode() {
   fill(255);
   textSize(32);
   textAlign(CENTER);
   text("MOSQUITO HUNTER - Clap to Kill!", width/2, 60);
   
-  // Display score
+  // Calculate remaining time
+  long elapsedTime = millis() - gameStartTime;
+  long remainingTime = gameDuration - elapsedTime;
+  
+  // Check if time expired
+  //if (remainingTime <= 0 && gameActive) {
+  //  gameActive = false;
+  //  showRestartDialog = true;
+  //  remainingTime = 0;
+  //}
+  if (remainingTime <= 0 && gameActive) {
+    gameActive = false;
+    showRestartDialog = true;
+    isNewHighScore = isTopTenScore(gameScore);
+    if (isNewHighScore) {
+      isEnteringName = true;
+      playerName = "";
+    }
+    remainingTime = 0;
+  }
+  // Display score and timer
   fill(255, 255, 0);
   textSize(48);
-  text("Score: " + gameScore, width/2, 120);
+  text("Score: " + gameScore, width/2 - 200, 120);
+  
+  // Display countdown timer
+  int seconds = (int)(remainingTime / 1000);
+  fill(remainingTime < 10000 ? color(255, 0, 0) : color(0, 255, 0)); // Red when < 10s
+  textSize(48);
+  text("Time: " + seconds + "s", width/2 + 200, 120);
   
   // Display instructions
   fill(200);
@@ -1649,96 +1766,215 @@ void drawGameMode() {
   text("Clap near the mosquito to kill it! (within " + killDistance + " pixels)", width/2, 160);
   text("Mosquito scale: " + nf(mosquitoScale, 0, 1) + "x", width/2, 180);
   
-  // GAME MODE: Update and display mosquito
-  mosquito.update();
-  mosquito.display();
-  
-  // Check if kill animation should end and respawn mosquito
-  if (showKillAnimation && (millis() - killAnimationTime) > 500) {
-    showKillAnimation = false;
-    mosquito.respawn();
-  }
-  
-  // GAME MODE: Check for clap and handle hit detection
-  if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12")) {
-    // Calculate clap position from microphone data
-    // mic01_phat_peak_idx and mic23_phat_peak_idx range from approximately -30 to +30
-    // Scale to cover the playable area where mosquitoes spawn (150 to width-150, 150 to height-150)
-    float clapX = map(mic01_phat_peak_idx, -30, 30, 150, width - 150);
-    float clapY = map(mic23_phat_peak_idx, -30, 30, 150, height - 150);
+  // Show restart dialog if game ended
+  if (showRestartDialog) {
+    // Semi-transparent overlay
+    fill(0, 0, 0, 200);
+    rect(0, 0, width, height);
     
-    // Constrain to screen bounds
-    clapX = constrain(clapX, 0, width);
-    clapY = constrain(clapY, 0, height);
-    
-    // Store clap position and time for visualization
-    lastClapX = int(clapX);
-    lastClapY = int(clapY);
-    lastClapTime = millis();
-    
-    // Check if mosquito was hit (hitbox considers mosquito's scaled size)
-    if (mosquito.checkHit(clapX, clapY, killDistance) && !showKillAnimation) {
-      mosquito.kill();
-      gameScore += 10; // Award points
-      
-      if(hitSound != null) { hitSound.play(); }
-      // Start kill animation (non-blocking)
-      showKillAnimation = true;
-      killAnimationTime = millis();
-      
-      // Add success message
-      String msg = millis() + ": HIT! +10 points";
-      gameMessages.add(msg);
-      if (gameMessages.size() > 5) gameMessages.remove(0);
-      
-      println("MOSQUITO KILLED! Score: " + gameScore);
-      
-      // NO MORE delay() - animation happens in draw loop!
-    } else if (!showKillAnimation) {
-      // Add miss message
-      float distance = dist(mosquito.x, mosquito.y, clapX, clapY);
-      String msg = millis() + ": Miss by " + nf(distance, 0, 0) + " pixels";
-      gameMessages.add(msg);
-      if (gameMessages.size() > 5) gameMessages.remove(0);
-    }
-  }
-  
-  // GAME MODE: Draw clap position indicator (fades over time)
-  if (lastClapTime > 0 && (millis() - lastClapTime) < 1000) {
-    float alpha = map(millis() - lastClapTime, 0, 1000, 255, 0);
-    
-    // Draw crosshair at clap position
-    stroke(255, 0, 0, alpha);
+    // Dialog box
+    fill(40, 50, 60);
+    stroke(255);
     strokeWeight(3);
-    noFill();
+    rectMode(CENTER);
+    //rect(width/2, height/2, 500, 300, 10);
+    rect(width/2, height/2, 700, 600, 10);
+    rectMode(CORNER);
     
-    // Crosshair
-    line(lastClapX - 20, lastClapY, lastClapX + 20, lastClapY);
-    line(lastClapX, lastClapY - 20, lastClapX, lastClapY + 20);
-    
-    // Circle showing kill radius (fixed at 100px regardless of mosquito scale)
-    stroke(255, 255, 0, alpha * 0.5);
-    strokeWeight(2);
-    ellipse(lastClapX, lastClapY, killDistance * 2, killDistance * 2);
-  }
-  
-  // GAME MODE: Draw kill animation effect
-  if (showKillAnimation) {
-    float animProgress = (millis() - killAnimationTime) / 500.0; // 0 to 1
-    float alpha = map(animProgress, 0, 1, 255, 0);
-    
-    // Explosion effect
-    stroke(255, 255, 0, alpha);
-    strokeWeight(3);
-    noFill();
-    float explosionSize = map(animProgress, 0, 1, mosquito.size, mosquito.size * 3);
-    ellipse(mosquito.x, mosquito.y, explosionSize, explosionSize);
-    
-    // Draw "SPLAT!" text
-    fill(255, 0, 0, alpha);
-    textSize(32);
+    // Game over text
+    fill(255, 255, 0);
+    textSize(48);
     textAlign(CENTER);
-    text("SPLAT!", mosquito.x, mosquito.y - 50);
+    //text("TIME'S UP!", width/2, height/2 - 60);
+    text("TIME'S UP!", width/2, height/2 - 260);
+    // Final score
+    //fill(255);
+    //textSize(36);
+    //text("Final Score: " + gameScore, width/2, height/2);
+    fill(255);
+    textSize(36);
+    text("Your Score: " + gameScore, width/2, height/2 - 210);
+    
+    // Check if it's a new record
+    if (isNewHighScore && highScores.size() > 0 && gameScore > highScores.get(0).score) {
+      fill(255, 215, 0); // Gold color
+      textSize(32);
+      text("🎉 NEW HIGH SCORE! 🎉", width/2, height/2 - 170);
+      fill(255, 100, 100);
+      textSize(24);
+      text("CONGRATULATIONS! You broke the record!", width/2, height/2 - 140);
+    } else if (isNewHighScore) {
+      fill(0, 255, 0);
+      textSize(28);
+      text("Top 10 Score!", width/2, height/2 - 170);
+    }
+    
+    // Restart button
+    // Name entry if new high score
+    if (isEnteringName) {
+      fill(255);
+      textSize(20);
+      text("Enter your name:", width/2, height/2 - 100);
+      
+      // Name input box
+      fill(60, 70, 80);
+      stroke(255);
+      strokeWeight(2);
+      rect(width/2 - 150, height/2 - 75, 300, 40, 5);
+      
+      // Display entered name
+      fill(255, 255, 0);
+      textSize(24);
+      text(playerName + "_", width/2, height/2 - 45);
+      
+      fill(200);
+      textSize(14);
+      text("Type your name and press ENTER", width/2, height/2 - 20);
+    } else {
+      // High scores table
+      fill(255);
+      textSize(28);
+      text("HIGH SCORES", width/2, height/2 - 80);
+      
+      textAlign(LEFT);
+      textSize(18);
+      int startY = height/2 - 40;
+      
+      for (int i = 0; i < min(10, highScores.size()); i++) {
+        HighScore hs = highScores.get(i);
+        
+        // Highlight current player's score
+        if (hs.score == gameScore && hs.name.equals(playerName)) {
+          fill(255, 255, 0);
+        } else {
+          fill(200);
+        }
+        
+        String rank = (i + 1) + ".";
+        text(rank, width/2 - 280, startY + i * 30);
+        text(hs.name, width/2 - 240, startY + i * 30);
+        text(hs.score + " pts", width/2 + 100, startY + i * 30);
+      }
+      
+      // Restart button
+      textAlign(CENTER);
+      fill(0, 200, 0);
+      stroke(255);
+      strokeWeight(2);
+      rect(width/2 - 100, height/2 + 220, 200, 60, 5);
+      
+      fill(255);
+      textSize(28);
+      text("RESTART", width/2, height/2 + 258);
+      
+      // Instructions
+      fill(200);
+      textSize(16);
+      text("Click the button to play again!", width/2, height/2 + 290);
+    }
+    
+    return; // Don't draw game elements when dialog is shown
+  }
+  
+  // Only update and display game if active
+  if (gameActive) {
+    // GAME MODE: Update and display mosquito
+    mosquito.update();
+    mosquito.display();
+    
+    // Check if kill animation should end and respawn mosquito
+    if (showKillAnimation && (millis() - killAnimationTime) > 500) {
+      showKillAnimation = false;
+      mosquito.respawn();
+    }
+    
+    // GAME MODE: Check for clap and handle hit detection
+    if(sure_signal.equals("1") || sure_signal.equals("2") || sure_signal.equals("12")) {
+      // Calculate clap position from microphone data
+      // mic01_phat_peak_idx and mic23_phat_peak_idx range from approximately -30 to +30
+      // Scale to cover the playable area where mosquitoes spawn (150 to width-150, 150 to height-150)
+      float clapX = map(mic01_phat_peak_idx, -30, 30, 150, width - 150);
+      float clapY = map(mic23_phat_peak_idx, -30, 30, 150, height - 150);
+      
+      // Constrain to screen bounds
+      clapX = constrain(clapX, 0, width);
+      clapY = constrain(clapY, 0, height);
+      
+      // Store clap position and time for visualization
+      lastClapX = int(clapX);
+      lastClapY = int(clapY);
+      lastClapTime = millis();
+      
+      // Check if mosquito was hit (hitbox considers mosquito's scaled size)
+      if (mosquito.checkHit(clapX, clapY, killDistance) && !showKillAnimation) {
+        mosquito.kill();
+        gameScore += 10; // Award points
+        
+        //
+        if(gameScore % 100 == 0) {
+          if(dingSound != null) { dingSound.play(); }
+        } else {
+          if(hitSound != null) { hitSound.play(); }
+        }
+        
+        // Start kill animation (non-blocking)
+        showKillAnimation = true;
+        killAnimationTime = millis();
+        
+        // Add success message
+        String msg = millis() + ": HIT! +10 points";
+        gameMessages.add(msg);
+        if (gameMessages.size() > 5) gameMessages.remove(0);
+        
+        println("MOSQUITO KILLED! Score: " + gameScore);
+        
+        // NO MORE delay() - animation happens in draw loop!
+      } else if (!showKillAnimation) {
+        // Add miss message
+        float distance = dist(mosquito.x, mosquito.y, clapX, clapY);
+        String msg = millis() + ": Miss by " + nf(distance, 0, 0) + " pixels";
+        gameMessages.add(msg);
+        if (gameMessages.size() > 5) gameMessages.remove(0);
+      }
+    }
+    
+    // GAME MODE: Draw clap position indicator (fades over time)
+    if (lastClapTime > 0 && (millis() - lastClapTime) < 1000) {
+      float alpha = map(millis() - lastClapTime, 0, 1000, 255, 0);
+      
+      // Draw crosshair at clap position
+      stroke(255, 0, 0, alpha);
+      strokeWeight(3);
+      noFill();
+      
+      // Crosshair
+      line(lastClapX - 20, lastClapY, lastClapX + 20, lastClapY);
+      line(lastClapX, lastClapY - 20, lastClapX, lastClapY + 20);
+      
+      // Circle showing kill radius (fixed at 100px regardless of mosquito scale)
+      stroke(255, 255, 0, alpha * 0.5);
+      strokeWeight(2);
+      ellipse(lastClapX, lastClapY, killDistance * 2, killDistance * 2);
+    }
+    
+    // GAME MODE: Draw kill animation effect
+    if (showKillAnimation) {
+      float animProgress = (millis() - killAnimationTime) / 500.0; // 0 to 1
+      float alpha = map(animProgress, 0, 1, 255, 0);
+      
+      // Explosion effect
+      stroke(255, 255, 0, alpha);
+      strokeWeight(3);
+      noFill();
+      float explosionSize = map(animProgress, 0, 1, mosquito.size, mosquito.size * 3);
+      ellipse(mosquito.x, mosquito.y, explosionSize, explosionSize);
+      
+      // Draw "SPLAT!" text
+      fill(255, 0, 0, alpha);
+      textSize(32);
+      textAlign(CENTER);
+      text("SPLAT!", mosquito.x, mosquito.y - 50);
+    }
   }
   
   // GAME MODE: Draw game messages
@@ -1759,7 +1995,7 @@ void drawGameMode() {
   text("Sure signal: " + sure_signal, 20, 410);
   
   // Draw mosquito position and size info
-  if (mosquito.alive) {
+  if (mosquito.alive && gameActive) {
     fill(255, 100, 100);
     text("Mosquito at: (" + nf(mosquito.x, 0, 2) + ", " + nf(mosquito.y, 0, 2) + ")", 20, 440);
     text("Mosquito size: " + nf(mosquito.size, 0, 1) + " (scale: " + nf(mosquitoScale, 0, 1) + "x)", 20, 460);
@@ -1807,6 +2043,26 @@ void shiftIntoNewBuffer(float[] src, float[] dst, int MAX_LAG) {
 }
 
 void keyPressed() {
+  
+  // Handle name entry in game mode
+  if (currentMode == MODE_GAME && isEnteringName) {
+    if (key == ENTER || key == RETURN) {
+      if (playerName.length() > 0) {
+        addHighScore(playerName, gameScore);
+        isEnteringName = false;
+        println("High score added: " + playerName + " - " + gameScore);
+      }
+    } else if (key == BACKSPACE) {
+      if (playerName.length() > 0) {
+        playerName = playerName.substring(0, playerName.length() - 1);
+      }
+    } else if (key >= 32 && key <= 126 && playerName.length() < 15) {
+      // Allow printable characters, max 15 chars
+      playerName += key;
+    }
+    return; // Don't process other keys while entering name
+  }
+  
   if (key == 's' || key == 'S') {
     saveFrame("fft_snapshot_####.png");
     println("Screenshot saved!");
@@ -1822,10 +2078,13 @@ void keyPressed() {
     requestModeChange(MODE_EYE); // Request EYE mode
   }
 
+ 
   else if (key == '3') {
     println("KEY PRESSED: Requesting GAME mode");
-    requestModeChange(MODE_GAME); // Request GAME mode
+    requestModeChange(MODE_GAME);
+    startGame(); // Auto-start game when entering mode
   }
+ 
 
   else if (key == '7') {
     println("KEY PRESSED: Requesting CORR mode");
@@ -1867,15 +2126,59 @@ void keyPressed() {
   }
 }
 
-void mousePressed() {
+void startGame() {
+  //gameScore = 0;
+  //gameStartTime = millis();
+  //gameActive = true;
+  //showRestartDialog = false;
+  //mosquito.respawn();
+  //gameMessages.clear();
+  //println("Game started!");
+  
+  gameScore = 0;
+  gameStartTime = millis();
+  gameActive = true;
+  showRestartDialog = false;
+  isEnteringName = false;
+  isNewHighScore = false;
+  playerName = "";
+  mosquito.respawn();
+  gameMessages.clear();
+  println("Game started!");
+}
+
+void __mousePressed() {
   // Only enable rotation in 3D mode
   if (currentMode == MODE_3D_LOCATION) {
     isDragging = true;
     prevMouseX = mouseX;
     prevMouseY = mouseY;
   }
+  
+  // Handle restart button click in GAME mode
+  if (currentMode == MODE_GAME && showRestartDialog) {
+    // Check if click is on restart button (centered at width/2, height/2 + 70)
+    if (mouseX > width/2 - 100 && mouseX < width/2 + 100 &&
+        mouseY > height/2 + 40 && mouseY < height/2 + 100) {
+      startGame();
+    }
+  }
 }
-
+void mousePressed() {
+  if (currentMode == MODE_3D_LOCATION) {
+    isDragging = true;
+    prevMouseX = mouseX;
+    prevMouseY = mouseY;
+  }
+  
+  // Handle restart button click (only when not entering name)
+  if (currentMode == MODE_GAME && showRestartDialog && !isEnteringName) {
+    if (mouseX > width/2 - 100 && mouseX < width/2 + 100 &&
+        mouseY > height/2 + 220 && mouseY < height/2 + 280) {
+      startGame();
+    }
+  }
+}
 void mouseReleased() {
   isDragging = false;
 }
