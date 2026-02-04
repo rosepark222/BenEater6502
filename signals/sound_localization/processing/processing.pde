@@ -14,6 +14,8 @@ final int MODE_3D_LOCATION = 7;
 final int FFT_SIZE = 1024;
 final int FFT_BINS = 512;
 
+final int FRAME_WINDOW = 43; // 43 is one second
+
 PVector[] mics = new PVector[4];
 PVector soundPos = new PVector(0, 0, 0);
 
@@ -258,6 +260,8 @@ long frameDrawEndTime = 0;
 float timeBetweenFrames = 0;
 float timeToDrawFrame = 0;
 int frameCount = 0;
+int signalDetectedByTDOAmic01 = 0;
+int prevSureFrameCount = 0;
 
 // Receiving state
 boolean receivingData = false;
@@ -790,6 +794,9 @@ void serialEvent(Serial myPort) {
       myPort.clear();
       receivingData = false;
       
+      frameCount = 0; // reset frameCount on mode change
+      signalDetectedByTDOAmic01 = 0;
+      
       return;
     }
  
@@ -973,7 +980,11 @@ void serialEvent_Eyes(String data) {
     }
     frameArrivalTime = currentTime;
     lastFrameTime = currentTime;
-    frameCount++;
+    frameCount = (++frameCount) % FRAME_WINDOW;
+    if(frameCount == 0) {
+      prevSureFrameCount = signalDetectedByTDOAmic01;
+      signalDetectedByTDOAmic01 = 0;
+    }
     
     modeChangeStatus = "Receiving PHAT data..."; // Update status message
     
@@ -1026,11 +1037,17 @@ void serialEvent_Eyes(String data) {
           mic23_phat_peak_value/mic23_phat_second_value,
           mic23_psr,
           sure_signal)); 
+    } 
+    if(sure_signal.equals("1") || sure_signal.equals("12") ){
+      signalDetectedByTDOAmic01 = (++signalDetectedByTDOAmic01) % FRAME_WINDOW; 
     }
   }
 }
 
-// MODE: EYE and GAME - Receive PHAT peak detection data
+
+
+
+// MODE: 3D
 void serialEvent_3D(String data) {
   if (data.equals("3D_START")) {
     receivingData = true; // Start receiving PHAT data packet
@@ -1043,6 +1060,7 @@ void serialEvent_3D(String data) {
     frameArrivalTime = currentTime;
     lastFrameTime = currentTime;
     frameCount++;
+    
     
     modeChangeStatus = "Receiving 3D data..."; // Update status message
     
@@ -1132,8 +1150,8 @@ void draw() {
   fill(255, 255, 0);
   textSize(14);
   textAlign(LEFT);
-  text("Mode: " + getModeNameForDisplay(currentMode) + " | Receiving: " + receivingData + " | Frame: " + frameCount, 20, 20);
-
+  text("Mode: " + getModeNameForDisplay(currentMode) + " | Receiving: " + receivingData + " | Frame: " + nf(frameCount, 2) + 
+    " | sureFrame: " + signalDetectedByTDOAmic01 + " | prevSureFrame: " + nf(prevSureFrameCount, 2) , 20, 20);
   fill(255, 100, 100);
   text("Time between frames: " + nf(timeBetweenFrames, 0, 1) + " ms", 20, 40);
 
