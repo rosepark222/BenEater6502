@@ -10,6 +10,9 @@ final int MODE_CORR_23 = 4;
 final int MODE_CORR_02 = 5;
 final int MODE_CORR_03 = 6;
 final int MODE_3D_LOCATION = 7;
+final int PEAK_LABEL_SIZE = 23;
+final float PEAK_THRESHOLD_FOR_DISPLAY = 0.2;
+final int PHYSICAL_MAX_PEAK = 35;
 
 final int FFT_SIZE = 1024;
 final int FFT_BINS = 512;
@@ -107,7 +110,7 @@ class Mosquito {
   
   Mosquito() {
     // move the marge before respawn so that it will be applied
-    leftright_margin = 150;
+    leftright_margin = 170 ; // increased the margin
     topbottom_margin = 250; // prevent duck from respawning too high or too low
     baseSize = 30; // Default base size
     respawn();
@@ -269,7 +272,7 @@ String currentMic = "";
 
 float max_value = 0;
 int  max_idx = 0;
-float draw_vertical_line_threshold = 0.2;
+ 
 
 float mic01_phat_peak_value = -1;
 float mic01_phat_peak_idx = -10;
@@ -1023,10 +1026,14 @@ void serialEvent_Eyes(String data) {
     sure_signal = "";
     //if(mic01_phat_peak_value/mic01_phat_second_value > 1.5 && mic01_phat_peak_value > 0.2) sure_signal = "1";
     //if(mic23_phat_peak_value/mic23_phat_second_value > 1.5 && mic23_phat_peak_value > 0.2) sure_signal += "2";
-    if(mic01_phat_peak_value/mic01_phat_second_value > 1.5 && mic01_phat_peak_value > 0.2 && mic01_psr > 6.0f) sure_signal = "1";
-    if(mic23_phat_peak_value/mic23_phat_second_value > 1.5 && mic23_phat_peak_value > 0.2 && mic23_psr > 6.0f) sure_signal += "2";    
+    boolean mic01_peak_out_bound =  mic01_phat_peak_idx > PHYSICAL_MAX_PEAK && mic01_phat_peak_idx < (FFT_SIZE - PHYSICAL_MAX_PEAK); 
+    boolean mic23_peak_out_bound =  mic23_phat_peak_idx > PHYSICAL_MAX_PEAK && mic23_phat_peak_idx < (FFT_SIZE - PHYSICAL_MAX_PEAK); 
+    if(!mic01_peak_out_bound && mic01_phat_peak_value/mic01_phat_second_value > 1.5 && mic01_phat_peak_value > 0.2 && mic01_psr > 6.0f) sure_signal = "1";
+    if(!mic23_peak_out_bound && mic23_phat_peak_value/mic23_phat_second_value > 1.5 && mic23_phat_peak_value > 0.2 && mic23_psr > 6.0f) sure_signal += "2";    
     
-    if(! sure_signal.equals("")) {
+    
+    //if(! sure_signal.equals("")) {
+    if(mic01_phat_peak_value > 0.1) {
       println(String.format("INFO: mic01 p0:%10.6f []:%5d, p1:%10.6f []:%5d (p0/p1:%10.6f <> 1.5, psr:%10.6f <> 6.0); mic23 %10.6f %5d, %10.6f %5d (%10.6f) %10.6f;  %s",
           mic01_phat_peak_value, (int)mic01_phat_peak_idx, 
           mic01_phat_second_value, (int)mic01_phat_second_idx,
@@ -1370,7 +1377,7 @@ void renderCorrToBuffer() {
   float minScale = 0.0;
   float maxScale = 1.0;
   
-  if (max_value > draw_vertical_line_threshold) {
+  if (max_value > PEAK_THRESHOLD_FOR_DISPLAY) {
     // Draw line graph
     corrBuffer.stroke(255, 150, 100);
     corrBuffer.strokeWeight(2);
@@ -1387,7 +1394,7 @@ void renderCorrToBuffer() {
   }
   
   // Draw vertical line at peak
-  if (max_value > draw_vertical_line_threshold) {
+  if (max_value > PEAK_THRESHOLD_FOR_DISPLAY) {
     float peakX = map(max_idx, 0, FFT_SIZE-1, 50, width - 50);
     float peakY = map(max_value, minScale, maxScale, graphBottom, corrTop);
     
@@ -1403,7 +1410,7 @@ void renderCorrToBuffer() {
     
     // Peak label above the peak
     corrBuffer.fill(255, 255, 0);
-    corrBuffer.textSize(16);
+    corrBuffer.textSize(PEAK_LABEL_SIZE);
     corrBuffer.textAlign(CENTER);
     corrBuffer.text("Peak: " + nf(max_value, 0, 4), peakX, peakY - 15);
     int display_idx = max_idx < FFT_BINS ? max_idx : max_idx - FFT_SIZE;
