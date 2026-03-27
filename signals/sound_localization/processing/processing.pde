@@ -1032,8 +1032,9 @@ void serialEvent_Eyes(String data) {
     if(!mic23_peak_out_bound && mic23_phat_peak_value/mic23_phat_second_value > 1.5 && mic23_phat_peak_value > 0.2 && mic23_psr > 6.0f) sure_signal += "2";    
     
     
+    boolean verbose = false;
     //if(! sure_signal.equals("")) {
-    if(mic01_phat_peak_value > 0.1) {
+    if(verbose && mic01_phat_peak_value > 0.1) {
       println(String.format("INFO: mic01 p0:%10.6f []:%5d, p1:%10.6f []:%5d (p0/p1:%10.6f <> 1.5, psr:%10.6f <> 6.0); mic23 %10.6f %5d, %10.6f %5d (%10.6f) %10.6f;  %s",
           mic01_phat_peak_value, (int)mic01_phat_peak_idx, 
           mic01_phat_second_value, (int)mic01_phat_second_idx,
