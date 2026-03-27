@@ -676,12 +676,16 @@ void loop_gcc_phat() {
         int mic23_max_shifted_idx = mic23_max_idx > 512 ? mic23_max_idx -1024 : mic23_max_idx;
         int mic23_second_shifted_idx = mic23_second_idx > 512 ? mic23_second_idx -1024 : mic23_second_idx;
  
-        Serial.println("PHAT_START"); // Start marker for PHAT data packet
-        // Send: peak_value, peak_idx, second_value, second_idx, psr for both mic pairs
-        Serial.printf("%.6f, %5d, %.6f, %5d, %.6f, %.6f, %5d, %.6f, %5d, %.6f\n", 
-          mic01_max_value, mic01_max_shifted_idx, mic01_second_value, mic01_second_shifted_idx, psr01, 
-          mic23_max_value, mic23_max_shifted_idx, mic23_second_value, mic23_second_shifted_idx, psr23);
-        Serial.println("PHAT_END"); // End marker for PHAT data packet
+        // only send data if physically makes sense given 27cm mic spacing
+        if(abs(mic01_max_shifted_idx) <= 35 && abs(mic23_max_shifted_idx) <= 35 ) {
+          Serial.println("PHAT_START"); // Start marker for PHAT data packet
+          // Send: peak_value, peak_idx, second_value, second_idx, psr for both mic pairs
+          Serial.printf("%.6f, %5d, %.6f, %5d, %.6f, %.6f, %5d, %.6f, %5d, %.6f\n", 
+            mic01_max_value, mic01_max_shifted_idx, mic01_second_value, mic01_second_shifted_idx, psr01, 
+            mic23_max_value, mic23_max_shifted_idx, mic23_second_value, mic23_second_shifted_idx, psr23);
+          Serial.println("PHAT_END"); // End marker for PHAT data packet
+        }
+
 
         //}
       } else if(debug_mode == MODE_3D_LOCATION ) {
