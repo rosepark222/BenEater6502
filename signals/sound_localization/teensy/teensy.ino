@@ -564,13 +564,8 @@ void loop_gcc_phat() {
       */
       if(debug_mode == MODE_FFT) {      
         Serial.println("FFT_START"); // Start marker for FFT data packet
-        for(int i = 0; i < FFT_BINS; i++) {
-          Serial.print(mic0_magnitude[i], 6); // Send magnitude with 6 decimal places
-          //Serial.print(mic1_magnitude[i], 6);
-          //Serial.print(mic2_magnitude[i], 6);
-          //Serial.print(mic3_magnitude[i], 6);
-          if(i < FFT_BINS - 1) {Serial.print(",");} // Comma-separated values
-        }
+        // binary data transferation to save bandwidth -- read receiving side for full descriptions
+        Serial.write((uint8_t*)mic0_magnitude, FFT_BINS * sizeof(float));
         Serial.println(); // End of data line
         Serial.println("FFT_END"); // End marker for FFT data packet
       
