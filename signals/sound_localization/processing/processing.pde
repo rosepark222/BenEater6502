@@ -671,6 +671,16 @@ void setup() {
     println("Connecting to: " + portName);
     myPort = new Serial(this, portName, 115200);
 
+// should I remove myPort.bufferUntil('\n'); after introducing hybrid data transfer for fft ? ?
+// I still think random 0x0A in the data should not cause a harm. 
+// Just call the serialEvent  more often than it should. Even so, 
+// serailEvent is still in the binary mode so that it will not treat \n special way 
+// but part of float point. Is this correct or \n will be lost in some way? 
+// So yes, bufferUntil('\n') is safe to keep with your hybrid protocol. 
+// The accidental 0x0A bytes just cause serialEvent() to fire more often than necessary, 
+// but since inFFTPacket == true guards the binary path, the 0x0A byte is treated as just another data byte
+// and accumulated correctly. Nothing is lost.
+
     myPort.bufferUntil('\n');
     println("Connected successfully!");
   }
@@ -743,80 +753,193 @@ void requestModeChange(int newMode) {
   myPort.write(command); // Send command to Teensy
   println("SENT: " + command.trim());
 }
+// Global variables to add at the top of your sketch
+boolean inFFTPacket = false;
+byte[] fft_tmp_buffer = new byte[FFT_BINS * 4]; // 4 bytes per float
+int fftBytesRead = 0;
 
+// ── serialEvent: Mixed Binary/ASCII Serial Protocol ───────────────────────────
+//
+// BACKGROUND:
+//   The original implementation sent FFT data as ASCII comma-separated floats,
+//   e.g. "0.123456,0.234567,...\n" for 512 bins. This was the main bandwidth
+//   bottleneck. Each float took ~10 ASCII characters vs 4 bytes in binary,
+//   meaning binary transfer is roughly 2.5x more efficient.
+//
+// WHY BINARY NEEDS RECONSTRUCTION:
+//   Binary transfer sends data byte by byte, losing the original data format
+//   in transit. This is true even when both Teensy and PC use the same float
+//   format (IEEE 754) -- the receiving side must always reconstruct the original
+//   type from raw bytes. Here we reassemble 4 consecutive bytes back into a
+//   32-bit float using bit shifting:
+//
+//     int bits = ((byte3 & 0xFF) << 24) | ((byte2 & 0xFF) << 16)
+//              | ((byte1 & 0xFF) <<  8) | ((byte0 & 0xFF));
+//     fft_data[i] = Float.intBitsToFloat(bits);
+//
+// USB PACKET BEHAVIOR:
+//   USB transfers data in 64-byte packets. myPort.available() > 0 becomes true
+//   when the buffer has been filled and the packet has arrived. This means
+//   binary reads may arrive in multiple 64-byte chunks, which is why we
+//   accumulate into fft_tmp_buffer until all FFT_BINS * 4 bytes are received
+//   before decoding.
+//
+// PROTOCOL:
+//   FFT data uses a hybrid protocol -- ASCII markers for framing, binary
+//   payload for the data itself:
+//
+//     "FFT_START\n"          ← ASCII, switches receiver into binary mode
+//     [FFT_BINS * 4 bytes]   ← raw binary floats, accumulated into fft_tmp_buffer
+//     "FFT_END\n"            ← ASCII, arrives after binary payload (ignored,
+//                               decode is triggered by byte count instead)
+//
+//   All other messages (DEBUG, HEARTBEAT, ACK, MODE_CHANGED, CORR, EYE, 3D)
+//   remain ASCII line-terminated and are unaffected by this change.
+//
+// FLAG:
+//   inFFTPacket == true  → binary mode, accumulate raw bytes into fft_tmp_buffer
+//   inFFTPacket == false → ASCII mode, read line by line with readStringUntil('\n')
+// ─────────────────────────────────────────────────────────────────────────────
 void serialEvent(Serial myPort) {
   if (myPort == null) return;
 
-  String data = myPort.readStringUntil('\n');
-  if (data != null) {
-    data = trim(data);
-    
-    // DEBUG: Capture debug messages from Teensy
+  while (myPort.available() > 0) {
+
+    // ── BINARY MODE: inside an FFT packet, read raw bytes ────────────────────
+    if (inFFTPacket) {
+      int needed = fft_tmp_buffer.length - fftBytesRead;
+      int available = myPort.available();
+      int toRead = min(needed, available);
+
+      byte[] chunk = new byte[toRead];
+      myPort.readBytes(chunk);
+      arrayCopy(chunk, 0, fft_tmp_buffer, fftBytesRead, toRead);
+      fftBytesRead += toRead;
+
+      if (fftBytesRead >= fft_tmp_buffer.length) {
+        // ── Decode raw bytes directly into fft_data[] ────────────────────────
+        for (int i = 0; i < FFT_BINS; i++) {
+          int offset = i * 4;
+          int bits = ((fft_tmp_buffer[offset + 3] & 0xFF) << 24) |
+                     ((fft_tmp_buffer[offset + 2] & 0xFF) << 16) |
+                     ((fft_tmp_buffer[offset + 1] & 0xFF) << 8)  |
+                     ((fft_tmp_buffer[offset + 0] & 0xFF));
+          fft_data[i] = Float.intBitsToFloat(bits);
+        }
+
+        // Timing + flags mirrored from serialEvent_fft FFT_END block
+        long receiveEndTime = millis();
+        float receiveTime = receiveEndTime - frameArrivalTime;
+
+        modeChangeStatus = "FFT data received correctly";
+        renderFFTToBuffer();
+        fftBufferReady = true;
+        newFrameAvailable = true;
+
+        inFFTPacket = false;
+        fftBytesRead = 0;
+      }
+      continue; // do not fall through to ASCII reading
+    }
+
+    // ── ASCII MODE: read one line at a time ───────────────────────────────────
+    String data = myPort.readStringUntil('\n');
+    if (data == null) break;
+    data = data.trim();
+
+    // ── FFT binary packet start marker ────────────────────────────────────────
+    if (data.equals("FFT_START")) {
+      inFFTPacket = true;
+      fftBytesRead = 0;
+
+      // Timing logic mirrored from serialEvent_fft FFT_START block
+      long currentTime = millis();
+      if (lastFrameTime > 0) {
+        timeBetweenFrames = (currentTime - lastFrameTime);
+      }
+      frameArrivalTime = currentTime;
+      lastFrameTime = currentTime;
+      frameCount++;
+
+      modeChangeStatus = "Receiving FFT data...";
+      continue;
+    }
+
+    // ── Stray FFT_END safety reset ────────────────────────────────────────────
+    if (data.equals("FFT_END")) {
+      inFFTPacket = false;
+      continue;
+    }
+
+    // ── DEBUG messages from Teensy ────────────────────────────────────────────
     if (data.startsWith("DEBUG:")) {
       addDebugMessage(data);
       println(data);
-      return;
+      continue;
     }
-    
-    // DEBUG: Capture heartbeat messages from Teensy
+
+    // ── Heartbeat messages from Teensy ────────────────────────────────────────
     if (data.startsWith("HEARTBEAT:")) {
       addDebugMessage("Teensy alive: " + data.substring(10));
       println(data);
-      return;
+      continue;
     }
-    
-    // HANDSHAKE: Check for acknowledgment from Teensy
+
+    // ── ACK: acknowledgment from Teensy ───────────────────────────────────────
     if (data.startsWith("ACK:MODE_")) {
       if (waitingForAck) {
         modeChangeStatus = "Received acknowledgment: " + data;
         addDebugMessage("ACK received: " + data);
         println("RECEIVED: " + data);
-        waitingForAck = false; // Got the acknowledgment
-        
-        // BUFFER CORRUPTION PREVENTION: Clear serial buffer to discard any old data
+        waitingForAck = false;
+
         myPort.clear();
-        
-        // BUFFER CORRUPTION PREVENTION: Reset receiving state to ignore partial packets
+        inFFTPacket = false;  // reset binary state too
+        fftBytesRead = 0;
         receivingData = false;
         currentMic = "";
       }
-      return;
+      continue;
     }
-    
-    // HANDSHAKE: Check for mode change confirmation from Teensy
+
+    // ── MODE_CHANGED: mode change confirmed by Teensy ─────────────────────────
     if (data.startsWith("MODE_CHANGED:")) {
       int newMode = int(data.substring(13));
-      currentMode = newMode; // Update our current mode
-      modeChanging = false; // Mode change complete
+      currentMode = newMode;
+      modeChanging = false;
       requestedMode = -1;
       modeChangeStatus = "Mode changed successfully to: " + getModeNameForDisplay(currentMode);
       addDebugMessage("Mode change complete: " + getModeNameForDisplay(currentMode));
       println("RECEIVED: " + data + " - Mode change complete!");
-      
-      // BUFFER CORRUPTION PREVENTION: Clear any old data after mode change
+
       myPort.clear();
+      inFFTPacket = false;  // reset binary state too
+      fftBytesRead = 0;
       receivingData = false;
-      
-      frameCount = 0; // reset frameCount on mode change
+      frameCount = 0;
       signalDetectedByTDOAmic01 = 0;
-      
-      return;
+      continue;
     }
- 
-    // Route to appropriate serial event handler based on current mode
-    // BUFFER CORRUPTION PREVENTION: Only process data if not changing modes
+
+    // ── Mode-specific data: only process when not changing modes ──────────────
     if (!modeChanging) {
       if (currentMode == MODE_FFT) {
-        serialEvent_fft(data); // FFT mode
-      } else if (currentMode == MODE_CORR_01 || currentMode == MODE_CORR_23 || currentMode == MODE_CORR_02 || currentMode == MODE_CORR_03) {
-        serialEvent_corr(data); // CORR mode
+        // In FFT mode, stray ASCII lines that aren't markers are unexpected
+        addDebugMessage("FFT mode: unexpected ASCII ignored: " + data);
+
+      } else if (currentMode == MODE_CORR_01 || currentMode == MODE_CORR_23 ||
+                 currentMode == MODE_CORR_02  || currentMode == MODE_CORR_03) {
+        serialEvent_corr(data);
+
       } else if (currentMode == MODE_EYE || currentMode == MODE_GAME) {
-        serialEvent_Eyes(data); // EYE or GAME mode
-      }else if (currentMode == MODE_3D_LOCATION) {
+        serialEvent_Eyes(data);
+
+      } else if (currentMode == MODE_3D_LOCATION) {
         serialEvent_3D(data);
-      } 
+      }
+
     } else {
-      // BUFFER CORRUPTION PREVENTION: Ignore data during mode transition
+      // Ignore data packets arriving during a mode transition
       if (data.equals("FFT_START") || data.equals("CORR_START") || data.equals("PHAT_START")) {
         addDebugMessage("IGNORED: Data packet during mode transition");
         println("IGNORED: Data packet during mode transition");
